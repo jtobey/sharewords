@@ -565,24 +565,22 @@ function loadGameFromURLOrStorage() {
                 const urlTurnNumber = parseInt(urlTurnNumberStr);
                 if (urlTurnNumber === currentGame.turnNumber + 1) {
                     console.log(`Attempting to apply turn ${urlTurnNumber} from URL.`);
-                    if (applyTurnDataFromURL(currentGame, params)) {
+                    if (applyTurnDataFromURL(currentGame, params)) { // True if word data was processed and applied
                         currentGame.turnNumber = urlTurnNumber;
-                        if (params.get('w')) { // if actual move data was applied
-                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-                        } // If no word data, it might be a pass/exchange - currentPlayerIndex should still advance.
-                        else if (!params.get('w') && !params.get('bt')) { // Explicitly a pass/exchange (no word, no blanks)
-                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-                        }
+                        currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
                         saveGameStateToLocalStorage(currentGame);
-                        console.log(`Successfully applied/processed turn ${urlTurnNumber}. New current player index: ${currentGame.currentPlayerIndex}`);
-                    } else { // applyTurnDataFromURL returned false, but it wasn't a pass/exchange
-                        if (params.get('w') || params.get('bt')) { // If there was an attempt to apply word/blank data and it failed
-                            alert("Failed to apply turn data from URL. Check console.");
-                        } else { // Only gid, tn in URL - could be just syncing turn number after a pass on other client
-                             currentGame.turnNumber = urlTurnNumber;
-                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-                             saveGameStateToLocalStorage(currentGame);
-                             console.log(`Turn ${urlTurnNumber} (likely pass/exchange) processed. New current player index: ${currentGame.currentPlayerIndex}`);
+                        console.log(`Successfully applied word move from URL for turn ${urlTurnNumber}. New current player index: ${currentGame.currentPlayerIndex}`);
+                    } else {
+                        // applyTurnDataFromURL returned false. Check if it was a pass/exchange or an error.
+                        if (!params.has('w') && !params.has('wl') && !params.has('wd') && !params.has('bt')) {
+                            // No word-specific parameters, likely a pass or exchange (or just gid, tn)
+                            currentGame.turnNumber = urlTurnNumber;
+                            currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+                            saveGameStateToLocalStorage(currentGame);
+                            console.log(`Turn ${urlTurnNumber} (pass/exchange or sync) processed. New current player index: ${currentGame.currentPlayerIndex}`);
+                        } else {
+                            // Word parameters were present but applyTurnDataFromURL failed (e.g., parsing error, invalid coords)
+                            alert("Failed to apply turn data from URL. Word data present but invalid. Check console.");
                         }
                     }
                 } else if (urlTurnNumber <= currentGame.turnNumber) {
