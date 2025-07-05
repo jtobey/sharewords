@@ -276,17 +276,16 @@ function renderBoard(gameState) {
 
             if (squareData.tile) {
                 const tile = squareData.tile;
-                // squareDiv.textContent = tile.isBlank ? `(${tile.assignedLetter || ' '})` : tile.letter;
-                // Render tile content similar to how it's done in renderTileInRack for consistency
+                // Render tile content with common classes for letter and value
                 const letterSpan = document.createElement('span');
-                letterSpan.classList.add('letter');
-                letterSpan.textContent = tile.isBlank ? (tile.assignedLetter ? `(${tile.assignedLetter})` : '(?)') : tile.letter;
+                letterSpan.classList.add('tile-letter'); // Use common class
+                letterSpan.textContent = tile.isBlank ? (tile.assignedLetter ? `(${tile.assignedLetter.toUpperCase()})` : '(?)') : tile.letter;
 
                 const valueSpan = document.createElement('span');
-                valueSpan.classList.add('value');
+                valueSpan.classList.add('tile-value'); // Use common class
                 valueSpan.textContent = tile.value;
 
-                squareDiv.innerHTML = ''; // Clear any bonus text if we used it
+                squareDiv.innerHTML = ''; // Clear any bonus text (e.g. from bonus class name)
                 squareDiv.appendChild(letterSpan);
                 squareDiv.appendChild(valueSpan);
 
@@ -323,11 +322,11 @@ function renderTileInRack(tile, isDraggable = false) {
     }
 
     const letterSpan = document.createElement('span');
-    letterSpan.classList.add('letter');
-    letterSpan.textContent = tile.isBlank ? '?' : tile.letter; // Show '?' for blank before assignment
+    letterSpan.classList.add('tile-letter'); // Use common class
+    letterSpan.textContent = tile.isBlank ? '?' : tile.letter.toUpperCase();
 
     const valueSpan = document.createElement('span');
-    valueSpan.classList.add('value');
+    valueSpan.classList.add('tile-value'); // Use common class
     valueSpan.textContent = tile.value;
 
     tileDiv.appendChild(letterSpan);
@@ -403,12 +402,25 @@ function fullRender(gameState, localPlayerId) {
 let draggedTileId = null; // To store the ID of the tile being dragged
 
 function handleDragStart(event) {
-    // Only allow dragging if it's the current player's turn and the tile belongs to the local player
-    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
+    const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
+    console.log(`Drag Start Attempt: localPlayerId='${localPlayerId}', currentTurnPlayerId='${currentTurnPlayerId}'`);
+
+    // Only allow dragging if it's the current player's turn AND this browser controls that player.
+    if (!currentGame || currentTurnPlayerId !== localPlayerId) {
+        console.log("Drag prevented: Not current player's turn or local player mismatch.");
         event.preventDefault();
         return;
     }
-    draggedTileId = event.target.dataset.tileId;
+
+    // Additional check: ensure the tile being dragged is either from the local player's rack
+    // or was placed by the local player this turn.
+    // (The draggable attribute should already enforce this by not being set otherwise, but this is a safeguard)
+    const tileElement = event.target.closest('[data-tile-id]');
+    if (!tileElement) {
+        event.preventDefault();
+        return;
+    }
+    draggedTileId = tileElement.dataset.tileId;
     event.dataTransfer.setData('text/plain', draggedTileId);
     event.dataTransfer.effectAllowed = 'move';
     event.target.style.opacity = '0.5'; // Visual feedback
@@ -623,7 +635,125 @@ function handleCommitPlay() {
     });
 
     // Capture moves for URL generation BEFORE clearing
-    const movesForURL = [...currentGame.currentTurnMoves];
+    const committedMoves = [...currentGame.currentTurnMoves];
+
+    // --- Word Identification Logic (Simplified) ---
+    let wordDataForURL = null;
+    if (committedMoves.length > 0) {
+        // Sort moves by row, then col to help determine word order
+        committedMoves.sort((a, b) => {
+            if (a.to.row === b.to.row) return a.to.col - b.to.col;
+            return a.to.row - b.to.row;
+        });
+
+        const firstMove = committedMoves[0];
+        const lastMove = committedMoves[committedMoves.length - 1];
+        let direction = null;
+        let isSingleLine = true;
+
+        if (committedMoves.length > 1) {
+            const allSameRow = committedMoves.every(m => m.to.row === firstMove.to.row);
+            const allSameCol = committedMoves.every(m => m.to.col === firstMove.to.col);
+
+            if (allSameRow) {
+                direction = 'horizontal';
+            } else if (allSameCol) {
+                direction = 'vertical';
+            } else {
+                isSingleLine = false; // Tiles not in a single line
+            }
+        } else { // Single tile placed
+            direction = 'horizontal'; // Default for single tile, or could try to infer
+        }
+
+        if (isSingleLine) {
+            let wordString = "";
+            let startRow = firstMove.to.row;
+            let startCol = firstMove.to.col;
+            let minR = startRow, maxR = startRow, minC = startCol, maxC = startCol;
+
+            if (direction === 'horizontal') {
+                minC = committedMoves.reduce((min, m) => Math.min(min, m.to.col), firstMove.to.col);
+                maxC = committedMoves.reduce((max, m) => Math.max(max, m.to.col), firstMove.to.col);
+                startCol = minC; // Word starts at the minimum column of the new tiles
+
+                // Expand to include existing adjacent tiles
+                let currentC = minC - 1;
+                while(currentC >= 0 && currentGame.board.grid[startRow][currentC].tile) {
+                    startCol = currentC; // Update startCol if existing tiles are found to the left
+                    currentC--;
+                }
+                currentC = maxC + 1;
+                let endCol = maxC;
+                while(currentC < currentGame.board.size && currentGame.board.grid[startRow][currentC].tile) {
+                    endCol = currentC; // Update endCol if existing tiles are found to the right
+                    currentC++;
+                }
+
+                for (let c = startCol; c <= endCol; c++) {
+                    const tileOnSquare = currentGame.board.grid[startRow][c].tile;
+                    if (tileOnSquare) {
+                        wordString += tileOnSquare.isBlank ? tileOnSquare.assignedLetter.toUpperCase() : tileOnSquare.letter.toUpperCase();
+                    } else { /* This case should ideally not happen if logic is correct */ wordString += '?'; }
+                }
+
+            } else { // Vertical
+                minR = committedMoves.reduce((min, m) => Math.min(min, m.to.row), firstMove.to.row);
+                maxR = committedMoves.reduce((max, m) => Math.max(max, m.to.row), firstMove.to.row);
+                startRow = minR; // Word starts at the minimum row
+
+                let currentR = minR - 1;
+                while(currentR >= 0 && currentGame.board.grid[currentR][startCol].tile) {
+                    startRow = currentR;
+                    currentR--;
+                }
+                currentR = maxR + 1;
+                let endRow = maxR;
+                while(currentR < currentGame.board.size && currentGame.board.grid[currentR][startCol].tile) {
+                    endRow = currentR;
+                    currentR++;
+                }
+
+                for (let r = startRow; r <= endRow; r++) {
+                     const tileOnSquare = currentGame.board.grid[r][startCol].tile;
+                    if (tileOnSquare) {
+                        wordString += tileOnSquare.isBlank ? tileOnSquare.assignedLetter.toUpperCase() : tileOnSquare.letter.toUpperCase();
+                    } else { wordString += '?'; }
+                }
+            }
+
+            const blanksInfo = [];
+            committedMoves.forEach(move => {
+                if (move.tileRef.isBlank) {
+                    let indexInWord = -1;
+                    if (direction === 'horizontal') {
+                        indexInWord = move.to.col - startCol;
+                    } else { // vertical
+                        indexInWord = move.to.row - startRow;
+                    }
+                    if (indexInWord >= 0 && indexInWord < wordString.length) {
+                         blanksInfo.push({ idx: indexInWord, al: move.tileRef.assignedLetter.toUpperCase() });
+                    }
+                }
+            });
+
+            wordDataForURL = {
+                word: wordString,
+                start_row: startRow,
+                start_col: startCol,
+                direction: direction,
+                blanks_info: blanksInfo
+            };
+            console.log("Identified word for URL:", wordDataForURL);
+
+        } else {
+            console.warn("Tiles placed are not in a single line. Using old td format for now.");
+            // Fallback to old turn data format if not a single line (for this simplified step)
+            wordDataForURL = committedMoves; // This will make generateTurnURL use the old `td` format
+        }
+    }
+    // --- End of Word Identification ---
+
 
     // Clear currentTurnMoves as these are now "locked in" for this turn.
     currentGame.currentTurnMoves = [];
@@ -641,11 +771,26 @@ function handleCommitPlay() {
 
     alert("Play committed! (Validation, scoring, and turn change not yet implemented)");
 
-    // Generate and display turn URL
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, movesForURL);
+    let turnURL;
+    if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
+        // This is P1 completing their first move, generate the special new game + first move URL
+        turnURL = generateTurnURL(
+            currentGame.gameId,
+            currentGame.turnNumber,
+            wordDataForURL, // Use the new word-based data structure
+            currentGame.randomSeed,
+            currentGame.creatorId
+            // TODO: Include non-default settings
+        );
+    } else {
+        // Standard turn URL for subsequent moves, using new word-based data
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL);
+    }
+
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
         turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player."; // Update placeholder
         console.log("Turn URL:", turnURL);
     }
 
@@ -654,30 +799,44 @@ function handleCommitPlay() {
     fullRender(currentGame, localPlayerId);
 }
 
-function generateTurnURL(gameId, turnNumber, turnData) {
+function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = null, settings = null) {
     const baseURL = window.location.origin + window.location.pathname;
     const params = new URLSearchParams();
     params.append('gid', gameId);
     params.append('tn', turnNumber);
 
-    // Simplified turn data: array of placed tiles {l,r,c,b,al}
-    // l = letter, r = row, c = col, b = isBlank (0 or 1), al = assignedLetter (if blank)
-    if (turnData && turnData.length > 0) {
-        const simplifiedTurnData = turnData.map(move => ({
-            l: move.tileRef.isBlank ? '' : move.tileRef.letter, // Store original letter for non-blanks
-            r: move.to.row,
-            c: move.to.col,
-            b: move.tileRef.isBlank ? 1 : 0,
-            al: move.tileRef.isBlank ? move.tileRef.assignedLetter : undefined
-        })).filter(td => td !== undefined); // Filter out undefined if any blank wasn't assigned (should not happen here)
-
-        params.append('td', JSON.stringify(simplifiedTurnData));
+    if (seed !== null) {
+        params.append('seed', seed);
     }
-    // Later, td might be more complex (word, startPos, direction)
+    if (creator !== null) {
+        params.append('creator', creator);
+    }
+    // TODO: Add settings to params if provided and non-default
 
-    // If it's the first turn URL being generated by the creator, include creatorId
-    if (turnNumber === 1 && currentGame && currentGame.creatorId === BROWSER_PLAYER_ID) {
-        params.append('creator', currentGame.creatorId);
+    // New turnData format: { word, start_row, start_col, direction, blanks_info }
+    // or array of moves (old format as fallback)
+    if (turnData) {
+        if (Array.isArray(turnData)) { // Fallback to old format if word identification failed
+            console.warn("generateTurnURL: Falling back to old 'td' format.");
+            const simplifiedTurnData = turnData.map(move => ({
+                l: move.tileRef.isBlank ? '' : move.tileRef.letter,
+                r: move.to.row,
+                c: move.to.col,
+                b: move.tileRef.isBlank ? 1 : 0,
+                al: move.tileRef.isBlank ? move.tileRef.assignedLetter : undefined
+            })).filter(td => td !== undefined);
+            if (simplifiedTurnData.length > 0) {
+                params.append('td', JSON.stringify(simplifiedTurnData));
+            }
+        } else if (turnData.word) { // New word-based format
+            params.append('w', turnData.word);
+            params.append('wl', `${turnData.start_row},${turnData.start_col}`);
+            params.append('wd', turnData.direction);
+            if (turnData.blanks_info && turnData.blanks_info.length > 0) {
+                const blankParam = turnData.blanks_info.map(bi => `${bi.idx}:${bi.al}`).join(';');
+                params.append('bt', blankParam);
+            }
+        }
     }
 
     return `${baseURL}?${params.toString()}`;
@@ -858,41 +1017,115 @@ function loadGameStateFromLocalStorage(gameId) {
 
 
 // --- Game Initialization and URL Handling ---
-function applyTurnDataToGame(gameState, turnDataArray) {
-    if (!gameState || !turnDataArray || !Array.isArray(turnDataArray)) {
-        console.error("Invalid arguments to applyTurnDataToGame");
-        return false;
-    }
+function applyTurnDataFromURL(gameState, params) {
+    const word = params.get('w');
+    const wordLocation = params.get('wl');
+    const wordDirection = params.get('wd');
+    const blankTileData = params.get('bt'); // Format: "idx1:AL1;idx2:AL2"
+    const oldTurnDataStr = params.get('td'); // Fallback
 
-    // Simplified application: assumes turnDataArray contains tiles to be placed.
-    // This does NOT correctly simulate drawing from opponent's rack or bag.
-    // It's a placeholder for showing the board state from a URL.
-    // A full implementation would need to reconcile tile IDs or use a more comprehensive turn data.
-    console.log("Applying turn data:", turnDataArray);
-    turnDataArray.forEach(td => {
-        if (gameState.board.grid[td.r] && gameState.board.grid[td.r][td.c]) {
-            if (gameState.board.grid[td.r][td.c].tile) {
-                console.warn(`Square ${td.r},${td.c} already has a tile. Overwriting for URL apply (simplification).`);
-            }
-            const newTile = new Tile(td.l, currentGame.settings.tileValues[td.l] || 0, td.b === 1);
-            if (newTile.isBlank && td.al) {
-                newTile.assignedLetter = td.al;
-            }
-            gameState.board.grid[td.r][td.c].tile = newTile;
-            // Note: This doesn't remove tiles from any player's rack or the bag,
-            // which is incorrect for true game state synchronization.
-        } else {
-            console.error(`Invalid square coordinates in turn data: ${td.r},${td.c}`);
+    if (word && wordLocation && wordDirection) {
+        console.log(`Applying word-based turn data: ${word} at ${wordLocation} ${wordDirection}`);
+        const [startRowStr, startColStr] = wordLocation.split(',');
+        const startRow = parseInt(startRowStr);
+        const startCol = parseInt(startColStr);
+
+        if (isNaN(startRow) || isNaN(startCol)) {
+            console.error("Invalid word location format:", wordLocation);
+            return false;
         }
-    });
-    return true;
+
+        const blanks = new Map(); // Map from indexInWord to assignedLetter
+        if (blankTileData) {
+            blankTileData.split(';').forEach(item => {
+                const [idxStr, al] = item.split(':');
+                blanks.set(parseInt(idxStr), al);
+            });
+        }
+
+        for (let i = 0; i < word.length; i++) {
+            const char = word[i];
+            let r = startRow;
+            let c = startCol;
+
+            if (wordDirection === 'horizontal') {
+                c += i;
+            } else if (wordDirection === 'vertical') {
+                r += i;
+            } else {
+                console.error("Invalid word direction:", wordDirection);
+                return false;
+            }
+
+            if (gameState.board.grid[r] && gameState.board.grid[r][c]) {
+                if (gameState.board.grid[r][c].tile && gameState.board.grid[r][c].tile.letter !== char && !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char)) {
+                    // Only overwrite if it's clearly different. If it's the same, this is fine.
+                    // This simple application doesn't know which tiles were newly placed vs pre-existing.
+                    console.warn(`Square ${r},${c} already has a tile ${gameState.board.grid[r][c].tile.letter}. Overwriting with ${char} from URL.`);
+                }
+
+                let isBlankTile = false;
+                let assignedLetterForBlank = null;
+
+                if (blanks.has(i)) {
+                    isBlankTile = true;
+                    assignedLetterForBlank = blanks.get(i);
+                }
+
+                // For non-blank characters from the word string, they are the letter.
+                // For blank characters (represented by their assigned letter in `word`), `char` is the assigned letter.
+                const tileLetter = isBlankTile ? '' : char;
+                const newTile = new Tile(tileLetter, gameState.settings.tileValues[char] || 0, isBlankTile);
+                if (isBlankTile) {
+                    newTile.assignedLetter = assignedLetterForBlank;
+                }
+                gameState.board.grid[r][c].tile = newTile;
+
+            } else {
+                console.error(`Invalid square coordinates for word placement: ${r},${c}`);
+                return false;
+            }
+        }
+        return true;
+
+    } else if (oldTurnDataStr) { // Fallback to old td format
+        console.warn("Applying turn data using fallback 'td' parameter.");
+        try {
+            const turnDataArray = JSON.parse(oldTurnDataStr);
+            if (!gameState || !turnDataArray || !Array.isArray(turnDataArray)) {
+                console.error("Invalid arguments to applyTurnDataToGame (fallback)");
+                return false;
+            }
+            turnDataArray.forEach(td => {
+                if (gameState.board.grid[td.r] && gameState.board.grid[td.r][td.c]) {
+                    if (gameState.board.grid[td.r][td.c].tile) {
+                        console.warn(`Square ${td.r},${td.c} already has a tile. Overwriting for URL apply (simplification).`);
+                    }
+                    const newTile = new Tile(td.l, gameState.settings.tileValues[td.l] || 0, td.b === 1);
+                    if (newTile.isBlank && td.al) {
+                        newTile.assignedLetter = td.al;
+                    }
+                    gameState.board.grid[td.r][td.c].tile = newTile;
+                } else {
+                    console.error(`Invalid square coordinates in turn data: ${td.r},${td.c}`);
+                }
+            });
+            return true;
+        } catch (e) {
+            console.error("Error parsing fallback 'td' data:", e);
+            return false;
+        }
+    }
+    console.log("No recognized turn data found in URL params to apply.");
+    return false; // No turn data applied
 }
+
 
 function loadGameFromURLOrStorage() {
     const params = new URLSearchParams(window.location.search);
     const urlGameId = params.get('gid');
     const urlTurnNumberStr = params.get('tn');
-    const urlTurnDataStr = params.get('td');
+    // const urlTurnDataStr = params.get('td'); // No longer primary, handled by applyTurnDataFromURL
     const urlSeed = params.get('seed'); // For new game from URL
 
     // TODO: Determine localPlayerId more robustly (e.g. from localStorage, or based on who created the game)
@@ -919,29 +1152,28 @@ function loadGameFromURLOrStorage() {
             if (urlTurnNumberStr) {
                 const urlTurnNumber = parseInt(urlTurnNumberStr);
                 if (urlTurnNumber === currentGame.turnNumber + 1) {
-                    console.log(`Applying turn data for turn ${urlTurnNumber}`);
-                    if (urlTurnDataStr) {
-                        try {
-                            const turnDataArray = JSON.parse(urlTurnDataStr);
-                            if (applyTurnDataToGame(currentGame, turnDataArray)) {
-                                currentGame.turnNumber = urlTurnNumber; // Update turn number
-                                // TODO: Determine whose turn it is now.
-                                // The URL implies player X just finished their turn. So it's player Y's turn.
-                                // This simplified logic doesn't switch players yet.
-                                saveGameStateToLocalStorage(currentGame); // STUB
-                            } else {
-                                alert("Failed to apply turn data.");
-                            }
-                        } catch (e) {
-                            console.error("Error parsing turn data from URL:", e);
-                            alert("Error processing turn data from URL.");
+                    console.log(`Attempting to apply turn ${urlTurnNumber} from URL.`);
+                    if (applyTurnDataFromURL(currentGame, params)) {
+                        currentGame.turnNumber = urlTurnNumber; // Update turn number
+                        // TODO: Player switching logic more robustly
+                        // For now, if a move was applied, switch player index
+                        if (params.get('w') || params.get('td')) { // if there was move data
+                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
                         }
+                        saveGameStateToLocalStorage(currentGame);
+                        console.log(`Successfully applied turn ${urlTurnNumber}. New current player index: ${currentGame.currentPlayerIndex}`);
                     } else {
-                         // URL has a turn number but no data - could be a pass or exchange.
-                         // For now, just update turn number if it's sequential.
-                        currentGame.turnNumber = urlTurnNumber;
-                        saveGameStateToLocalStorage(currentGame); // STUB
-                        console.log("Turn URL processed (no tile data, could be pass/exchange).");
+                        // applyTurnDataFromURL might return false if no actual turn data was found (e.g. only gid, tn)
+                        // or if there was an error. If it's just a URL to sync turn number (e.g. after a pass),
+                        // and no data was present, it's not an error.
+                        if (!params.get('w') && !params.get('td') && !params.get('bt')) {
+                             currentGame.turnNumber = urlTurnNumber; // Likely a pass or exchange, update turn.
+                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+                             saveGameStateToLocalStorage(currentGame);
+                             console.log(`Turn ${urlTurnNumber} processed as pass/exchange. New current player index: ${currentGame.currentPlayerIndex}`);
+                        } else {
+                            alert("Failed to apply turn data from URL. Check console for details.");
+                        }
                     }
                 } else if (urlTurnNumber <= currentGame.turnNumber) {
                     alert(`Turn ${urlTurnNumber} has already been applied or is out of sync. Current turn is ${currentGame.turnNumber}.`);
@@ -965,15 +1197,15 @@ function loadGameFromURLOrStorage() {
                 currentGame.creatorId = params.get('creator') || null; // P1 should include its BROWSER_PLAYER_ID as 'creator' in the first shared URL.
 
                 // If tn=1 and td is present, apply first move from P1.
-                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && urlTurnDataStr) {
-                    try {
-                        const turnDataArray = JSON.parse(urlTurnDataStr);
-                        if(applyTurnDataToGame(currentGame, turnDataArray)) {
-                            currentGame.turnNumber = 1;
-                            // Player 1 made the first move, so current player should be Player 2 (index 1)
-                            currentGame.currentPlayerIndex = 1;
-                        }
-                    } catch (e) { console.error("Error parsing initial turn data for P2:", e); }
+                // If tn=1 and turn data (w, wl, wd or td) is present, apply P1's first move.
+                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('w') || params.has('td'))) {
+                    if(applyTurnDataFromURL(currentGame, params)) {
+                        currentGame.turnNumber = 1;
+                        currentGame.currentPlayerIndex = 1; // P1 made move 1, so it's P2's turn.
+                        console.log("Applied P1's first move for P2. Current player index:", currentGame.currentPlayerIndex);
+                    } else {
+                        console.error("Failed to apply P1's first move data for P2.");
+                    }
                 }
                 saveGameStateToLocalStorage(currentGame);
             } else {
@@ -1029,25 +1261,25 @@ function initializeNewGame() {
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 
-    // Generate the initial "new game" URL for sharing with Player 2
-    const newGameURL = generateNewGameURL(currentGame.gameId, currentGame.randomSeed, currentGame.creatorId, currentGame.settings);
+    // Clear the turn URL input or set instructional text
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
-        turnUrlInput.value = newGameURL;
-        console.log("New Game URL for sharing:", newGameURL);
+        turnUrlInput.value = ""; // Clear it
+        turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
 }
 
-function generateNewGameURL(gameId, seed, creatorId, settings) {
-    // TODO: Compactly represent settings if non-default
-    const baseURL = window.location.origin + window.location.pathname;
-    const params = new URLSearchParams();
-    params.append('gid', gameId);
-    params.append('seed', seed);
-    params.append('creator', creatorId);
-    // Add non-default settings to params, e.g. params.append('s_blanks', settings.blankTileCount)
-    return `${baseURL}?${params.toString()}`;
-}
+// function generateNewGameURL(gameId, seed, creatorId, settings) {
+//     // This function is no longer strictly needed if the first turn URL contains all new game info.
+//     // However, it can be kept if we want a way to generate a "lobby" type URL before any move.
+//     const baseURL = window.location.origin + window.location.pathname;
+//     const params = new URLSearchParams();
+//     params.append('gid', gameId);
+//     params.append('seed', seed);
+//     params.append('creator', creatorId);
+//     // Add non-default settings to params, e.g. params.append('s_blanks', settings.blankTileCount)
+//     return `${baseURL}?${params.toString()}`;
+// }
 
 
 document.addEventListener('DOMContentLoaded', () => {
