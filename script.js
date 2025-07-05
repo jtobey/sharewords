@@ -600,20 +600,96 @@ function handleCommitPlay() {
         return;
     }
 
-    // TODO: Future:
-    // 1. Validate word formation and placement rules.
-    //    - First word on center square.
-    //    - Subsequent words connect to existing tiles.
-    //    - All new tiles in a single row/column.
-    //    - All formed words are valid (dictionary lookup).
-    // 2. Calculate score for the turn.
-    // 3. Add score to player.
-    // 4. Draw new tiles for the player.
-    // 5. Check for game end conditions.
-    // 6. Switch current player.
-    // 7. Generate Turn URL.
+    const committedMoves = [...currentGame.currentTurnMoves]; // Operate on a copy for validation
+    committedMoves.sort((a, b) => { // Sort for easier processing, by row then col
+        if (a.to.row === b.to.row) return a.to.col - b.to.col;
+        return a.to.row - b.to.row;
+    });
 
-    console.log("Committing play with moves:", currentGame.currentTurnMoves);
+    // --- Validation A: Single Line ---
+    let isHorizontal = false;
+    let isVertical = false;
+    if (committedMoves.length > 1) {
+        isHorizontal = committedMoves.every(m => m.to.row === committedMoves[0].to.row);
+        isVertical = committedMoves.every(m => m.to.col === committedMoves[0].to.col);
+        if (!isHorizontal && !isVertical) {
+            alert("Invalid placement: Newly placed tiles must form a single horizontal or vertical line.");
+            return;
+        }
+    } else if (committedMoves.length === 1) {
+        // Single tile can be considered both, context will determine the word.
+        // For validation purposes here, it's fine. The word formation logic will handle it.
+        // Defaulting to horizontal for single tile if needed for later checks, but not strictly necessary for this validation step.
+        isHorizontal = true;
+    }
+
+    // --- Validation B: No Gaps ---
+    if (committedMoves.length > 1) {
+        if (isHorizontal) {
+            const minCol = committedMoves[0].to.col;
+            const maxCol = committedMoves[committedMoves.length - 1].to.col;
+            for (let c = minCol; c <= maxCol; c++) {
+                const isSquareOccupiedByNewTile = committedMoves.some(m => m.to.row === committedMoves[0].to.row && m.to.col === c);
+                if (!isSquareOccupiedByNewTile) {
+                    // Check if the square between new tiles is occupied by an *existing* board tile.
+                    // If it is, this is fine (playing around an existing tile).
+                    // If it's empty, it's an invalid gap.
+                    if (!currentGame.board.grid[committedMoves[0].to.row][c].tile) {
+                         alert("Invalid placement: Tiles in a new word must be contiguous with no gaps between newly placed tiles.");
+                         return;
+                    }
+                }
+            }
+        } else { // Vertical
+            const minRow = committedMoves[0].to.row; // Already sorted
+            const maxRow = committedMoves[committedMoves.length - 1].to.row;
+            for (let r = minRow; r <= maxRow; r++) {
+                const isSquareOccupiedByNewTile = committedMoves.some(m => m.to.col === committedMoves[0].to.col && m.to.row === r);
+                 if (!isSquareOccupiedByNewTile) {
+                    if (!currentGame.board.grid[r][committedMoves[0].to.col].tile) {
+                        alert("Invalid placement: Tiles in a new word must be contiguous with no gaps between newly placed tiles.");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Validation C: First Move - Center Square ---
+    // turnNumber is 0 for the first play, will be incremented to 1 after this play.
+    if (currentGame.turnNumber === 0) {
+        const centerSquarePos = currentGame.board.getCenterSquare();
+        const onCenterSquare = committedMoves.some(m => m.to.row === centerSquarePos.row && m.to.col === centerSquarePos.col);
+        if (!onCenterSquare) {
+            alert("Invalid placement: The first word must cover the center square.");
+            return;
+        }
+    } else { // --- Validation D: Subsequent Moves - Connection ---
+        let connectsToExisting = false;
+        for (const move of committedMoves) {
+            const r = move.to.row;
+            const c = move.to.col;
+            const neighbors = [[r-1, c], [r+1, c], [r, c-1], [r, c+1]];
+            for (const [nr, nc] of neighbors) {
+                if (nr >= 0 && nr < currentGame.board.size && nc >= 0 && nc < currentGame.board.size) {
+                    const neighborSquare = currentGame.board.grid[nr][nc];
+                    // Check if neighbor has a tile AND that tile is NOT part of the current batch of committedMoves
+                    if (neighborSquare.tile && !committedMoves.some(cm => cm.tileRef.id === neighborSquare.tile.id)) {
+                        connectsToExisting = true;
+                        break;
+                    }
+                }
+            }
+            if (connectsToExisting) break;
+        }
+        if (!connectsToExisting && currentGame.board.grid.flat().some(sq => sq.tile)) { // only enforce if there are existing tiles
+             alert("Invalid placement: New words must connect to existing tiles on the board.");
+             return;
+        }
+    }
+
+    // If all validations pass:
+    console.log("Placement validation passed.");
 
     // For now, just "finalize" the tiles:
     // Tiles placed this turn are now permanent for this turn's context,
@@ -747,9 +823,12 @@ function handleCommitPlay() {
             console.log("Identified word for URL:", wordDataForURL);
 
         } else {
-            console.warn("Tiles placed are not in a single line. Using old td format for now.");
-            // Fallback to old turn data format if not a single line (for this simplified step)
-            wordDataForURL = committedMoves; // This will make generateTurnURL use the old `td` format
+            // If tiles are not in a single line, wordDataForURL remains null.
+            // generateTurnURL will then not add any word-specific parameters.
+            // This implicitly means the play is invalid for URL generation under current rules,
+            // but placement validation (next step) should catch this before URL generation.
+            console.warn("Tiles placed are not in a single line. No word data for URL.");
+            wordDataForURL = null;
         }
     }
     // --- End of Word Identification ---
@@ -821,23 +900,10 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = nu
     // TODO: Add settings to params if provided and non-default
 
     // New turnData format: { word, start_row, start_col, direction, blanks_info }
-    // or array of moves (old format as fallback)
-    if (turnData) {
-        if (Array.isArray(turnData)) { // Fallback to old format if word identification failed
-            console.warn("generateTurnURL: Falling back to old 'td' format.");
-            const simplifiedTurnData = turnData.map(move => ({
-                l: move.tileRef.isBlank ? '' : move.tileRef.letter,
-                r: move.to.row,
-                c: move.to.col,
-                b: move.tileRef.isBlank ? 1 : 0,
-                al: move.tileRef.isBlank ? move.tileRef.assignedLetter : undefined
-            })).filter(td => td !== undefined);
-            if (simplifiedTurnData.length > 0) {
-                params.append('td', JSON.stringify(simplifiedTurnData));
-            }
-        } else if (turnData.word) { // New word-based format
-            params.append('w', turnData.word);
-            params.append('wl', `${turnData.start_row},${turnData.start_col}`);
+    // New turnData format: { word, start_row, start_col, direction, blanks_info }
+    if (turnData && turnData.word) { // Process only if new word-based format is provided
+        params.append('w', turnData.word);
+        params.append('wl', `${turnData.start_row},${turnData.start_col}`);
             params.append('wd', turnData.direction);
             if (turnData.blanks_info && turnData.blanks_info.length > 0) {
                 const blankParam = turnData.blanks_info.map(bi => `${bi.idx}:${bi.al}`).join(';');
@@ -1094,37 +1160,11 @@ function applyTurnDataFromURL(gameState, params) {
             }
         }
         return true;
-
-    } else if (oldTurnDataStr) { // Fallback to old td format
-        console.warn("Applying turn data using fallback 'td' parameter.");
-        try {
-            const turnDataArray = JSON.parse(oldTurnDataStr);
-            if (!gameState || !turnDataArray || !Array.isArray(turnDataArray)) {
-                console.error("Invalid arguments to applyTurnDataToGame (fallback)");
-                return false;
-            }
-            turnDataArray.forEach(td => {
-                if (gameState.board.grid[td.r] && gameState.board.grid[td.r][td.c]) {
-                    if (gameState.board.grid[td.r][td.c].tile) {
-                        console.warn(`Square ${td.r},${td.c} already has a tile. Overwriting for URL apply (simplification).`);
-                    }
-                    const newTile = new Tile(td.l, gameState.settings.tileValues[td.l] || 0, td.b === 1);
-                    if (newTile.isBlank && td.al) {
-                        newTile.assignedLetter = td.al;
-                    }
-                    gameState.board.grid[td.r][td.c].tile = newTile;
-                } else {
-                    console.error(`Invalid square coordinates in turn data: ${td.r},${td.c}`);
-                }
-            });
-            return true;
-        } catch (e) {
-            console.error("Error parsing fallback 'td' data:", e);
-            return false;
-        }
     }
-    console.log("No recognized turn data found in URL params to apply.");
-    return false; // No turn data applied
+    // If 'w', 'wl', 'wd' are not present, no tile placement data is processed by this function.
+    // It will effectively be treated like a pass or an exchange if only gid and tn are present.
+    console.log("No word-based turn data (w, wl, wd) found in URL params to apply.");
+    return false; // No word-based turn data applied
 }
 
 
