@@ -520,22 +520,22 @@ const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
 /**
  * Generates or retrieves a unique identifier for this browser instance.
  * This helps in determining Player 1 vs Player 2 in a shared game context.
+ * @param {Storage} storage - The storage object (localStorage or mock).
  * @returns {string} A unique browser/player identifier.
  */
-function getPlayerIdentifier() {
-    let browserId = localStorage.getItem("crosswordBrowserId");
+function getPlayerIdentifier(storage = localStorage) {
+    let browserId = storage.getItem("crosswordBrowserId");
     if (!browserId) {
-        // Generate a new unique ID: prefix + timestamp + random string
         browserId = `browser-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        localStorage.setItem("crosswordBrowserId", browserId);
+        storage.setItem("crosswordBrowserId", browserId);
         console.log("New browser identifier created:", browserId);
     }
     return browserId;
 }
 
-const BROWSER_PLAYER_ID = getPlayerIdentifier();
+const BROWSER_PLAYER_ID = getPlayerIdentifier(); // Uses actual localStorage for the app
 
-function saveGameStateToLocalStorage(gameState) {
+function saveGameStateToLocalStorage(gameState, storage = localStorage) {
     if (!gameState || !gameState.gameId) {
         console.error("Cannot save game state: invalid gameState or gameId missing.");
         return;
@@ -549,65 +549,45 @@ function saveGameStateToLocalStorage(gameState) {
             currentPlayerIndex: gameState.currentPlayerIndex,
             isGameOver: gameState.isGameOver,
             gameHistory: gameState.gameHistory,
-
             players: gameState.players.map(player => ({
-                id: player.id,
-                name: player.name,
-                score: player.score,
+                id: player.id, name: player.name, score: player.score,
                 rack: player.rack.map(tile => ({
-                    letter: tile.letter,
-                    value: tile.value,
-                    isBlank: tile.isBlank,
-                    assignedLetter: tile.assignedLetter,
-                    id: tile.id
+                    letter: tile.letter, value: tile.value, isBlank: tile.isBlank,
+                    assignedLetter: tile.assignedLetter, id: tile.id
                 }))
             })),
-
             bag: gameState.bag.map(tile => ({
-                letter: tile.letter,
-                value: tile.value,
-                isBlank: tile.isBlank,
-                assignedLetter: tile.assignedLetter,
-                id: tile.id
+                letter: tile.letter, value: tile.value, isBlank: tile.isBlank,
+                assignedLetter: tile.assignedLetter, id: tile.id
             })),
-
             boardGrid: gameState.board.grid.map(row => row.map(square => ({
-                row: square.row,
-                col: square.col,
-                bonus: square.bonus,
-                bonusUsed: square.bonusUsed,
+                row: square.row, col: square.col, bonus: square.bonus, bonusUsed: square.bonusUsed,
                 tile: square.tile ? {
-                    letter: square.tile.letter,
-                    value: square.tile.value,
-                    isBlank: square.tile.isBlank,
-                    assignedLetter: square.tile.assignedLetter,
-                    id: square.tile.id
+                    letter: square.tile.letter, value: square.tile.value, isBlank: square.tile.isBlank,
+                    assignedLetter: square.tile.assignedLetter, id: square.tile.id
                 } : null
             }))),
             creatorId: gameState.creatorId || null
         };
-
-        localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
-        console.log(`Game ${gameState.gameId} saved to localStorage.`);
+        storage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
+        console.log(`Game ${gameState.gameId} saved to ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
     } catch (error) {
-        console.error("Error saving game state to localStorage:", error);
+        console.error("Error saving game state:", error);
     }
 }
 
-function loadGameStateFromLocalStorage(gameId) {
+function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
     if (!gameId) {
         console.warn("loadGameStateFromLocalStorage: No gameId provided.");
         return null;
     }
     try {
-        const storedDataString = localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX + gameId);
+        const storedDataString = storage.getItem(LOCAL_STORAGE_KEY_PREFIX + gameId);
         if (!storedDataString) {
-            console.log(`No game data found in localStorage for ${gameId}`);
+            console.log(`No game data found for ${gameId} in ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
             return null;
         }
-
         const storedData = JSON.parse(storedDataString);
-
         const rehydratedGame = new GameState(storedData.gameId, storedData.randomSeed, storedData.settings || {});
 
         rehydratedGame.turnNumber = storedData.turnNumber;
@@ -621,23 +601,18 @@ function loadGameStateFromLocalStorage(gameId) {
                 rehydratedGame.players[index].score = playerData.score;
                 rehydratedGame.players[index].id = playerData.id || rehydratedGame.players[index].id;
                 rehydratedGame.players[index].name = playerData.name || rehydratedGame.players[index].name;
-
                 rehydratedGame.players[index].rack = playerData.rack.map(tileData => {
                     const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
-                    tile.assignedLetter = tileData.assignedLetter;
-                    tile.id = tileData.id;
+                    tile.assignedLetter = tileData.assignedLetter; tile.id = tileData.id;
                     return tile;
                 });
             });
         }
-
         rehydratedGame.bag = storedData.bag.map(tileData => {
             const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
-            tile.assignedLetter = tileData.assignedLetter;
-            tile.id = tileData.id;
+            tile.assignedLetter = tileData.assignedLetter; tile.id = tileData.id;
             return tile;
         });
-
         if (storedData.boardGrid && rehydratedGame.board && rehydratedGame.board.grid) {
             for (let r = 0; r < storedData.boardGrid.length; r++) {
                 if (rehydratedGame.board.grid[r]) {
@@ -650,8 +625,7 @@ function loadGameStateFromLocalStorage(gameId) {
                             if (squareData.tile) {
                                 const tileData = squareData.tile;
                                 const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
-                                tile.assignedLetter = tileData.assignedLetter;
-                                tile.id = tileData.id;
+                                tile.assignedLetter = tileData.assignedLetter; tile.id = tileData.id;
                                 boardSquare.tile = tile;
                             } else {
                                 boardSquare.tile = null;
@@ -661,12 +635,10 @@ function loadGameStateFromLocalStorage(gameId) {
                 }
             }
         }
-
-        console.log(`Game ${gameId} loaded and rehydrated from localStorage.`);
+        console.log(`Game ${gameId} loaded and rehydrated from ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
         return rehydratedGame;
-
     } catch (error) {
-        console.error(`Error loading game state for ${gameId} from localStorage:`, error);
+        console.error(`Error loading game state for ${gameId}:`, error);
         return null;
     }
 }
@@ -701,9 +673,11 @@ function applyTurnDataFromURL(gameState, params) {
     }
     console.log("No word-based turn data (w, wl, wd) found in URL params to apply."); return false;
 }
-function loadGameFromURLOrStorage() {
-    const params = new URLSearchParams(window.location.search);
-    const urlGameId = params.get('gid'); const urlTurnNumberStr = params.get('tn');
+function loadGameFromURLOrStorage(searchStringOverride = null) {
+    const searchSource = searchStringOverride !== null ? searchStringOverride : window.location.search;
+    const params = new URLSearchParams(searchSource);
+    const urlGameId = params.get('gid');
+    const urlTurnNumberStr = params.get('tn');
     const urlSeed = params.get('seed');
     if (urlGameId) {
         console.log(`URL contains gameId: ${urlGameId}`);
