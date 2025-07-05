@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Logic Unit Tests</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .test-suite { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+        .test-suite h2 { margin-top: 0; }
+        .test-case { margin-bottom: 5px; padding-left: 20px; }
+        .pass { color: green; }
+        .fail { color: red; font-weight: bold; }
+        .summary { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Game Logic Unit Tests</h1>
+    <div id="test-results">
+        <!-- Test results will be appended here by tests.js -->
+    </div>
+
+    <!-- Include the main game script first as tests will depend on its functions and classes -->
+    <script src="script.js"></script>
+    <!-- Include the test script -->
+    <script src="tests.js"></script>
+</body>
+</html>
