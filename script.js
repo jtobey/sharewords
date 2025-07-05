@@ -387,7 +387,7 @@ function validatePlacement(moves, turnNumber, boardState) {
         }
     } else {
         let connects = false, boardHasTiles = false;
-        for(let r=0;r<boardState.size;r++) for(let c=0;c<boardState.size;c++) if(boardState.grid[r][c].tile && !sortedMoves.some(m=>m.to.row===r&&m.to.col===c)) {boardHasTiles=true;break;}
+        for(let r_idx=0;r_idx<boardState.size;r_idx++) for(let c_idx=0;c_idx<boardState.size;c_idx++) if(boardState.grid[r_idx][c_idx].tile && !sortedMoves.some(m=>m.to.row===r_idx&&m.to.col===c_idx)) {boardHasTiles=true;break;}
         if(boardHasTiles){
             for(const move of sortedMoves){
                 const {row,col} = move.to;
@@ -544,7 +544,7 @@ function saveGameStateToLocalStorage(gameState) {
         const serializableState = {
             gameId: gameState.gameId,
             randomSeed: gameState.randomSeed,
-            settings: gameState.settings, // Assuming settings are already plain data
+            settings: gameState.settings,
             turnNumber: gameState.turnNumber,
             currentPlayerIndex: gameState.currentPlayerIndex,
             isGameOver: gameState.isGameOver,
@@ -608,37 +608,29 @@ function loadGameStateFromLocalStorage(gameId) {
 
         const storedData = JSON.parse(storedDataString);
 
-        // Rehydrate GameState
-        // 1. Create a new GameState instance. This will initialize a default board, bag, players,
-        //    PRNG based on the seed, etc. We pass settings from storedData if available.
         const rehydratedGame = new GameState(storedData.gameId, storedData.randomSeed, storedData.settings || {});
 
-        // 2. Overwrite properties with stored data
         rehydratedGame.turnNumber = storedData.turnNumber;
         rehydratedGame.currentPlayerIndex = storedData.currentPlayerIndex;
         rehydratedGame.isGameOver = storedData.isGameOver;
         rehydratedGame.gameHistory = storedData.gameHistory || [];
         rehydratedGame.creatorId = storedData.creatorId;
 
-        // Rehydrate players (racks and scores)
-        // The GameState constructor already creates player objects. We update them.
         if (storedData.players && storedData.players.length === rehydratedGame.players.length) {
             storedData.players.forEach((playerData, index) => {
                 rehydratedGame.players[index].score = playerData.score;
-                // It's important that player IDs match if they are used for anything beyond display
                 rehydratedGame.players[index].id = playerData.id || rehydratedGame.players[index].id;
                 rehydratedGame.players[index].name = playerData.name || rehydratedGame.players[index].name;
 
                 rehydratedGame.players[index].rack = playerData.rack.map(tileData => {
                     const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
                     tile.assignedLetter = tileData.assignedLetter;
-                    tile.id = tileData.id; // Preserve original tile ID if present and needed
+                    tile.id = tileData.id;
                     return tile;
                 });
             });
         }
 
-        // Rehydrate bag - replace the default initialized bag
         rehydratedGame.bag = storedData.bag.map(tileData => {
             const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
             tile.assignedLetter = tileData.assignedLetter;
@@ -646,7 +638,6 @@ function loadGameStateFromLocalStorage(gameId) {
             return tile;
         });
 
-        // Rehydrate board - update the existing board grid in the rehydratedGame
         if (storedData.boardGrid && rehydratedGame.board && rehydratedGame.board.grid) {
             for (let r = 0; r < storedData.boardGrid.length; r++) {
                 if (rehydratedGame.board.grid[r]) {
@@ -654,12 +645,8 @@ function loadGameStateFromLocalStorage(gameId) {
                         if (rehydratedGame.board.grid[r][c]) {
                             const squareData = storedData.boardGrid[r][c];
                             const boardSquare = rehydratedGame.board.grid[r][c];
-
-                            // boardSquare is already a Square instance from Board constructor
-                            // Update its properties:
                             boardSquare.bonus = squareData.bonus;
                             boardSquare.bonusUsed = squareData.bonusUsed;
-
                             if (squareData.tile) {
                                 const tileData = squareData.tile;
                                 const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
@@ -683,6 +670,7 @@ function loadGameStateFromLocalStorage(gameId) {
         return null;
     }
 }
+
 // --- Game Initialization and URL Handling ---
 function applyTurnDataFromURL(gameState, params) {
     const word = params.get('w'); const wordLocation = params.get('wl');
