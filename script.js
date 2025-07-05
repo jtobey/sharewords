@@ -514,13 +514,175 @@ function initializeNewGame() {
     }
 }
 
-// --- LocalStorage Functions --- (No changes from previous correct version)
+// --- LocalStorage Functions ---
 const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
-function getPlayerIdentifier(){let b=localStorage.getItem("crosswordBrowserId");if(!b){b=`browser-${Date.now()}-${Math.random().toString(36).substr(2,9)}`;localStorage.setItem("crosswordBrowserId",b)}return b}
-const BROWSER_PLAYER_ID=getPlayerIdentifier();
-function saveGameStateToLocalStorage(a){if(!a||!a.gameId){console.error("Cannot save game state: invalid gameState or gameId missing.");return}try{const b={gameId:a.gameId,randomSeed:a.randomSeed,settings:a.settings,turnNumber:a.turnNumber,currentPlayerIndex:a.currentPlayerIndex,isGameOver:a.isGameOver,gameHistory:a.gameHistory,players:a.players.map(c=>({id:c.id,name:c.name,score:c.score,rack:c.rack.map(d=>({letter:d.letter,value:d.value,isBlank:d.isBlank,assignedLetter:d.assignedLetter,id:d.id}))})),bag:a.bag.map(c=>({letter:c.letter,value:c.value,isBlank:c.isBlank,assignedLetter:c.assignedLetter,id:c.id})),boardGrid:a.board.grid.map(c=>c.map(d=>({row:d.row,col:d.col,bonus:d.bonus,bonusUsed:d.bonusUsed,tile:d.tile?{letter:d.tile.letter,value:d.tile.value,isBlank:d.tile.isBlank,assignedLetter:d.tile.assignedLetter,id:d.tile.id}:null}))),creatorId:a.creatorId||null};localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX+a.gameId,JSON.stringify(b));console.log(`Game ${a.gameId} saved to localStorage.`)}catch(c){console.error("Error saving game state to localStorage:",c)}}
-function loadGameStateFromLocalStorage(a){if(!a)return null;try{const b=localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX+a);if(!b)return null;const c=JSON.parse(b),d=new GameState(c.gameId,c.randomSeed,c.settings||{});d.turnNumber=c.turnNumber;d.currentPlayerIndex=c.currentPlayerIndex;d.isGameOver=c.isGameOver;d.gameHistory=c.gameHistory||[];d.creatorId=c.creatorId;if(c.players&&c.players.length===d.players.length)c.players.forEach((e,f)=>{d.players[f].score=e.score;d.players[f].rack=e.rack.map(g=>{const h=new Tile(g.letter,g.value,g.isBlank);h.assignedLetter=g.assignedLetter;h.id=g.id;return h})});d.bag=c.bag.map(e=>{const f=new Tile(e.letter,e.value,e.isBlank);f.assignedLetter=e.assignedLetter;f.id=e.id;return f});if(c.boardGrid)for(let e=0;e<c.boardGrid.length;e++)for(let f=0;f<c.boardGrid[e].length;f++){const g=c.boardGrid[e][f],h=d.board.grid[e][f];h.bonus=g.bonus;h.bonusUsed=g.bonusUsed;if(g.tile){const i=g.tile,j=new Tile(i.letter,i.value,i.isBlank);j.assignedLetter=i.assignedLetter;j.id=i.id;h.tile=j}else h.tile=null}console.log(`Game ${a} loaded and rehydrated from localStorage.`);return d}catch(b){console.error("Error loading game state from localStorage:",b);return null}}
 
+/**
+ * Generates or retrieves a unique identifier for this browser instance.
+ * This helps in determining Player 1 vs Player 2 in a shared game context.
+ * @returns {string} A unique browser/player identifier.
+ */
+function getPlayerIdentifier() {
+    let browserId = localStorage.getItem("crosswordBrowserId");
+    if (!browserId) {
+        // Generate a new unique ID: prefix + timestamp + random string
+        browserId = `browser-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        localStorage.setItem("crosswordBrowserId", browserId);
+        console.log("New browser identifier created:", browserId);
+    }
+    return browserId;
+}
+
+const BROWSER_PLAYER_ID = getPlayerIdentifier();
+
+function saveGameStateToLocalStorage(gameState) {
+    if (!gameState || !gameState.gameId) {
+        console.error("Cannot save game state: invalid gameState or gameId missing.");
+        return;
+    }
+    try {
+        const serializableState = {
+            gameId: gameState.gameId,
+            randomSeed: gameState.randomSeed,
+            settings: gameState.settings, // Assuming settings are already plain data
+            turnNumber: gameState.turnNumber,
+            currentPlayerIndex: gameState.currentPlayerIndex,
+            isGameOver: gameState.isGameOver,
+            gameHistory: gameState.gameHistory,
+
+            players: gameState.players.map(player => ({
+                id: player.id,
+                name: player.name,
+                score: player.score,
+                rack: player.rack.map(tile => ({
+                    letter: tile.letter,
+                    value: tile.value,
+                    isBlank: tile.isBlank,
+                    assignedLetter: tile.assignedLetter,
+                    id: tile.id
+                }))
+            })),
+
+            bag: gameState.bag.map(tile => ({
+                letter: tile.letter,
+                value: tile.value,
+                isBlank: tile.isBlank,
+                assignedLetter: tile.assignedLetter,
+                id: tile.id
+            })),
+
+            boardGrid: gameState.board.grid.map(row => row.map(square => ({
+                row: square.row,
+                col: square.col,
+                bonus: square.bonus,
+                bonusUsed: square.bonusUsed,
+                tile: square.tile ? {
+                    letter: square.tile.letter,
+                    value: square.tile.value,
+                    isBlank: square.tile.isBlank,
+                    assignedLetter: square.tile.assignedLetter,
+                    id: square.tile.id
+                } : null
+            }))),
+            creatorId: gameState.creatorId || null
+        };
+
+        localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
+        console.log(`Game ${gameState.gameId} saved to localStorage.`);
+    } catch (error) {
+        console.error("Error saving game state to localStorage:", error);
+    }
+}
+
+function loadGameStateFromLocalStorage(gameId) {
+    if (!gameId) {
+        console.warn("loadGameStateFromLocalStorage: No gameId provided.");
+        return null;
+    }
+    try {
+        const storedDataString = localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX + gameId);
+        if (!storedDataString) {
+            console.log(`No game data found in localStorage for ${gameId}`);
+            return null;
+        }
+
+        const storedData = JSON.parse(storedDataString);
+
+        // Rehydrate GameState
+        // 1. Create a new GameState instance. This will initialize a default board, bag, players,
+        //    PRNG based on the seed, etc. We pass settings from storedData if available.
+        const rehydratedGame = new GameState(storedData.gameId, storedData.randomSeed, storedData.settings || {});
+
+        // 2. Overwrite properties with stored data
+        rehydratedGame.turnNumber = storedData.turnNumber;
+        rehydratedGame.currentPlayerIndex = storedData.currentPlayerIndex;
+        rehydratedGame.isGameOver = storedData.isGameOver;
+        rehydratedGame.gameHistory = storedData.gameHistory || [];
+        rehydratedGame.creatorId = storedData.creatorId;
+
+        // Rehydrate players (racks and scores)
+        // The GameState constructor already creates player objects. We update them.
+        if (storedData.players && storedData.players.length === rehydratedGame.players.length) {
+            storedData.players.forEach((playerData, index) => {
+                rehydratedGame.players[index].score = playerData.score;
+                // It's important that player IDs match if they are used for anything beyond display
+                rehydratedGame.players[index].id = playerData.id || rehydratedGame.players[index].id;
+                rehydratedGame.players[index].name = playerData.name || rehydratedGame.players[index].name;
+
+                rehydratedGame.players[index].rack = playerData.rack.map(tileData => {
+                    const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+                    tile.assignedLetter = tileData.assignedLetter;
+                    tile.id = tileData.id; // Preserve original tile ID if present and needed
+                    return tile;
+                });
+            });
+        }
+
+        // Rehydrate bag - replace the default initialized bag
+        rehydratedGame.bag = storedData.bag.map(tileData => {
+            const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+            tile.assignedLetter = tileData.assignedLetter;
+            tile.id = tileData.id;
+            return tile;
+        });
+
+        // Rehydrate board - update the existing board grid in the rehydratedGame
+        if (storedData.boardGrid && rehydratedGame.board && rehydratedGame.board.grid) {
+            for (let r = 0; r < storedData.boardGrid.length; r++) {
+                if (rehydratedGame.board.grid[r]) {
+                    for (let c = 0; c < storedData.boardGrid[r].length; c++) {
+                        if (rehydratedGame.board.grid[r][c]) {
+                            const squareData = storedData.boardGrid[r][c];
+                            const boardSquare = rehydratedGame.board.grid[r][c];
+
+                            // boardSquare is already a Square instance from Board constructor
+                            // Update its properties:
+                            boardSquare.bonus = squareData.bonus;
+                            boardSquare.bonusUsed = squareData.bonusUsed;
+
+                            if (squareData.tile) {
+                                const tileData = squareData.tile;
+                                const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+                                tile.assignedLetter = tileData.assignedLetter;
+                                tile.id = tileData.id;
+                                boardSquare.tile = tile;
+                            } else {
+                                boardSquare.tile = null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(`Game ${gameId} loaded and rehydrated from localStorage.`);
+        return rehydratedGame;
+
+    } catch (error) {
+        console.error(`Error loading game state for ${gameId} from localStorage:`, error);
+        return null;
+    }
+}
 // --- Game Initialization and URL Handling ---
 function applyTurnDataFromURL(gameState, params) {
     const word = params.get('w'); const wordLocation = params.get('wl');
@@ -634,3 +796,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const newGameBtn = document.getElementById('new-game-btn');
     if (newGameBtn) newGameBtn.addEventListener('click', initializeNewGame);
 });
+
+[end of script.js]
