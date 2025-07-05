@@ -165,7 +165,7 @@ function GameState(gameId, randomSeed, settings = {}) {
         const distribution = this.settings.letterDistribution;
         const values = this.settings.tileValues;
 
-        for (const letter in distribution) {
+        for (const letter in distribution) {  // jt: Nit: Why not for...of?
             if (distribution.hasOwnProperty(letter)) {
                 for (let i = 0; i < distribution[letter]; i++) {
                     this.bag.push(new Tile(letter, values[letter] || 0));
@@ -277,7 +277,7 @@ function renderBoard(gameState) {
                 const tile = squareData.tile;
                 squareDiv.textContent = tile.isBlank ? `(${tile.assignedLetter || ' '})` : tile.letter;
                 squareDiv.classList.add('tile-on-board');
-                // TODO: Add value display for tile on board if needed
+                // TODO: Add value display for tile on board if needed  // jt: It's needed.
             }
             boardContainer.appendChild(squareDiv);
         }
@@ -365,7 +365,7 @@ function initializeNewGame() {
 
     // TODO: Get player ID from local storage, or assign one if first time.
     // For now, assuming player 1 is local.
-    // localPlayerId = localStorage.getItem('crosswordPlayerId');
+    // localPlayerId = localStorage.getItem('crosswordPlayerId');  // jt: The local player ID should be per game.
     // if (!localPlayerId) {
     //     localPlayerId = 'player1'; // Or prompt user
     //     localStorage.setItem('crosswordPlayerId', localPlayerId);
@@ -378,6 +378,7 @@ function initializeNewGame() {
         // sevenTileBonus: 75
     });
     console.log("New game initialized:", currentGame);
+    // jt: TODO: Suppress console logging of rack tiles unless debug=1 given in query string.
     console.log("Player 1 rack:", currentGame.players[0].rack);
     console.log("Player 2 rack:", currentGame.players[1].rack);
     console.log("Bag count:", currentGame.bag.length);
