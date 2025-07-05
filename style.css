@@ -1,0 +1,115 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 20px;
+    background-color: #f0f0f0;
+}
+
+#game-container {
+    display: flex;
+    gap: 20px;
+}
+
+#board-container {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    border: 2px solid #333;
+    width: 450px; /* 15 * 30px */
+    height: 450px; /* 15 * 30px */
+}
+
+.square {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #fff;
+    user-select: none;
+}
+
+.square.dl { background-color: #add8e6; } /* Light Blue for Double Letter */
+.square.tl { background-color: #4169e1; color: white; } /* Royal Blue for Triple Letter */
+.square.dw { background-color: #ffcccb; } /* Light Pink for Double Word */
+.square.tw { background-color: #ff4500; color: white; } /* OrangeRed for Triple Word */
+.square.center { background-color: #ffd700; } /* Gold for Center */
+
+.tile-on-board {
+    background-color: #f5deb3; /* Wheat */
+    border: 1px solid #8b4513; /* SaddleBrown */
+}
+
+#info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.rack {
+    display: flex;
+    gap: 5px;
+    border: 1px solid #666;
+    padding: 5px;
+    min-height: 40px; /* Accommodate tile height */
+    background-color: #e0e0e0;
+}
+
+.tile-in-rack {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #333;
+    background-color: #f5deb3; /* Wheat */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: grab;
+}
+
+.tile-in-rack .letter {
+    text-transform: uppercase;
+}
+
+.tile-in-rack .value {
+    font-size: 10px;
+    position: relative;
+    top: 8px;
+    left: 8px;
+}
+
+#controls-container button {
+    margin-right: 5px;
+    padding: 8px 12px;
+}
+
+#turn-url-container input {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+#new-game-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+/* Basic styling for selected tiles or active elements if needed later */
+.selected {
+    border: 2px solid red !important;
+}
