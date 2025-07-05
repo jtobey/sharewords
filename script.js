@@ -60,10 +60,10 @@ function Board(size = BOARD_SIZE, layout = null) {
     for (let r = 0; r < size; r++) {
         this.grid[r] = [];
         for (let c = 0; c < size; c++) {
-            this.grid[r][c] = new Square(r, c, BONUS_TYPES.NONE); // Keep it simple first
+            this.grid[r][c] = new Square(r, c, BONUS_TYPES.NONE);
         }
     }
-    if (!layout) { // Apply a default layout if none provided
+    if (!layout) {
         const tw_coords = [[0,0], [0,7], [0,14], [7,0], [7,14], [14,0], [14,7], [14,14]];
         tw_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.TW; });
         const dw_coords = [[1,1], [2,2], [3,3], [4,4], [1,13], [2,12], [3,11], [4,10], [13,1], [12,2], [11,3], [10,4], [13,13], [12,12], [11,11], [10,10]];
@@ -94,7 +94,7 @@ function GameState(gameId, randomSeed, settings = {}) {
         customBoardLayout: null, ...settings
     };
     this.prng = Mulberry32(this.randomSeed);
-    this._initializeBag = function() { /* ... as before ... */
+    this._initializeBag = function() {
         this.bag = [];
         const distribution = this.settings.letterDistribution;
         const values = this.settings.tileValues;
@@ -109,7 +109,7 @@ function GameState(gameId, randomSeed, settings = {}) {
             this.bag.push(new Tile('', 0, true));
         }
     };
-    this._shuffleBag = function() { /* ... as before ... */
+    this._shuffleBag = function() {
         if (!this.prng) {
             console.error("PRNG not initialized for shuffling.");
             for (let i = this.bag.length - 1; i > 0; i--) {
@@ -123,7 +123,7 @@ function GameState(gameId, randomSeed, settings = {}) {
             [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
         }
     };
-    this.drawTiles = function(player, numTiles) { /* ... as before ... */
+    this.drawTiles = function(player, numTiles) {
         const drawnTiles = [];
         for (let i = 0; i < numTiles && this.bag.length > 0; i++) {
             const tile = this.bag.pop();
@@ -139,7 +139,7 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.bag = [];
     this._initializeBag(); this._shuffleBag();
     this.players.forEach(player => { this.drawTiles(player, this.settings.rackSize); });
-    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout || this.settings.defaultBoardLayout); // Use custom or default
+    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout || this.settings.defaultBoardLayout);
     this.turnNumber = 0;
     this.currentTurnMoves = [];
     this.gameHistory = [];
@@ -153,8 +153,6 @@ let currentGame = null;
 let localPlayerId = "player1";
 
 // --- UI Rendering Functions ---
-// renderBoard, renderTileInRack, renderRacks, updateGameStatus, fullRender (mostly as before)
-// ... (ensure renderBoard and renderTileInRack use .tile-letter and .tile-value classes)
 function renderBoard(gameState) {
     const boardContainer = document.getElementById('board-container');
     if (!boardContainer || !gameState || !gameState.board) {
@@ -164,40 +162,27 @@ function renderBoard(gameState) {
     boardContainer.innerHTML = '';
     boardContainer.style.gridTemplateColumns = `repeat(${gameState.board.size}, 30px)`;
     boardContainer.style.gridTemplateRows = `repeat(${gameState.board.size}, 30px)`;
-
     const centerR = Math.floor(gameState.board.size / 2);
     const centerC = Math.floor(gameState.board.size / 2);
-
     for (let r = 0; r < gameState.board.size; r++) {
         for (let c = 0; c < gameState.board.size; c++) {
             const squareData = gameState.board.grid[r][c];
             const squareDiv = document.createElement('div');
             squareDiv.classList.add('square');
-            squareDiv.dataset.row = r;
-            squareDiv.dataset.col = c;
-
-            if (squareData.bonus !== BONUS_TYPES.NONE) {
-                squareDiv.classList.add(squareData.bonus);
-            }
-            if (r === centerR && c === centerC && squareData.bonus === BONUS_TYPES.NONE) { // Only add .center if no other bonus
-                squareDiv.classList.add('center');
-            }
-
+            squareDiv.dataset.row = r; squareDiv.dataset.col = c;
+            if (squareData.bonus !== BONUS_TYPES.NONE) squareDiv.classList.add(squareData.bonus);
+            if (r === centerR && c === centerC && squareData.bonus === BONUS_TYPES.NONE) squareDiv.classList.add('center');
             if (squareData.tile) {
                 const tile = squareData.tile;
                 const letterSpan = document.createElement('span');
                 letterSpan.classList.add('tile-letter');
                 letterSpan.textContent = tile.isBlank ? (tile.assignedLetter ? `(${tile.assignedLetter.toUpperCase()})` : '(?)') : tile.letter;
-
                 const valueSpan = document.createElement('span');
                 valueSpan.classList.add('tile-value');
                 valueSpan.textContent = tile.value;
-
                 squareDiv.innerHTML = '';
-                squareDiv.appendChild(letterSpan);
-                squareDiv.appendChild(valueSpan);
+                squareDiv.appendChild(letterSpan); squareDiv.appendChild(valueSpan);
                 squareDiv.classList.add('tile-on-board');
-
                 const isCurrentTurnMove = currentGame.currentTurnMoves.find(m => m.tileId === tile.id && m.to.row === r && m.to.col === c);
                 if (isCurrentTurnMove && currentGame.getCurrentPlayer().id === localPlayerId) {
                     squareDiv.draggable = true;
@@ -212,31 +197,24 @@ function renderBoard(gameState) {
         }
     }
 }
-
 function renderTileInRack(tile, isDraggable = false) {
     const tileDiv = document.createElement('div');
     tileDiv.classList.add('tile-in-rack');
     tileDiv.dataset.tileId = tile.id;
-
     if (isDraggable) {
         tileDiv.draggable = true;
         tileDiv.addEventListener('dragstart', handleDragStart);
         tileDiv.addEventListener('dragend', handleDragEnd);
     }
-
     const letterSpan = document.createElement('span');
     letterSpan.classList.add('tile-letter');
     letterSpan.textContent = tile.isBlank ? '?' : tile.letter.toUpperCase();
-
     const valueSpan = document.createElement('span');
     valueSpan.classList.add('tile-value');
     valueSpan.textContent = tile.value;
-
-    tileDiv.appendChild(letterSpan);
-    tileDiv.appendChild(valueSpan);
+    tileDiv.appendChild(letterSpan); tileDiv.appendChild(valueSpan);
     return tileDiv;
 }
-
 function renderRacks(gameState, localPlayerId) {
     if (!gameState || !gameState.players) return;
     gameState.players.forEach(player => {
@@ -268,7 +246,6 @@ function renderRacks(gameState, localPlayerId) {
         }
     });
 }
-
 function updateGameStatus(gameState) {
     if (!gameState) return;
     document.getElementById('player1-score').textContent = gameState.players[0].score;
@@ -276,35 +253,25 @@ function updateGameStatus(gameState) {
     document.getElementById('turn-player').textContent = gameState.getCurrentPlayer().name;
     document.getElementById('tiles-in-bag').textContent = gameState.bag.length;
 }
-
 function fullRender(gameState, localPlayerId) {
     if (!gameState) {
         document.getElementById('board-container').innerHTML = '<p>No game active. Start a new game or load one via URL.</p>';
         return;
     }
-    renderBoard(gameState);
-    renderRacks(gameState, localPlayerId);
-    updateGameStatus(gameState);
+    renderBoard(gameState); renderRacks(gameState, localPlayerId); updateGameStatus(gameState);
 }
 
-
 // --- Drag and Drop Handlers ---
-// handleDragStart, handleDragEnd, handleDragOver, handleDropOnBoard, handleDropOnRack (as before)
-// ...
 let draggedTileId = null;
 function handleDragStart(event) {
     const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
     console.log(`Drag Start Attempt: localPlayerId='${localPlayerId}', currentTurnPlayerId='${currentTurnPlayerId}'`);
     if (!currentGame || currentTurnPlayerId !== localPlayerId) {
         console.log("Drag prevented: Not current player's turn or local player mismatch.");
-        event.preventDefault();
-        return;
+        event.preventDefault(); return;
     }
     const tileElement = event.target.closest('[data-tile-id]');
-    if (!tileElement) {
-        event.preventDefault();
-        return;
-    }
+    if (!tileElement) { event.preventDefault(); return; }
     draggedTileId = tileElement.dataset.tileId;
     event.dataTransfer.setData('text/plain', draggedTileId);
     event.dataTransfer.effectAllowed = 'move';
@@ -312,57 +279,38 @@ function handleDragStart(event) {
     console.log('Drag Start:', draggedTileId);
 }
 function handleDragEnd(event) {
-    if(event.target) event.target.style.opacity = '1';
-    draggedTileId = null;
-    console.log('Drag End');
+    if(event.target && event.target.style) event.target.style.opacity = '1';
+    draggedTileId = null; console.log('Drag End');
 }
-function handleDragOver(event) {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-}
+function handleDragOver(event) { event.preventDefault(); event.dataTransfer.dropEffect = 'move';}
 function handleDropOnBoard(event) {
-    event.preventDefault();
-    if (!draggedTileId) return;
+    event.preventDefault(); if (!draggedTileId) return;
     const targetSquareElement = event.target.closest('.square');
     if (!targetSquareElement) return;
     const row = parseInt(targetSquareElement.dataset.row);
     const col = parseInt(targetSquareElement.dataset.col);
     if (isNaN(row) || isNaN(col)) return;
-
     const boardSquare = currentGame.board.grid[row][col];
     if (boardSquare.tile) {
         const existingMove = currentGame.currentTurnMoves.find(move => move.tileId === draggedTileId);
         if (!existingMove || (existingMove && boardSquare.tile.id !== draggedTileId)) {
-             console.log("Square already occupied by a different tile or tile is not from board.");
-             return;
+             console.log("Square already occupied by a different tile or tile is not from board."); return;
         }
     }
-
-    const player = currentGame.getCurrentPlayer();
-    let tile;
-    let originalSourceType = 'rack';
+    const player = currentGame.getCurrentPlayer(); let tile; let originalSourceType = 'rack';
     const existingMoveIndex = currentGame.currentTurnMoves.findIndex(move => move.tileId === draggedTileId);
-
     if (existingMoveIndex !== -1) {
-        const move = currentGame.currentTurnMoves[existingMoveIndex];
-        tile = move.tileRef;
-        originalSourceType = 'board';
+        const move = currentGame.currentTurnMoves[existingMoveIndex]; tile = move.tileRef; originalSourceType = 'board';
         let originalPosition = { row: move.to.row, col: move.to.col };
-        if (originalPosition.row === row && originalPosition.col === col) {
-            draggedTileId = null; fullRender(currentGame, localPlayerId); return;
-        }
+        if (originalPosition.row === row && originalPosition.col === col) { draggedTileId = null; fullRender(currentGame, localPlayerId); return; }
         currentGame.board.grid[originalPosition.row][originalPosition.col].tile = null;
         move.to = { row, col };
     } else {
         const tileIndexInRack = player.rack.findIndex(t => t.id === draggedTileId);
-        if (tileIndexInRack === -1) {
-            draggedTileId = null; fullRender(currentGame, localPlayerId); return;
-        }
-        tile = player.rack[tileIndexInRack];
-        player.rack.splice(tileIndexInRack, 1);
+        if (tileIndexInRack === -1) { draggedTileId = null; fullRender(currentGame, localPlayerId); return; }
+        tile = player.rack[tileIndexInRack]; player.rack.splice(tileIndexInRack, 1);
         currentGame.currentTurnMoves.push({ tileId: tile.id, tileRef: tile, from: 'rack', to: { row, col }});
     }
-
     if (originalSourceType === 'rack' && tile.isBlank && !tile.assignedLetter) {
         let assigned = '';
         while (assigned.length !== 1 || !/^[A-Z]$/i.test(assigned)) {
@@ -379,295 +327,154 @@ function handleDropOnBoard(event) {
     }
     boardSquare.tile = tile;
     console.log(`Tile ${tile.id} (${tile.letter || 'blank'}) moved to (${row},${col}). currentTurnMoves:`, currentGame.currentTurnMoves);
-    fullRender(currentGame, localPlayerId);
-    draggedTileId = null;
+    fullRender(currentGame, localPlayerId); draggedTileId = null;
 }
 function handleDropOnRack(event) {
-    event.preventDefault();
-    if (!draggedTileId) return;
+    event.preventDefault(); if (!draggedTileId) return;
     const player = currentGame.getCurrentPlayer();
     const rackElement = document.getElementById(`${player.id}-rack`);
     if (!rackElement || !rackElement.contains(event.target)) return;
-
     const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
-    if (moveIndex === -1) {
-        console.log("Tile dragged to rack was not from board this turn."); return;
-    }
-    const move = currentGame.currentTurnMoves[moveIndex];
-    const tile = move.tileRef;
+    if (moveIndex === -1) { console.log("Tile dragged to rack was not from board this turn."); return; }
+    const move = currentGame.currentTurnMoves[moveIndex]; const tile = move.tileRef;
     currentGame.board.grid[move.to.row][move.to.col].tile = null;
     player.rack.push(tile);
     if (tile.isBlank && move.from === 'rack') tile.assignedLetter = null;
     currentGame.currentTurnMoves.splice(moveIndex, 1);
     console.log(`Tile ${tile.id} (${tile.letter}) returned to rack. currentTurnMoves:`, currentGame.currentTurnMoves);
-    fullRender(currentGame, localPlayerId);
-    draggedTileId = null;
+    fullRender(currentGame, localPlayerId); draggedTileId = null;
 }
 
 // --- Game Validation and Action Handlers ---
-
-/**
- * Validates the placement of tiles for the current turn.
- * @param {Array<Object>} moves - Array of move objects { tileId, tileRef, from, to: {row, col} } from currentGame.currentTurnMoves
- * @param {number} turnNumber - The current game turn number (0 for the first turn).
- * @param {Board} boardState - The current game board object.
- * @returns {Object} An object { isValid: boolean, message: string, direction: string|null }
- */
 function validatePlacement(moves, turnNumber, boardState) {
-    const validationResult = {
-        isValid: false,
-        message: "",
-        direction: null
-    };
-
-    if (!moves || moves.length === 0) {
-        validationResult.message = "No tiles placed to validate.";
-        return validationResult;
-    }
-
-    const sortedMoves = [...moves].sort((a, b) => {
-        if (a.to.row === b.to.row) return a.to.col - b.to.col;
-        return a.to.row - b.to.row;
-    });
-
-    let isLineHorizontal = false;
-    let isLineVertical = false;
-
+    const validationResult = { isValid: false, message: "", direction: null };
+    if (!moves || moves.length === 0) { validationResult.message = "No tiles placed to validate."; return validationResult; }
+    const sortedMoves = [...moves].sort((a, b) => (a.to.row === b.to.row) ? a.to.col - b.to.col : a.to.row - b.to.row);
+    let isLineHorizontal = true, isLineVertical = true;
     if (sortedMoves.length > 0) {
         isLineHorizontal = sortedMoves.every(m => m.to.row === sortedMoves[0].to.row);
         isLineVertical = sortedMoves.every(m => m.to.col === sortedMoves[0].to.col);
-
         if (sortedMoves.length > 1 && !isLineHorizontal && !isLineVertical) {
-            validationResult.message = "Invalid placement: Newly placed tiles must form a single horizontal or vertical line.";
-            return validationResult;
-        }
-        if (sortedMoves.length === 1) {
-            isLineHorizontal = true; isLineVertical = true; // A single tile is trivially in a line
+            validationResult.message = "Invalid placement: Newly placed tiles must form a single horizontal or vertical line."; return validationResult;
         }
     }
-
-    if (isLineHorizontal && isLineVertical && sortedMoves.length === 1) {
-        const r = sortedMoves[0].to.row; const c = sortedMoves[0].to.col;
-        const formsHorizontalWord = (c > 0 && boardState.grid[r][c - 1].tile) || (c < boardState.size - 1 && boardState.grid[r][c + 1].tile);
-        const formsVerticalWord = (r > 0 && boardState.grid[r - 1][c].tile) || (r < boardState.size - 1 && boardState.grid[r + 1][c].tile);
-        if (formsHorizontalWord) validationResult.direction = 'horizontal';
-        else if (formsVerticalWord) validationResult.direction = 'vertical';
-        else validationResult.direction = 'horizontal';
-    } else if (isLineHorizontal) {
-        validationResult.direction = 'horizontal';
-    } else if (isLineVertical) {
-        validationResult.direction = 'vertical';
-    } else if (sortedMoves.length > 0) {
-        validationResult.message = "Internal Error: Could not determine placement line logic."; return validationResult;
-    }
+    if (sortedMoves.length === 1) { // For single tile, determine preferred direction
+        const r = sortedMoves[0].to.row, c = sortedMoves[0].to.col;
+        const formsHorizontal = (c > 0 && boardState.grid[r][c-1].tile) || (c < boardState.size-1 && boardState.grid[r][c+1].tile);
+        const formsVertical = (r > 0 && boardState.grid[r-1][c].tile) || (r < boardState.size-1 && boardState.grid[r+1][c].tile);
+        validationResult.direction = formsHorizontal ? 'horizontal' : (formsVertical ? 'vertical' : 'horizontal');
+    } else if (isLineHorizontal) validationResult.direction = 'horizontal';
+    else if (isLineVertical) validationResult.direction = 'vertical';
 
     if (sortedMoves.length > 1) {
-        const firstPlaced = sortedMoves[0].to;
-        const lastPlaced = sortedMoves[sortedMoves.length - 1].to;
+        const first = sortedMoves[0].to, last = sortedMoves[sortedMoves.length-1].to;
         if (validationResult.direction === 'horizontal') {
-            for (let c = firstPlaced.col + 1; c < lastPlaced.col; c++) {
-                if (!sortedMoves.some(m => m.to.row === firstPlaced.row && m.to.col === c) && !boardState.grid[firstPlaced.row][c].tile) {
+            for (let c = first.col + 1; c < last.col; c++)
+                if (!sortedMoves.some(m=>m.to.row===first.row && m.to.col===c) && !boardState.grid[first.row][c].tile) {
                     validationResult.message = "Invalid placement: Tiles in a new word must be contiguous (no gaps)."; return validationResult;
                 }
-            }
         } else if (validationResult.direction === 'vertical') {
-            for (let r = firstPlaced.row + 1; r < lastPlaced.row; r++) {
-                 if (!sortedMoves.some(m => m.to.col === firstPlaced.col && m.to.row === r) && !boardState.grid[r][firstPlaced.col].tile) {
+            for (let r = first.row + 1; r < last.row; r++)
+                if (!sortedMoves.some(m=>m.to.col===first.col && m.to.row===r) && !boardState.grid[r][first.col].tile) {
                     validationResult.message = "Invalid placement: Tiles in a new word must be contiguous (no gaps)."; return validationResult;
                 }
-            }
         }
     }
-
     if (turnNumber === 0) {
-        const centerSquare = boardState.getCenterSquare();
-        if (!sortedMoves.some(m => m.to.row === centerSquare.row && m.to.col === centerSquare.col)) {
+        const center = boardState.getCenterSquare();
+        if (!sortedMoves.some(m => m.to.row === center.row && m.to.col === center.col)) {
             validationResult.message = "Invalid placement: The first word must cover the center square."; return validationResult;
         }
     } else {
-        let connectsToExisting = false;
-        let boardHasExistingTiles = false;
-        for(let r_idx=0; r_idx < boardState.size; r_idx++) {
-            for(let c_idx=0; c_idx < boardState.size; c_idx++) {
-                if(boardState.grid[r_idx][c_idx].tile && !sortedMoves.some(m => m.to.row === r_idx && m.to.col === c_idx)) {
-                    boardHasExistingTiles = true; break;
-                }
+        let connects = false, boardHasTiles = false;
+        for(let r=0;r<boardState.size;r++) for(let c=0;c<boardState.size;c++) if(boardState.grid[r][c].tile && !sortedMoves.some(m=>m.to.row===r&&m.to.col===c)) {boardHasTiles=true;break;}
+        if(boardHasTiles){
+            for(const move of sortedMoves){
+                const {row,col} = move.to;
+                [[row-1,col],[row+1,col],[row,col-1],[row,col+1]].forEach(([nr,nc])=>{
+                    if(nr>=0&&nr<boardState.size&&nc>=0&&nc<boardState.size && boardState.grid[nr][nc].tile && !sortedMoves.some(sm=>sm.to.row===nr&&sm.to.col===nc)) connects=true;
+                });
+                if(connects)break;
             }
-            if(boardHasExistingTiles) break;
-        }
-        if (boardHasExistingTiles) {
-            for (const move of sortedMoves) {
-                const r = move.to.row; const c = move.to.col;
-                const neighbors = [[r-1, c], [r+1, c], [r, c-1], [r, c+1]];
-                for (const [nr, nc] of neighbors) {
-                    if (nr >= 0 && nr < boardState.size && nc >= 0 && nc < boardState.size) {
-                        const neighborSquare = boardState.grid[nr][nc];
-                        if (neighborSquare.tile && !sortedMoves.some(sm => sm.to.row === nr && sm.to.col === nc)) { // Check if neighbor is NOT part of current play
-                            connectsToExisting = true; break;
-                        }
-                    }
-                }
-                if (connectsToExisting) break;
-            }
-            if (!connectsToExisting) {
-                 validationResult.message = "Invalid placement: New words must connect to existing tiles."; return validationResult;
-            }
+            if(!connects){validationResult.message="Invalid placement: New words must connect to existing tiles."; return validationResult;}
         }
     }
-    validationResult.isValid = true;
-    return validationResult;
+    validationResult.isValid = true; return validationResult;
 }
 
-/**
- * Identifies the primary word formed by a set of moves.
- * @param {Array<Object>} committedMovesInput - The moves made in the current turn (e.g., from currentGame.currentTurnMoves).
- * @param {Board} board - The game board instance.
- * @param {string} identifiedDirection - The primary direction of the play ('horizontal' or 'vertical').
- * @returns {Object|null} An object { word, start_row, start_col, direction, blanks_info } or null.
- */
 function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
     if (!identifiedDirection || !committedMovesInput || committedMovesInput.length === 0) {
-        console.warn("identifyPlayedWord: No direction or no moves provided.");
-        return null;
+        console.warn("identifyPlayedWord: No direction or no moves provided."); return null;
     }
-
-    const sortedMoves = [...committedMovesInput].sort((a, b) => {
-        if (identifiedDirection === 'horizontal') return a.to.col - b.to.col;
-        return a.to.row - b.to.row;
-    });
-
+    const sortedMoves = [...committedMovesInput].sort((a,b)=> (identifiedDirection==='horizontal') ? a.to.col-b.to.col : a.to.row-b.to.row);
     const firstNewTilePos = sortedMoves[0].to;
-    let wordString = "";
-    let startRow = firstNewTilePos.row;
-    let startCol = firstNewTilePos.col;
-
+    let wordString = "", startRow = firstNewTilePos.row, startCol = firstNewTilePos.col;
     if (identifiedDirection === 'horizontal') {
-        while (startCol > 0 && board.grid[startRow][startCol - 1].tile) {
-            startCol--;
-        }
-        let endColScan = sortedMoves[sortedMoves.length - 1].to.col;
-        while (endColScan < board.size - 1 && board.grid[startRow][endColScan + 1].tile) {
-            endColScan++;
-        }
-        for (let c = startCol; c <= endColScan; c++) {
-            const tileOnSquare = board.grid[startRow][c].tile;
-            if (tileOnSquare) {
-                wordString += tileOnSquare.isBlank ? tileOnSquare.assignedLetter.toUpperCase() : tileOnSquare.letter.toUpperCase();
-            } else {
-                console.error(`Gap found at ${startRow},${c} during horizontal word identification.`);
-                wordString += '?';
-            }
+        while (startCol > 0 && board.grid[startRow][startCol-1].tile) startCol--;
+        let endColScan = sortedMoves[sortedMoves.length-1].to.col;
+        while (endColScan < board.size-1 && board.grid[startRow][endColScan+1].tile) endColScan++;
+        for (let c=startCol; c<=endColScan; c++) {
+            const tile = board.grid[startRow][c].tile;
+            if(tile) wordString += tile.isBlank ? tile.assignedLetter.toUpperCase() : tile.letter.toUpperCase(); else {console.error("Gap H");wordString+='?'}
         }
     } else { // Vertical
-        while (startRow > 0 && board.grid[startRow - 1][startCol].tile) {
-            startRow--;
-        }
-        let endRowScan = sortedMoves[sortedMoves.length - 1].to.row;
-        while (endRowScan < board.size - 1 && board.grid[endRowScan + 1][startCol].tile) {
-            endRowScan++;
-        }
-        for (let r = startRow; r <= endRowScan; r++) {
-            const tileOnSquare = board.grid[r][startCol].tile;
-            if (tileOnSquare) {
-                wordString += tileOnSquare.isBlank ? tileOnSquare.assignedLetter.toUpperCase() : tileOnSquare.letter.toUpperCase();
-            } else {
-                console.error(`Gap found at ${r},${startCol} during vertical word identification.`);
-                wordString += '?';
-            }
+        while (startRow > 0 && board.grid[startRow-1][startCol].tile) startRow--;
+        let endRowScan = sortedMoves[sortedMoves.length-1].to.row;
+        while (endRowScan < board.size-1 && board.grid[endRowScan+1][startCol].tile) endRowScan++;
+        for (let r=startRow; r<=endRowScan; r++) {
+            const tile = board.grid[r][startCol].tile;
+            if(tile) wordString += tile.isBlank ? tile.assignedLetter.toUpperCase() : tile.letter.toUpperCase(); else {console.error("Gap V");wordString+='?'}
         }
     }
-
     const blanksInfo = [];
     committedMovesInput.forEach(move => {
         if (move.tileRef.isBlank) {
-            let indexInWord = -1;
-            if (identifiedDirection === 'horizontal') {
-                indexInWord = move.to.col - startCol;
-            } else {
-                indexInWord = move.to.row - startRow;
-            }
-            if (indexInWord >= 0 && indexInWord < wordString.length) {
-                blanksInfo.push({ idx: indexInWord, al: move.tileRef.assignedLetter.toUpperCase() });
-            }
+            let idx = (identifiedDirection==='horizontal') ? move.to.col-startCol : move.to.row-startRow;
+            if (idx>=0 && idx<wordString.length) blanksInfo.push({idx, al:move.tileRef.assignedLetter.toUpperCase()});
         }
     });
-
-    if (wordString.includes('?')) {
-        console.error("Error in word identification: word string contains '?'. Moves:", committedMovesInput, "Identified:", { word: wordString, start_row: startRow, start_col: startCol, direction: identifiedDirection });
-        return null;
-    }
-
-    return {
-        word: wordString,
-        start_row: startRow,
-        start_col: startCol,
-        direction: identifiedDirection,
-        blanks_info: blanksInfo
-    };
+    if(wordString.includes('?')){console.error("Word ID error", committedMovesInput, wordString); return null;}
+    return { word:wordString, start_row:startRow, start_col:startCol, direction:identifiedDirection, blanks_info:blanksInfo };
 }
 
-
 function handleCommitPlay() {
-    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
-        alert("It's not your turn or no game active!");
-        return;
-    }
-    if (currentGame.currentTurnMoves.length === 0) {
-        alert("You haven't placed any tiles.");
-        return;
-    }
+    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) { alert("It's not your turn or no game active!"); return; }
+    if (currentGame.currentTurnMoves.length === 0) { alert("You haven't placed any tiles."); return; }
 
     const validation = validatePlacement(currentGame.currentTurnMoves, currentGame.turnNumber, currentGame.board);
-    if (!validation.isValid) {
-        alert(validation.message);
-        return;
-    }
+    if (!validation.isValid) { alert(validation.message); return; }
     const identifiedDirection = validation.direction;
     console.log("Placement validation passed. Direction:", identifiedDirection);
 
     const actualCommittedMoves = [...currentGame.currentTurnMoves];
-
-    actualCommittedMoves.forEach(move => {
-        const square = currentGame.board.grid[move.to.row][move.to.col];
-        if (square.bonus !== BONUS_TYPES.NONE) {
-            // bonus usage would be marked during scoring
-        }
-    });
+    actualCommittedMoves.forEach(move => { /* Bonus placeholder */ });
 
     const wordDataForURL = identifyPlayedWord(actualCommittedMoves, currentGame.board, identifiedDirection);
     if (!wordDataForURL || !wordDataForURL.word) {
-        console.warn("Word identification did not produce data for URL. URL will lack word details.");
+        console.warn("Word identification did not produce data for URL.");
     }
 
     currentGame.currentTurnMoves = [];
     currentGame.turnNumber++;
-
     const playerWhoPlayed = currentGame.getCurrentPlayer();
     const tilesPlayedCount = actualCommittedMoves.length;
-
     currentGame.drawTiles(playerWhoPlayed, tilesPlayedCount);
     console.log(`${playerWhoPlayed.name} drew ${tilesPlayedCount} tiles. Rack size: ${playerWhoPlayed.rack.length}`);
-
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
     console.log("Player switched. New current player:", currentGame.getCurrentPlayer().name);
 
     let turnURL;
     if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
-        turnURL = generateTurnURL(
-            currentGame.gameId, currentGame.turnNumber, wordDataForURL,
-            currentGame.randomSeed, currentGame.creatorId
-        );
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, currentGame.creatorId);
     } else {
         turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL);
     }
-
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
         turnUrlInput.value = turnURL;
         turnUrlInput.placeholder = "Share this URL with the other player.";
         console.log("Turn URL:", turnURL);
     }
-
     alert("Play committed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
@@ -678,37 +485,28 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = nu
     const params = new URLSearchParams();
     params.append('gid', gameId);
     params.append('tn', turnNumber);
-
     if (seed !== null) params.append('seed', seed);
     if (creator !== null) params.append('creator', creator);
-
     if (turnData && turnData.word) {
-        params.append('w', turnData.word);
-        params.append('wl', `${turnData.start_row},${turnData.start_col}`);
+        params.append('wl', `${turnData.start_row}.${turnData.start_col}`);
         params.append('wd', turnData.direction);
         if (turnData.blanks_info && turnData.blanks_info.length > 0) {
-            const blankParam = turnData.blanks_info.map(bi => `${bi.idx}:${bi.al}`).join(';');
-            params.append('bt', blankParam);
+            params.append('bt', turnData.blanks_info.map(bi => `${bi.idx}:${bi.al}`).join(';'));
         }
+        params.append('w', turnData.word);
     }
     return `${baseURL}?${params.toString()}`;
 }
 
-// --- Game Initialization and Event Listeners ---
-// ... (initializeNewGame, LocalStorage functions, applyTurnDataFromURL, loadGameFromURLOrStorage as before) ...
-
 function initializeNewGame() {
     const gameId = `game-${Date.now()}`;
     const randomSeed = Math.floor(Math.random() * 1000000);
-
     currentGame = new GameState(gameId, randomSeed, {});
     currentGame.creatorId = BROWSER_PLAYER_ID;
     localPlayerId = 'player1';
-
     console.log("New local game initialized by this browser:", currentGame);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
-
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
         turnUrlInput.value = "";
@@ -716,202 +514,103 @@ function initializeNewGame() {
     }
 }
 
-// --- LocalStorage Functions ---
+// --- LocalStorage Functions --- (No changes from previous correct version)
 const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
-
-function getPlayerIdentifier() {
-    let browserId = localStorage.getItem("crosswordBrowserId");
-    if (!browserId) {
-        browserId = `browser-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem("crosswordBrowserId", browserId);
-    }
-    return browserId;
-}
-const BROWSER_PLAYER_ID = getPlayerIdentifier();
-
-function saveGameStateToLocalStorage(gameState) {
-    if (!gameState || !gameState.gameId) {
-        console.error("Cannot save game state: invalid gameState or gameId missing.");
-        return;
-    }
-    try {
-        const serializableState = {
-            gameId: gameState.gameId, randomSeed: gameState.randomSeed, settings: gameState.settings,
-            turnNumber: gameState.turnNumber, currentPlayerIndex: gameState.currentPlayerIndex,
-            isGameOver: gameState.isGameOver, gameHistory: gameState.gameHistory,
-            players: gameState.players.map(p => ({
-                id: p.id, name: p.name, score: p.score,
-                rack: p.rack.map(t => ({ letter: t.letter, value: t.value, isBlank: t.isBlank, assignedLetter: t.assignedLetter, id: t.id }))
-            })),
-            bag: gameState.bag.map(t => ({ letter: t.letter, value: t.value, isBlank: t.isBlank, assignedLetter: t.assignedLetter, id: t.id })),
-            boardGrid: gameState.board.grid.map(row => row.map(sq => ({
-                row: sq.row, col: sq.col, bonus: sq.bonus, bonusUsed: sq.bonusUsed,
-                tile: sq.tile ? { letter: sq.tile.letter, value: sq.tile.value, isBlank: sq.tile.isBlank, assignedLetter: sq.tile.assignedLetter, id: sq.tile.id } : null
-            }))),
-            creatorId: gameState.creatorId || null
-        };
-        localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
-        console.log(`Game ${gameState.gameId} saved to localStorage.`);
-    } catch (error) {
-        console.error("Error saving game state to localStorage:", error);
-    }
-}
-
-function loadGameStateFromLocalStorage(gameId) {
-    if (!gameId) return null;
-    try {
-        const storedDataString = localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX + gameId);
-        if (!storedDataString) return null;
-        const storedData = JSON.parse(storedDataString);
-        const rehydratedGame = new GameState(storedData.gameId, storedData.randomSeed, storedData.settings || {});
-        rehydratedGame.turnNumber = storedData.turnNumber;
-        rehydratedGame.currentPlayerIndex = storedData.currentPlayerIndex;
-        rehydratedGame.isGameOver = storedData.isGameOver;
-        rehydratedGame.gameHistory = storedData.gameHistory || [];
-        rehydratedGame.creatorId = storedData.creatorId;
-        if (storedData.players && storedData.players.length === rehydratedGame.players.length) {
-            storedData.players.forEach((pd, index) => {
-                rehydratedGame.players[index].score = pd.score;
-                rehydratedGame.players[index].rack = pd.rack.map(td => {
-                    const tile = new Tile(td.letter, td.value, td.isBlank);
-                    tile.assignedLetter = td.assignedLetter; tile.id = td.id; return tile;
-                });
-            });
-        }
-        rehydratedGame.bag = storedData.bag.map(td => {
-            const tile = new Tile(td.letter, td.value, td.isBlank);
-            tile.assignedLetter = td.assignedLetter; tile.id = td.id; return tile;
-        });
-        if (storedData.boardGrid) {
-            for (let r = 0; r < storedData.boardGrid.length; r++) {
-                for (let c = 0; c < storedData.boardGrid[r].length; c++) {
-                    const sqData = storedData.boardGrid[r][c];
-                    const boardSq = rehydratedGame.board.grid[r][c];
-                    boardSq.bonus = sqData.bonus; boardSq.bonusUsed = sqData.bonusUsed;
-                    if (sqData.tile) {
-                        const td = sqData.tile;
-                        const tile = new Tile(td.letter, td.value, td.isBlank);
-                        tile.assignedLetter = td.assignedLetter; tile.id = td.id;
-                        boardSq.tile = tile;
-                    } else { boardSq.tile = null; }
-                }
-            }
-        }
-        console.log(`Game ${gameId} loaded and rehydrated from localStorage.`);
-        return rehydratedGame;
-    } catch (error) {
-        console.error("Error loading game state from localStorage:", error); return null;
-    }
-}
+function getPlayerIdentifier(){let b=localStorage.getItem("crosswordBrowserId");if(!b){b=`browser-${Date.now()}-${Math.random().toString(36).substr(2,9)}`;localStorage.setItem("crosswordBrowserId",b)}return b}
+const BROWSER_PLAYER_ID=getPlayerIdentifier();
+function saveGameStateToLocalStorage(a){if(!a||!a.gameId){console.error("Cannot save game state: invalid gameState or gameId missing.");return}try{const b={gameId:a.gameId,randomSeed:a.randomSeed,settings:a.settings,turnNumber:a.turnNumber,currentPlayerIndex:a.currentPlayerIndex,isGameOver:a.isGameOver,gameHistory:a.gameHistory,players:a.players.map(c=>({id:c.id,name:c.name,score:c.score,rack:c.rack.map(d=>({letter:d.letter,value:d.value,isBlank:d.isBlank,assignedLetter:d.assignedLetter,id:d.id}))})),bag:a.bag.map(c=>({letter:c.letter,value:c.value,isBlank:c.isBlank,assignedLetter:c.assignedLetter,id:c.id})),boardGrid:a.board.grid.map(c=>c.map(d=>({row:d.row,col:d.col,bonus:d.bonus,bonusUsed:d.bonusUsed,tile:d.tile?{letter:d.tile.letter,value:d.tile.value,isBlank:d.tile.isBlank,assignedLetter:d.tile.assignedLetter,id:d.tile.id}:null}))),creatorId:a.creatorId||null};localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX+a.gameId,JSON.stringify(b));console.log(`Game ${a.gameId} saved to localStorage.`)}catch(c){console.error("Error saving game state to localStorage:",c)}}
+function loadGameStateFromLocalStorage(a){if(!a)return null;try{const b=localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX+a);if(!b)return null;const c=JSON.parse(b),d=new GameState(c.gameId,c.randomSeed,c.settings||{});d.turnNumber=c.turnNumber;d.currentPlayerIndex=c.currentPlayerIndex;d.isGameOver=c.isGameOver;d.gameHistory=c.gameHistory||[];d.creatorId=c.creatorId;if(c.players&&c.players.length===d.players.length)c.players.forEach((e,f)=>{d.players[f].score=e.score;d.players[f].rack=e.rack.map(g=>{const h=new Tile(g.letter,g.value,g.isBlank);h.assignedLetter=g.assignedLetter;h.id=g.id;return h})});d.bag=c.bag.map(e=>{const f=new Tile(e.letter,e.value,e.isBlank);f.assignedLetter=e.assignedLetter;f.id=e.id;return f});if(c.boardGrid)for(let e=0;e<c.boardGrid.length;e++)for(let f=0;f<c.boardGrid[e].length;f++){const g=c.boardGrid[e][f],h=d.board.grid[e][f];h.bonus=g.bonus;h.bonusUsed=g.bonusUsed;if(g.tile){const i=g.tile,j=new Tile(i.letter,i.value,i.isBlank);j.assignedLetter=i.assignedLetter;j.id=i.id;h.tile=j}else h.tile=null}console.log(`Game ${a} loaded and rehydrated from localStorage.`);return d}catch(b){console.error("Error loading game state from localStorage:",b);return null}}
 
 // --- Game Initialization and URL Handling ---
 function applyTurnDataFromURL(gameState, params) {
-    const word = params.get('w');
-    const wordLocation = params.get('wl');
-    const wordDirection = params.get('wd');
-    const blankTileData = params.get('bt');
-
+    const word = params.get('w'); const wordLocation = params.get('wl');
+    const wordDirection = params.get('wd'); const blankTileData = params.get('bt');
     if (word && wordLocation && wordDirection) {
         console.log(`Applying word-based turn data: ${word} at ${wordLocation} ${wordDirection}`);
-        const [startRowStr, startColStr] = wordLocation.split(',');
+        const [startRowStr, startColStr] = wordLocation.split('.'); // Changed to dot
         const startRow = parseInt(startRowStr); const startCol = parseInt(startColStr);
         if (isNaN(startRow) || isNaN(startCol)) { console.error("Invalid word location format:", wordLocation); return false; }
-
         const blanks = new Map();
-        if (blankTileData) {
-            blankTileData.split(';').forEach(item => {
-                const [idxStr, al] = item.split(':'); blanks.set(parseInt(idxStr), al);
-            });
-        }
+        if (blankTileData) blankTileData.split(';').forEach(item => { const [idxStr, al] = item.split(':'); blanks.set(parseInt(idxStr), al);});
         for (let i = 0; i < word.length; i++) {
             const char = word[i]; let r = startRow; let c = startCol;
-            if (wordDirection === 'horizontal') c += i;
-            else if (wordDirection === 'vertical') r += i;
+            if (wordDirection === 'horizontal') c += i; else if (wordDirection === 'vertical') r += i;
             else { console.error("Invalid word direction:", wordDirection); return false; }
-
             if (gameState.board.grid[r] && gameState.board.grid[r][c]) {
-                if (gameState.board.grid[r][c].tile && gameState.board.grid[r][c].tile.letter !== char && !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char)) {
+                if (gameState.board.grid[r][c].tile && gameState.board.grid[r][c].tile.letter !== char && !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char))
                     console.warn(`Square ${r},${c} already has a tile ${gameState.board.grid[r][c].tile.letter}. Overwriting with ${char} from URL.`);
-                }
                 let isBlankTile = false; let assignedLetterForBlank = null;
                 if (blanks.has(i)) { isBlankTile = true; assignedLetterForBlank = blanks.get(i); }
                 const tileLetter = isBlankTile ? '' : char;
-                const newTile = new Tile(tileLetter, gameState.settings.tileValues[char.toUpperCase()] || 0, isBlankTile); // Use char.toUpperCase() for value lookup
+                const newTile = new Tile(tileLetter, gameState.settings.tileValues[char.toUpperCase()] || 0, isBlankTile);
                 if (isBlankTile) newTile.assignedLetter = assignedLetterForBlank;
                 gameState.board.grid[r][c].tile = newTile;
             } else { console.error(`Invalid square coordinates for word placement: ${r},${c}`); return false; }
         }
         return true;
     }
-    console.log("No word-based turn data (w, wl, wd) found in URL params to apply.");
-    return false;
+    console.log("No word-based turn data (w, wl, wd) found in URL params to apply."); return false;
 }
-
 function loadGameFromURLOrStorage() {
     const params = new URLSearchParams(window.location.search);
-    const urlGameId = params.get('gid');
-    const urlTurnNumberStr = params.get('tn');
+    const urlGameId = params.get('gid'); const urlTurnNumberStr = params.get('tn');
     const urlSeed = params.get('seed');
-
     if (urlGameId) {
         console.log(`URL contains gameId: ${urlGameId}`);
         currentGame = loadGameStateFromLocalStorage(urlGameId);
         if (currentGame) {
-            if (currentGame.creatorId === BROWSER_PLAYER_ID) localPlayerId = 'player1';
-            else localPlayerId = 'player2';
-            console.log(`Game ${urlGameId} loaded from storage. This browser is ${localPlayerId}. Current turn: ${currentGame.turnNumber}`);
-
+            if (currentGame.creatorId === BROWSER_PLAYER_ID) localPlayerId = 'player1'; else localPlayerId = 'player2';
+            console.log(`Game ${urlGameId} loaded. This browser: ${localPlayerId}. LS Turn: ${currentGame.turnNumber}. URL Turn: ${urlTurnNumberStr}`);
             if (urlTurnNumberStr) {
                 const urlTurnNumber = parseInt(urlTurnNumberStr);
                 if (urlTurnNumber === currentGame.turnNumber + 1) {
                     console.log(`Attempting to apply turn ${urlTurnNumber} from URL.`);
                     if (applyTurnDataFromURL(currentGame, params)) {
                         currentGame.turnNumber = urlTurnNumber;
-                        if (params.get('w')) { // if there was word data, implies a move was made
+                        if (params.get('w')) { // if actual move data was applied
+                             currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+                        } // If no word data, it might be a pass/exchange - currentPlayerIndex should still advance.
+                        else if (!params.get('w') && !params.get('bt')) { // Explicitly a pass/exchange (no word, no blanks)
                              currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
                         }
                         saveGameStateToLocalStorage(currentGame);
-                        console.log(`Successfully applied turn ${urlTurnNumber}. New current player index: ${currentGame.currentPlayerIndex}`);
-                    } else {
-                        if (!params.get('w') && !params.get('bt')) { // No word data implies pass/exchange
+                        console.log(`Successfully applied/processed turn ${urlTurnNumber}. New current player index: ${currentGame.currentPlayerIndex}`);
+                    } else { // applyTurnDataFromURL returned false, but it wasn't a pass/exchange
+                        if (params.get('w') || params.get('bt')) { // If there was an attempt to apply word/blank data and it failed
+                            alert("Failed to apply turn data from URL. Check console.");
+                        } else { // Only gid, tn in URL - could be just syncing turn number after a pass on other client
                              currentGame.turnNumber = urlTurnNumber;
                              currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
                              saveGameStateToLocalStorage(currentGame);
-                             console.log(`Turn ${urlTurnNumber} processed as pass/exchange. New current player index: ${currentGame.currentPlayerIndex}`);
-                        } else {
-                            alert("Failed to apply turn data from URL. Check console for details.");
+                             console.log(`Turn ${urlTurnNumber} (likely pass/exchange) processed. New current player index: ${currentGame.currentPlayerIndex}`);
                         }
                     }
                 } else if (urlTurnNumber <= currentGame.turnNumber) {
-                    alert(`Turn ${urlTurnNumber} has already been applied or is out of sync. Current turn is ${currentGame.turnNumber}.`);
+                    console.log(`Turn ${urlTurnNumber} from URL already applied or is old. Current turn: ${currentGame.turnNumber}.`);
                 } else {
                     alert(`Out of sync turn data. Expected turn ${currentGame.turnNumber + 1}, got ${urlTurnNumber}.`);
                 }
             }
         } else {
             if (urlSeed && (!urlTurnNumberStr || parseInt(urlTurnNumberStr) <= 1)) {
-                console.log(`New game ${urlGameId} from URL with seed ${urlSeed}. Assuming this client is Player 2.`);
+                console.log(`New game ${urlGameId} from URL with seed ${urlSeed}. This client is P2.`);
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), {});
                 localPlayerId = 'player2';
                 currentGame.creatorId = params.get('creator') || null;
-                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('w'))) {
+                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && params.has('w')) {
                     if(applyTurnDataFromURL(currentGame, params)) {
                         currentGame.turnNumber = 1;
                         currentGame.currentPlayerIndex = 1;
-                        console.log("Applied P1's first move for P2. Current player index:", currentGame.currentPlayerIndex);
-                    } else {
-                        console.error("Failed to apply P1's first move data for P2.");
-                    }
+                    } else console.error("Failed to apply P1's first move for P2.");
                 }
                 saveGameStateToLocalStorage(currentGame);
             } else {
-                 alert(`Game ${urlGameId} not found locally. Please ensure you have the complete game history or the initial new game URL.`);
-                 document.getElementById('board-container').innerHTML = `<p>Error: Game ${urlGameId} not found. Cannot apply turn ${urlTurnNumberStr}.</p>`;
-                 return;
+                 alert(`Game ${urlGameId} not found locally. Load initial new game URL from Player 1.`);
+                 document.getElementById('board-container').innerHTML = `<p>Error: Game ${urlGameId} not found. Load P1's first URL.</p>`; return;
             }
         }
     } else if (urlSeed) {
-        console.log(`New game from URL with seed ${urlSeed}. This client is Player 1.`);
+        console.log(`New game from URL with seed ${urlSeed}. This client is P1.`);
         const newGameId = urlGameId || `game-${Date.now()}`;
         currentGame = new GameState(newGameId, parseInt(urlSeed), {});
         currentGame.creatorId = BROWSER_PLAYER_ID;
@@ -919,32 +618,23 @@ function loadGameFromURLOrStorage() {
         saveGameStateToLocalStorage(currentGame);
     } else {
         console.log("No game parameters in URL. Initializing a new local test game.");
-        initializeNewGame();
-        return;
+        initializeNewGame(); return;
     }
-
-    if (currentGame) {
-        fullRender(currentGame, localPlayerId);
-    } else {
-        console.log("No game active after URL processing. Displaying new game prompt or empty state.");
-        document.getElementById('board-container').innerHTML = '<p>Start a new game or load one via URL. Check console for errors.</p>';
+    if (currentGame) fullRender(currentGame, localPlayerId);
+    else {
+        console.log("No game active. Displaying new game prompt.");
+        document.getElementById('board-container').innerHTML = '<p>Start a new game or load one via URL.</p>';
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded and parsed.");
     loadGameFromURLOrStorage();
-
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
     document.getElementById('exchange-tiles-btn').addEventListener('click', () => alert('Exchange Tiles clicked! (Not implemented)'));
     document.getElementById('pass-turn-btn').addEventListener('click', () => alert('Pass Turn clicked! (Not implemented)'));
-
     const newGameBtn = document.getElementById('new-game-btn');
-    if (newGameBtn) {
-        newGameBtn.addEventListener('click', () => {
-            initializeNewGame();
-        });
-    }
+    if (newGameBtn) newGameBtn.addEventListener('click', initializeNewGame);
 });
 
 [end of script.js]
