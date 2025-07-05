@@ -762,40 +762,47 @@ function handleCommitPlay() {
     // This should happen *before* generating the URL for this turn's data.
     currentGame.turnNumber++;
 
+    const playerWhoPlayed = currentGame.getCurrentPlayer();
+    const tilesPlayedCount = committedMoves.length; // Number of tiles actually played from rack/board
 
-    // TODO: Placeholder for switching player & replenishing tiles
-    // const playerWhoPlayed = currentGame.getCurrentPlayer();
-    // const tilesPlayedCount = movesForURL.length;
-    // currentGame.drawTiles(playerWhoPlayed, tilesPlayedCount);
-    // currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+    // Replenish tiles for the player who just played
+    currentGame.drawTiles(playerWhoPlayed, tilesPlayedCount);
+    console.log(`${playerWhoPlayed.name} drew ${tilesPlayedCount} tiles. Rack size: ${playerWhoPlayed.rack.length}`);
 
-    alert("Play committed! (Validation, scoring, and turn change not yet implemented)");
+    // Switch current player AFTER drawing tiles and other end-of-turn logic for the current player
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+    console.log("Player switched. New current player:", currentGame.getCurrentPlayer().name);
 
+    // Generate URL based on the committed moves (wordDataForURL)
     let turnURL;
     if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
         // This is P1 completing their first move, generate the special new game + first move URL
         turnURL = generateTurnURL(
             currentGame.gameId,
-            currentGame.turnNumber,
-            wordDataForURL, // Use the new word-based data structure
+            currentGame.turnNumber, // This is now 1
+            wordDataForURL,
             currentGame.randomSeed,
             currentGame.creatorId
-            // TODO: Include non-default settings
+            // TODO: settings
         );
     } else {
-        // Standard turn URL for subsequent moves, using new word-based data
+        // Standard turn URL
         turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL);
     }
 
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
         turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player."; // Update placeholder
+        turnUrlInput.placeholder = "Share this URL with the other player.";
         console.log("Turn URL:", turnURL);
     }
 
-    // Re-render the board. Tiles that were in currentTurnMoves will no longer be draggable.
-    // Rack will also re-render, ensuring its drop listeners are updated if the turn changed.
+    alert("Play committed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
+
+    // Save the game state AFTER all local updates (turn number, player index, racks)
+    saveGameStateToLocalStorage(currentGame);
+
+    // Re-render the UI. Tiles played are now permanent. Rack is updated. Next player is active.
     fullRender(currentGame, localPlayerId);
 }
 
