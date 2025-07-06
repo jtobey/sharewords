@@ -758,5 +758,3 @@ document.addEventListener('DOMContentLoaded', () => {
     const newGameBtn = document.getElementById('new-game-btn');
     if (newGameBtn) newGameBtn.addEventListener('click', initializeNewGame);
 });
-
-[end of script.js]
