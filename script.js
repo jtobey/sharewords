@@ -446,22 +446,49 @@ function handleCommitPlay() {
     const identifiedDirection = validation.direction;
     console.log("Placement validation passed. Direction:", identifiedDirection);
 
-    const actualCommittedMoves = [...currentGame.currentTurnMoves];
-    actualCommittedMoves.forEach(move => { /* Bonus placeholder */ });
+    const actualCommittedMoves = [...currentGame.currentTurnMoves]; // These are the {tileId, tileRef, from, to}
+    const playerWhoPlayed = currentGame.getCurrentPlayer();
+
+    // --- Scoring Integration ---
+    const allWordsPlayed = identifyAllPlayedWords(actualCommittedMoves, currentGame.board, identifiedDirection);
+    if (allWordsPlayed.length === 0 && actualCommittedMoves.length > 0) {
+        // This case should ideally be caught by validation, but as a fallback:
+        // If tiles were placed but no words were identified (e.g. single disconnected tile not on first turn)
+        // This might indicate an issue or a play that shouldn't score.
+        // For now, we'll proceed, and calculateWordScore might return 0.
+        console.warn("No words identified for scoring, though moves were made.", actualCommittedMoves);
+    }
+
+    const scoreResult = calculateWordScore(allWordsPlayed, currentGame.board, actualCommittedMoves, currentGame.settings);
+    playerWhoPlayed.score += scoreResult.score;
+    console.log(`${playerWhoPlayed.name} scored ${scoreResult.score} points. Total score: ${playerWhoPlayed.score}`);
+
+    // Mark bonus squares as used
+    scoreResult.usedBonusSquares.forEach(sqCoord => {
+        if (currentGame.board.grid[sqCoord.r] && currentGame.board.grid[sqCoord.r][sqCoord.c]) {
+            currentGame.board.grid[sqCoord.r][sqCoord.c].bonusUsed = true;
+            console.log(`Bonus at ${sqCoord.r},${sqCoord.c} marked as used.`);
+        }
+    });
+    // --- End Scoring Integration ---
 
     const wordDataForURL = identifyPlayedWord(actualCommittedMoves, currentGame.board, identifiedDirection);
     if (!wordDataForURL || !wordDataForURL.word) {
-        console.warn("Word identification did not produce data for URL.");
+        console.warn("Word identification did not produce data for URL (this is separate from scoring word ID).");
     }
 
-    currentGame.currentTurnMoves = [];
+    currentGame.currentTurnMoves = []; // Clear moves for next turn
     currentGame.turnNumber++;
-    const playerWhoPlayed = currentGame.getCurrentPlayer();
+
     const tilesPlayedCount = actualCommittedMoves.length;
     currentGame.drawTiles(playerWhoPlayed, tilesPlayedCount);
     console.log(`${playerWhoPlayed.name} drew ${tilesPlayedCount} tiles. Rack size: ${playerWhoPlayed.rack.length}`);
+
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
     console.log("Player switched. New current player:", currentGame.getCurrentPlayer().name);
+
+    // Update UI with new scores before generating URL or saving
+    updateGameStatus(currentGame);
 
     let turnURL;
     if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
@@ -479,6 +506,195 @@ function handleCommitPlay() {
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 }
+
+// --- Scoring Logic ---
+
+/**
+ * Identifies all words formed by a given set of placed tiles.
+ * This includes the main word and any cross-words.
+ * @param {Array<{tileRef: Tile, to: {row: number, col: number}}>} placedMoves - The tiles placed in the current turn.
+ * @param {Board} board - The game board.
+ * @param {string} mainWordDirection - The direction ('horizontal' or 'vertical') of the main word.
+ * @returns {Array<Array<{tile: Tile, r: number, c: number}>>} An array of words, where each word is an array of {tile, r, c}.
+ */
+function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
+    if (!placedMoves || placedMoves.length === 0) return [];
+
+    const allWords = [];
+    const mainWordTiles = []; // To store {tile, r, c} for the main word
+
+    // 1. Identify the main word
+    const sortedMoves = [...placedMoves].sort((a, b) =>
+        mainWordDirection === 'horizontal' ? a.to.col - b.to.col : a.to.row - b.to.row
+    );
+    const firstMove = sortedMoves[0];
+    let r = firstMove.to.row;
+    let c = firstMove.to.col;
+
+    if (mainWordDirection === 'horizontal') {
+        while (c > 0 && board.grid[r][c - 1].tile) c--; // Find start of word
+        while (c < board.size && board.grid[r][c].tile) {
+            mainWordTiles.push({ tile: board.grid[r][c].tile, r: r, c: c });
+            c++;
+        }
+    } else { // Vertical
+        while (r > 0 && board.grid[r - 1][c].tile) r--; // Find start of word
+        while (r < board.size && board.grid[r][c].tile) {
+            mainWordTiles.push({ tile: board.grid[r][c].tile, r: r, c: c });
+            r++;
+        }
+    }
+    if (mainWordTiles.length > 1) { // Only add if it's actually a word (length > 1) or if it's the only tile played
+         allWords.push(mainWordTiles);
+    } else if (placedMoves.length === 1 && mainWordTiles.length === 1){
+        // If only one tile was placed, it might not form a word by itself in the main direction
+        // but it could form cross words. We'll handle this by checking cross words regardless.
+        // For scoring, a single tile played that doesn't connect to form a longer word
+        // usually doesn't score unless it forms cross words.
+        // However, our validation ensures it connects if other tiles are on board.
+        // If it's the very first tile, it's a word of 1.
+        if (currentGame.turnNumber === 0 || placedMoves.length === mainWordTiles.length) {
+             allWords.push(mainWordTiles);
+        }
+    }
+
+
+    // 2. Identify cross-words
+    const crossDirection = mainWordDirection === 'horizontal' ? 'vertical' : 'horizontal';
+    for (const move of placedMoves) {
+        const crossWordTiles = [];
+        let rCross = move.to.row;
+        let cCross = move.to.col;
+
+        if (crossDirection === 'horizontal') {
+            while (cCross > 0 && board.grid[rCross][cCross - 1].tile) cCross--;
+            while (cCross < board.size && board.grid[rCross][cCross].tile) {
+                crossWordTiles.push({ tile: board.grid[rCross][cCross].tile, r: rCross, c: cCross });
+                cCross++;
+            }
+        } else { // Vertical
+            while (rCross > 0 && board.grid[rCross - 1][cCross].tile) rCross--;
+            while (rCross < board.size && board.grid[rCross][cCross].tile) {
+                crossWordTiles.push({ tile: board.grid[rCross][cCross].tile, r: rCross, c: cCross });
+                rCross++;
+            }
+        }
+        if (crossWordTiles.length > 1) {
+            // Avoid duplicating the main word if it's found again as a "cross-word"
+            // This can happen if the main word is length 1.
+            const wordStr = crossWordTiles.map(t => t.tile.isBlank ? t.tile.assignedLetter : t.tile.letter).join('');
+            const mainWordStr = mainWordTiles.map(t => t.tile.isBlank ? t.tile.assignedLetter : t.tile.letter).join('');
+            if (allWords.length === 0 || wordStr !== mainWordStr) {
+                 allWords.push(crossWordTiles);
+            } else if (allWords.length > 0 && wordStr === mainWordStr && crossWordTiles.length !== mainWordTiles.length) {
+                // It's possible a single letter placed forms a cross word that IS the main word.
+                // e.g. board has A_C, player places B. Main word is ABC. Cross word for B is also ABC.
+                // Only add if it's genuinely a different word or context.
+                // This check might need refinement based on edge cases.
+                // A simpler way: ensure no two identical words (by content and position) are added.
+                let isDuplicate = false;
+                for(const existingWord of allWords) {
+                    if (existingWord.length === crossWordTiles.length) {
+                        let same = true;
+                        for(let i=0; i<existingWord.length; i++) {
+                            if (existingWord[i].r !== crossWordTiles[i].r || existingWord[i].c !== crossWordTiles[i].c) {
+                                same = false; break;
+                            }
+                        }
+                        if (same) {isDuplicate = true; break;}
+                    }
+                }
+                if (!isDuplicate) allWords.push(crossWordTiles);
+
+            }
+        }
+    }
+    return allWords;
+}
+
+
+/**
+ * Calculates the score for a list of played words.
+ * @param {Array<Array<{tile: Tile, r: number, c: number}>>} words - An array of words, where each word is an array of {tile, r, c}.
+ * @param {Board} board - The game board.
+ * @param {Array<{tileRef: Tile, to: {row: number, col: number}}>} placedMoves - The specific tiles placed in the current turn.
+ * @param {object} gameSettings - The game's settings object.
+ * @returns {{score: number, usedBonusSquares: Array<{r: number, c: number}>}} The total score and list of used bonus square coordinates.
+ */
+function calculateWordScore(words, board, placedMoves, gameSettings) {
+    let totalScore = 0;
+    const usedBonusSquares = [];
+    const tileValues = gameSettings.tileValues || DEFAULT_TILE_VALUES;
+    const sevenTileBonus = gameSettings.sevenTileBonus || 50;
+
+    for (const word of words) {
+        let currentWordScore = 0;
+        let wordMultiplier = 1;
+        let newTilesInThisWordCount = 0;
+
+        for (const tilePos of word) {
+            const tile = tilePos.tile;
+            const r = tilePos.r;
+            const c = tilePos.c;
+            const square = board.grid[r][c];
+            let letterScore = tile.isBlank ? 0 : (tileValues[tile.letter.toUpperCase()] || 0);
+
+            const isNewlyPlaced = placedMoves.some(move => move.to.row === r && move.to.col === c);
+            if (isNewlyPlaced) newTilesInThisWordCount++;
+
+            if (isNewlyPlaced && !square.bonusUsed) {
+                switch (square.bonus) {
+                    case BONUS_TYPES.DL:
+                        letterScore *= 2;
+                        usedBonusSquares.push({ r, c });
+                        break;
+                    case BONUS_TYPES.TL:
+                        letterScore *= 3;
+                        usedBonusSquares.push({ r, c });
+                        break;
+                    case BONUS_TYPES.DW:
+                        wordMultiplier *= 2;
+                        usedBonusSquares.push({ r, c });
+                        break;
+                    case BONUS_TYPES.TW:
+                        wordMultiplier *= 3;
+                        usedBonusSquares.push({ r, c });
+                        break;
+                }
+            }
+            currentWordScore += letterScore;
+        }
+        // Only apply word multiplier if at least one new tile is part of this word
+        // This prevents re-scoring a full existing word if a new tile just touches it.
+        if (newTilesInThisWordCount > 0) {
+            totalScore += (currentWordScore * wordMultiplier);
+        } else {
+            // If no new tiles are in this "word" (e.g. a cross-word that was already existing and just got extended by one letter of the main word)
+            // then this specific "word" instance doesn't add to score unless it's the main word itself.
+            // This logic is tricky: standard Scrabble scores all formed words.
+            // The newTilesInThisWordCount check might be too restrictive if a cross-word is entirely old letters.
+            // Let's assume for now all words in the 'words' list are valid new/extended words.
+            // The `identifyAllPlayedWords` should ensure words are only returned if they contain at least one new tile.
+            // Re-evaluating: if a word is passed to calculateWordScore, it's assumed to be valid for scoring.
+            // The check should be: "is this word one of the ones that was directly formed or extended by the new tiles?"
+            // The `identifyAllPlayedWords` function should handle this by only returning relevant words.
+            totalScore += (currentWordScore * wordMultiplier);
+        }
+    }
+
+    // Add bonus for playing all tiles from rack (e.g., 7 tiles)
+    if (placedMoves.length === (gameSettings.rackSize || RACK_SIZE)) {
+        totalScore += sevenTileBonus;
+    }
+
+    // Deduplicate usedBonusSquares
+    const uniqueUsedBonusSquares = usedBonusSquares.filter((item, index, self) =>
+        index === self.findIndex((t) => t.r === item.r && t.c === item.c)
+    );
+
+    return { score: totalScore, usedBonusSquares: uniqueUsedBonusSquares };
+}
+
 
 function handlePassTurn() {
     if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
@@ -769,108 +985,143 @@ function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
 // --- Game Initialization and URL Handling ---
 function applyTurnDataFromURL(gameState, params) {
     const exchangeParam = params.get('ex');
+    const playerWhoseTurnItWas = gameState.getCurrentPlayer(); // The player who made the move described in URL
 
-    if (exchangeParam !== null) { // Check if 'ex' parameter exists
-        const exchangingPlayer = gameState.getCurrentPlayer(); // Player whose turn it was
-
+    if (exchangeParam !== null) {
         if (exchangeParam === "") { // Pass
-            console.log(`Applying turn data: Player ${exchangingPlayer.name} passed.`);
-            // No direct state change here beyond what loadGameFromURLOrStorage handles for turn/player advancement
+            console.log(`Applying turn data: Player ${playerWhoseTurnItWas.name} passed.`);
             return true;
         } else { // Exchange
-            console.log(`Applying turn data: Player ${exchangingPlayer.name} exchanged tiles (indices from their rack: ${exchangeParam}).`);
+            console.log(`Applying turn data: Player ${playerWhoseTurnItWas.name} exchanged tiles (indices from their rack: ${exchangeParam}).`);
             const indicesToExchange = exchangeParam.split(',')
                 .map(s => parseInt(s.trim()))
-                .filter(n => !isNaN(n) && n >= 0 && n < exchangingPlayer.rack.length); // Validate against current rack size
+                .filter(n => !isNaN(n) && n >= 0 && n < playerWhoseTurnItWas.rack.length);
 
-            // Remove duplicates and sort descending for correct splicing
             const uniqueIndices = [...new Set(indicesToExchange)].sort((a, b) => b - a);
 
             if (uniqueIndices.length === 0) {
-                console.error("Exchange failed: No valid tile indices to apply from URL for player " + exchangingPlayer.name);
-                return false; // Indicate error
+                console.error("Exchange failed: No valid tile indices to apply from URL for player " + playerWhoseTurnItWas.name);
+                return false;
             }
             if (gameState.bag.length < uniqueIndices.length) {
-                console.error(`Exchange failed for ${exchangingPlayer.name}: Not enough tiles in bag (${gameState.bag.length}) to exchange ${uniqueIndices.length} tile(s) as per URL.`);
-                // This indicates a desync or an invalid URL from sender.
+                console.error(`Exchange failed for ${playerWhoseTurnItWas.name}: Not enough tiles in bag (${gameState.bag.length}) to exchange ${uniqueIndices.length} tile(s) as per URL.`);
                 return false;
             }
 
             const tilesSetAside = [];
             for (const index of uniqueIndices) {
-                if (exchangingPlayer.rack[index]) {
-                    tilesSetAside.push(exchangingPlayer.rack.splice(index, 1)[0]);
+                if (playerWhoseTurnItWas.rack[index]) {
+                    tilesSetAside.push(playerWhoseTurnItWas.rack.splice(index, 1)[0]);
                 }
             }
 
             if (tilesSetAside.length !== uniqueIndices.length) {
-                 console.error(`Exchange logic mismatch for ${exchangingPlayer.name}: Tried to exchange ${uniqueIndices.length}, but only set aside ${tilesSetAside.length}.`);
-                 // Attempt to revert rack changes if any partially happened
-                 tilesSetAside.forEach(t => exchangingPlayer.rack.push(t)); // Crude revert, better to ensure this path isn't hit.
+                 console.error(`Exchange logic mismatch for ${playerWhoseTurnItWas.name}: Tried to exchange ${uniqueIndices.length}, but only set aside ${tilesSetAside.length}.`);
+                 tilesSetAside.forEach(t => playerWhoseTurnItWas.rack.push(t));
                  return false;
             }
 
-            // Simulate drawing new tiles for the exchanging player
-            gameState.drawTiles(exchangingPlayer, tilesSetAside.length);
-
-            // Add the set-aside (exchanged) tiles to the game bag
+            gameState.drawTiles(playerWhoseTurnItWas, tilesSetAside.length);
             tilesSetAside.forEach(tile => {
-                if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile
+                if (tile.isBlank) tile.assignedLetter = null;
                 gameState.bag.push(tile);
             });
-
-            // Shuffle the game bag (uses PRNG, should be deterministic)
             gameState._shuffleBag();
-
-            console.log(`Applied exchange for ${exchangingPlayer.name}. Rack size: ${exchangingPlayer.rack.length}, Bag size: ${gameState.bag.length}`);
-            return true; // Exchange processed successfully
+            console.log(`Applied exchange for ${playerWhoseTurnItWas.name}. Rack size: ${playerWhoseTurnItWas.rack.length}, Bag size: ${gameState.bag.length}`);
+            return true;
         }
     }
 
-    const word = params.get('w'); const wordLocation = params.get('wl');
-    const wordDirection = params.get('wd'); const blankTileData = params.get('bt');
+    const wordStrFromURL = params.get('w');
+    const wordLocation = params.get('wl');
+    const wordDirection = params.get('wd');
+    const blankTileData = params.get('bt');
 
-    if (word && wordLocation && wordDirection) {
-        console.log(`Applying word-based turn data: ${word} at ${wordLocation} ${wordDirection}`);
+    if (wordStrFromURL && wordLocation && wordDirection) {
+        console.log(`Applying word-based turn data: ${wordStrFromURL} at ${wordLocation} ${wordDirection} for player ${playerWhoseTurnItWas.name}`);
         const [startRowStr, startColStr] = wordLocation.split('.');
         const startRow = parseInt(startRowStr); const startCol = parseInt(startColStr);
         if (isNaN(startRow) || isNaN(startCol)) { console.error("Invalid word location format:", wordLocation); return false; }
 
-        const blanks = new Map();
+        const blanksInWord = new Map(); // Map: index in wordStrFromURL -> assigned letter
         if (blankTileData) {
             blankTileData.split(';').forEach(item => {
                 const [idxStr, al] = item.split(':');
-                blanks.set(parseInt(idxStr), al);
+                blanksInWord.set(parseInt(idxStr), al.toUpperCase());
             });
         }
 
-        for (let i = 0; i < word.length; i++) {
-            const char = word[i]; let r = startRow; let c = startCol;
-            if (wordDirection === 'horizontal') c += i;
-            else if (wordDirection === 'vertical') r += i;
-            else { console.error("Invalid word direction:", wordDirection); return false; }
+        const newlyPlacedMovesFromURL = []; // To store {tileRef, to} for tiles this player is adding now
 
-            if (gameState.board.grid[r] && gameState.board.grid[r][c]) {
-                if (gameState.board.grid[r][c].tile &&
-                    gameState.board.grid[r][c].tile.letter !== char &&
-                    !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char)) {
-                    console.warn(`Square ${r},${c} already has a tile ${gameState.board.grid[r][c].tile.letter}. Overwriting with ${char} from URL.`);
-                }
-                let isBlankTile = false; let assignedLetterForBlank = null;
-                if (blanks.has(i)) {
-                    isBlankTile = true;
-                    assignedLetterForBlank = blanks.get(i);
-                }
-                const tileLetter = isBlankTile ? '' : char;
-                const newTile = new Tile(tileLetter, gameState.settings.tileValues[char.toUpperCase()] || 0, isBlankTile);
-                if (isBlankTile) newTile.assignedLetter = assignedLetterForBlank;
-                gameState.board.grid[r][c].tile = newTile;
-            } else {
-                console.error(`Invalid square coordinates for word placement: ${r},${c}`);
+        for (let i = 0; i < wordStrFromURL.length; i++) {
+            const charFromWord = wordStrFromURL[i].toUpperCase();
+            let r = startRow;
+            let c = startCol;
+            if (wordDirection === 'horizontal') c += i;
+            else r += i;
+
+            if (!gameState.board.grid[r] || !gameState.board.grid[r][c]) {
+                console.error(`Invalid square coordinates (${r},${c}) for word placement from URL.`);
                 return false;
             }
+
+            const square = gameState.board.grid[r][c];
+            if (!square.tile) { // Square is empty, this tile is newly placed by the opponent
+                const isBlank = blanksInWord.has(i);
+                const assignedLetter = isBlank ? blanksInWord.get(i) : null;
+                const tileLetter = isBlank ? '' : charFromWord; // Store empty for blank, actual letter otherwise
+                const tileValue = isBlank ? 0 : (gameState.settings.tileValues[charFromWord] || 0);
+
+                const newTile = new Tile(tileLetter, tileValue, isBlank);
+                if (isBlank) newTile.assignedLetter = assignedLetter;
+
+                square.tile = newTile;
+                newlyPlacedMovesFromURL.push({ tileRef: newTile, to: { row: r, col: c } });
+            } else {
+                // Square has a tile. This tile was pre-existing on the board.
+                // Verify it matches the character from the URL's word string.
+                const existingTile = square.tile;
+                const expectedLetterOnBoard = existingTile.isBlank ? existingTile.assignedLetter.toUpperCase() : existingTile.letter.toUpperCase();
+                if (expectedLetterOnBoard !== charFromWord) {
+                    console.error(`Mismatch: Board at ${r},${c} has ${expectedLetterOnBoard}, URL implies ${charFromWord}. Game desync.`);
+                    return false;
+                }
+                // If it's a blank tile that was already on board and its assigned letter matches,
+                // and the URL also specifies it as a blank at this position with the same assigned letter, it's consistent.
+                if (existingTile.isBlank && blanksInWord.has(i) && existingTile.assignedLetter.toUpperCase() !== blanksInWord.get(i)) {
+                     console.error(`Mismatch for blank tile assignment at ${r},${c}. Board: ${existingTile.assignedLetter}, URL: ${blanksInWord.get(i)}`);
+                     return false;
+                }
+            }
         }
-        return true; // Word data applied successfully
+
+        // Score the turn based on the board state and the identified newly placed tiles.
+        const allWordsFormed = identifyAllPlayedWords(newlyPlacedMovesFromURL, gameState.board, wordDirection);
+
+        if (allWordsFormed.length === 0 && newlyPlacedMovesFromURL.length > 0) {
+            console.warn("URL Processing: No words identified for scoring from newly placed tiles, though tiles were placed according to URL.", newlyPlacedMovesFromURL);
+            // This could happen if validation on sender was different, or if only a single tile was placed that didn't form a word > 1 letter.
+            // calculateWordScore should handle this and likely return 0 if no valid words.
+        }
+
+        const scoreResult = calculateWordScore(allWordsFormed, gameState.board, newlyPlacedMovesFromURL, gameState.settings);
+        playerWhoseTurnItWas.score += scoreResult.score;
+        console.log(`URL Processing: Player ${playerWhoseTurnItWas.name} scored ${scoreResult.score} points. New total score: ${playerWhoseTurnItWas.score}`);
+
+        scoreResult.usedBonusSquares.forEach(sqCoord => {
+            if (gameState.board.grid[sqCoord.r] && gameState.board.grid[sqCoord.r][sqCoord.c]) {
+                gameState.board.grid[sqCoord.r][sqCoord.c].bonusUsed = true;
+                console.log(`URL Processing: Bonus at ${sqCoord.r},${sqCoord.c} marked as used.`);
+            }
+        });
+
+        // The player who made the move (playerWhoseTurnItWas) drew tiles on their client.
+        // The receiving client needs to update that player's rack and the game bag accordingly.
+        const tilesPlayedCount = newlyPlacedMovesFromURL.length;
+        gameState.drawTiles(playerWhoseTurnItWas, tilesPlayedCount);
+        console.log(`URL Processing: Simulated drawing ${tilesPlayedCount} tiles for ${playerWhoseTurnItWas.name}. New rack size: ${playerWhoseTurnItWas.rack.length}. Bag size: ${gameState.bag.length}`);
+
+        return true;
     }
 
     console.log("No actionable turn data (word play, pass, or exchange) found in URL params to apply in applyTurnDataFromURL.");

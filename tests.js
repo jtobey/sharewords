@@ -667,4 +667,377 @@ function runValidationTests() {
             TestSuite.assertEquals("horizontal", result.direction);
         });
     });
+
+    TestSuite.describe("identifyAllPlayedWords", () => {
+        const gameSettings = { tileValues: DEFAULT_TILE_VALUES, rackSize: RACK_SIZE, sevenTileBonus: 50 };
+        let board;
+
+        TestSuite.it("should identify a simple horizontal word", () => {
+            board = createTestBoard();
+            const moves = mockMoves([ [7,7,mockTile('H',4)], [7,8,mockTile('A',1)], [7,9,mockTile('T',1)] ]);
+            // Manually place tiles on board for identifyAllPlayedWords
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            TestSuite.assertEquals(1, words.length);
+            TestSuite.assertEquals("HAT", words[0].map(t => t.tile.letter).join(''));
+        });
+
+        TestSuite.it("should identify a simple vertical word", () => {
+            board = createTestBoard();
+            const moves = mockMoves([ [7,7,mockTile('V',4)], [8,7,mockTile('A',1)], [9,7,mockTile('T',1)] ]);
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'vertical');
+            TestSuite.assertEquals(1, words.length);
+            TestSuite.assertEquals("VAT", words[0].map(t => t.tile.letter).join(''));
+        });
+
+        TestSuite.it("should identify main word and one horizontal cross-word", () => {
+            //  P A T
+            //  A <- new
+            //  T <- new
+            board = createTestBoard([ [0,1,mockTile('P',3)], [0,2,mockTile('A',1)], [0,3,mockTile('T',1)] ]); // PAT existing
+            const moves = mockMoves([ [1,1,mockTile('A',1)], [2,1,mockTile('T',1)] ]); // New A, T forming AT vertically and AA horizontally
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef); // Place new A, T
+
+            // Main word is AT (vertical)
+            const words = identifyAllPlayedWords(moves, board, 'vertical');
+            TestSuite.assertEquals(2, words.length, "Should find main word (AT) and cross-word (AA)");
+
+            const wordStrings = words.map(w => w.map(t=>t.tile.letter).join('')).sort();
+            TestSuite.assertDeepEquals(["AA", "AT"], wordStrings, "Identified words are incorrect.");
+        });
+
+        TestSuite.it("should identify main word and multiple cross-words", () => {
+            //   H A T  (HAT is new)
+            //   I S E
+            //   D O G
+            // Existing: [1,0,'I'],[1,1,'S'],[1,2,'E'], [2,0,'D'],[2,1,'O'],[2,2,'G']
+            board = createTestBoard([
+                [1,0,mockTile('I',1)], [1,1,mockTile('S',1)], [1,2,mockTile('E',1)],
+                [2,0,mockTile('D',2)], [2,1,mockTile('O',1)], [2,2,mockTile('G',2)]
+            ]);
+            const moves = mockMoves([ // Player plays HAT horizontally
+                [0,0,mockTile('H',4)], [0,1,mockTile('A',1)], [0,2,mockTile('T',1)]
+            ]);
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            TestSuite.assertEquals(4, words.length, "Should be HAT, HID, AS, TEG");
+            const wordStrings = words.map(w => w.map(t=>t.tile.letter).join('')).sort();
+            TestSuite.assertDeepEquals(["AS", "HAT", "HID", "TEG"], wordStrings);
+        });
+
+        TestSuite.it("should handle single tile placement forming two cross-words", () => {
+            //   P A L
+            // H O M E  (O is new)
+            //   S T Y
+            board = createTestBoard([
+                [0,1,mockTile('A',1)], [1,0,mockTile('H',4)], [1,2,mockTile('M',3)], [2,1,mockTile('S',1)]
+            ]);
+            const moves = mockMoves([[1,1,mockTile('O',1)]]); // Player places O
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+            // If main direction is horizontal for 'O', cross words are 'AOS' and 'HOM'
+            // The identifyAllPlayedWords might return 3 words if 'O' itself is considered a word.
+            // Let's assume 'O' alone isn't scored if it forms longer words.
+            // The current logic for identifyAllPlayedWords will identify HOM (main, length 3) and AOS (cross, length 3) if direction 'horizontal'.
+            // If direction is 'vertical', main is AOS, cross is HOM.
+            // Test with 'horizontal' as main direction.
+            const wordsHorizontal = identifyAllPlayedWords(moves, board, 'horizontal');
+            const wordStringsH = wordsHorizontal.map(w => w.map(t=>t.tile.letter).join('')).sort();
+            TestSuite.assertTrue(wordStringsH.includes("AOS") && wordStringsH.includes("HOM"), "Failed for horizontal 'O'");
+            TestSuite.assertEquals(2, wordStringsH.length, "Should be 2 words for horizontal 'O' placement");
+
+
+            // Reset board for vertical check
+            board = createTestBoard([
+                [0,1,mockTile('A',1)], [1,0,mockTile('H',4)], [1,2,mockTile('M',3)], [2,1,mockTile('S',1)]
+            ]);
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const wordsVertical = identifyAllPlayedWords(moves, board, 'vertical');
+            const wordStringsV = wordsVertical.map(w => w.map(t=>t.tile.letter).join('')).sort();
+            TestSuite.assertTrue(wordStringsV.includes("AOS") && wordStringsV.includes("HOM"), "Failed for vertical 'O'");
+            TestSuite.assertEquals(2, wordStringsV.length, "Should be 2 words for vertical 'O' placement");
+        });
+    });
+
+    TestSuite.describe("calculateWordScore", () => {
+        const gameSettings = { tileValues: DEFAULT_TILE_VALUES, rackSize: RACK_SIZE, sevenTileBonus: 50 };
+        let board;
+
+        const MOCK_A = mockTile('A',1); const MOCK_B = mockTile('B',3); const MOCK_C = mockTile('C',3);
+        const MOCK_D = mockTile('D',2); const MOCK_E = mockTile('E',1); const MOCK_F = mockTile('F',4);
+        const MOCK_G = mockTile('G',2); const MOCK_H = mockTile('H',4);
+        const BLANK_E = mockTile('',0,true,'E'); BLANK_E.value = 0; // Blank assigned E
+
+        TestSuite.it("scores simple word, no bonuses", () => {
+            board = createTestBoard();
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // HAT = 4+1+1=6
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(6, result.score);
+            TestSuite.assertEquals(0, result.usedBonusSquares.length);
+        });
+
+        TestSuite.it("scores word with Double Letter bonus", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.DL; // H on DL
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // (H*2)+A+T = (4*2)+1+1 = 8+1+1=10
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(10, result.score);
+            TestSuite.assertEquals(1, result.usedBonusSquares.length);
+            TestSuite.assertDeepEquals({r:7,c:7}, result.usedBonusSquares[0]);
+        });
+
+        TestSuite.it("scores word with Triple Word bonus", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.TW; // H on TW
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // (H+A+T)*3 = (4+1+1)*3 = 6*3=18
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(18, result.score);
+            TestSuite.assertEquals(1, result.usedBonusSquares.length);
+        });
+
+        TestSuite.it("scores word with DL and DW bonuses", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.DL; // H on DL
+            board.grid[7][8].bonus = BONUS_TYPES.DW; // A on DW
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // ((H*2)+A+T)*2 = ((4*2)+1+1)*2 = (8+1+1)*2 = 10*2=20
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(20, result.score);
+            TestSuite.assertEquals(2, result.usedBonusSquares.length);
+        });
+
+        TestSuite.it("scores word with multiple DW bonuses (multiplicative)", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.DW; // H on DW
+            board.grid[7][8].bonus = BONUS_TYPES.DW; // A on DW
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // (H+A+T)*2*2 = (4+1+1)*4 = 6*4=24
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(24, result.score);
+            TestSuite.assertEquals(2, result.usedBonusSquares.length);
+        });
+
+        TestSuite.it("scores word with a blank tile (0 value)", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.DL; // Blank (as E) on DL
+            // H (blank E) T. H=4, blank=0, T=1. (H + blank*2 + T) = 4 + 0*2 + 1 = 5
+            const moves = mockMoves([ [7,6,MOCK_H], [7,7,BLANK_E], [7,8,MOCK_T] ]);
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(5, result.score, "Blank on DL should still be 0 for letter, DL applies to 0.");
+            TestSuite.assertEquals(1, result.usedBonusSquares.length);
+        });
+
+        TestSuite.it("scores with 7-tile bonus (bingo)", () => {
+            board = createTestBoard();
+            // CAB = 3+1+3=7. Bingo = 50. Total = 57
+            const seven_moves = [ MOCK_C, MOCK_A, MOCK_B, MOCK_D, MOCK_E, MOCK_F, MOCK_G ].slice(0, gameSettings.rackSize).map((tile, i) => ({
+                tileRef: tile, to: {row: 7, col: 7+i}
+            }));
+            seven_moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+            // For this test, let's assume the word formed is just the first 3 tiles for simplicity of base score calculation
+            const wordTiles = seven_moves.slice(0,3); // CAB
+            const wordValue = wordTiles.reduce((sum,m)=>sum+m.tileRef.value,0); // 3+1+3 = 7
+
+            const mockWordsForScoring = [ wordTiles.map(m => ({tile: m.tileRef, r: m.to.row, c: m.to.col})) ];
+
+            const result = calculateWordScore(mockWordsForScoring, board, seven_moves, gameSettings);
+            TestSuite.assertEquals(wordValue + gameSettings.sevenTileBonus, result.score); // 7 + 50 = 57
+        });
+
+        TestSuite.it("does not reuse bonuses", () => {
+            board = createTestBoard();
+            board.grid[7][7].bonus = BONUS_TYPES.DL;
+            board.grid[7][7].bonusUsed = true; // Mark as used
+            const moves = mockMoves([ [7,7,MOCK_H], [7,8,MOCK_A], [7,9,MOCK_T] ]); // H(DL used)+A+T = 4+1+1=6
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+            const words = identifyAllPlayedWords(moves, board, 'horizontal');
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            TestSuite.assertEquals(6, result.score);
+            TestSuite.assertEquals(0, result.usedBonusSquares.length, "Should not list already used bonus square");
+        });
+
+        TestSuite.it("scores main word and cross-words correctly", () => {
+            //  P A T (PAT existing)
+            //  A (new A)
+            //  T (new T)
+            // Main: AT vertically (A=1, T=1 -> 1+1=2)
+            // Cross: AA horizontally (A=1, new A=1 -> on DL -> 1*2 = 2. Total AA = 1 + 2 = 3)
+            // Total score = 2 + 3 = 5
+            board = createTestBoard([ [0,1,mockTile('P',3)], [0,2,MOCK_A], [0,3,mockTile('T',1)] ]);
+            board.grid[1][1].bonus = BONUS_TYPES.DL; // New A is on DL
+
+            const moves = mockMoves([ [1,1,MOCK_A], [2,1,MOCK_T] ]);
+            moves.forEach(m => board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+            const words = identifyAllPlayedWords(moves, board, 'vertical');
+            // words should be: [ [A at 0,2], [new A at 1,1 on DL] ] (AA)
+            //                  [ [new A at 1,1 on DL], [new T at 2,1] ] (AT)
+
+            const result = calculateWordScore(words, board, moves, gameSettings);
+            // Word AA: Tile at (0,2) is 'A' (value 1). Tile at (1,1) is new 'A' (value 1) on DL -> 1*2=2. Score for AA = 1+2 = 3.
+            // Word AT: Tile at (1,1) is new 'A' (value 1) on DL -> 1*2=2 (bonus applied only once per tile per turn). Tile at (2,1) is new 'T' (value 1). Score for AT = 2+1=3.
+            // Oh, a tile's letter bonus applies to its value in ALL words it forms during that turn.
+            // Recalculate:
+            // New A at (1,1) is on DL, value 1 -> effective value 1*2=2.
+            // Word AA: A(0,2 existing, val 1) + A(1,1 new, effective val 2) = 1+2 = 3.
+            // Word AT: A(1,1 new, effective val 2) + T(2,1 new, val 1) = 2+1 = 3.
+            // Total = 3+3 = 6.
+            TestSuite.assertEquals(6, result.score);
+            TestSuite.assertEquals(1, result.usedBonusSquares.length);
+            TestSuite.assertDeepEquals({r:1,c:1}, result.usedBonusSquares[0]);
+        });
+    });
+
+    TestSuite.describe("Scoring via applyTurnDataFromURL", () => {
+        const P1_BROWSER_ID = "p1browser";
+        const P2_BROWSER_ID = "p2browser";
+        let game;
+
+        const setupGameForURLTest = (initialBoardTiles = [], turn = 1, currentPlayerIdx = 0, localBrowserId = P2_BROWSER_ID) => {
+            mockStorage = MockLocalStorage();
+            const gameId = "urlScoreTest";
+            const seed = 12345;
+
+            // Temporarily set global BROWSER_PLAYER_ID for correct localPlayerId determination in load/init
+            window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID;
+            window.BROWSER_PLAYER_ID = localBrowserId;
+
+            // Initialize a new game state or load if one was saved by a previous step.
+            // For these tests, we usually want a fresh state modified for the test case.
+            game = new GameState(gameId, seed, { tileValues: DEFAULT_TILE_VALUES });
+            game.creatorId = P1_BROWSER_ID; // P1 is always creator for these tests.
+            game.turnNumber = turn;
+            game.currentPlayerIndex = currentPlayerIdx; // This is player whose turn it *was* before URL data.
+
+            // Manually set scores to 0 for players
+            game.players[0].score = 0;
+            game.players[1].score = 0;
+
+            // Set up board with initial tiles
+            initialBoardTiles.forEach(t => {
+                if (game.board.grid[t.r] && game.board.grid[t.r][t.c]) {
+                    game.board.grid[t.r][t.c].tile = t.tile;
+                    if (t.bonus) game.board.grid[t.r][t.c].bonus = t.bonus;
+                    if (t.bonusUsed) game.board.grid[t.r][t.c].bonusUsed = t.bonusUsed;
+                }
+            });
+
+            // Racks and bag might need adjustment for draw simulation if not covered by GameState constructor fully for tests
+            game.players[0].rack = [mockTile('S',1), mockTile('C',3), mockTile('R',1), mockTile('A',1), mockTile('B',3), mockTile('L',1), mockTile('E',1)]; // P1 Rack
+            game.players[1].rack = [mockTile('Q',10), mockTile('U',1), mockTile('I',1), mockTile('Z',10), mockTile('X',8), mockTile('J',8), mockTile('K',5)]; // P2 Rack
+            // Ensure bag has enough tiles for drawing after play
+            game.bag = []; for(let i=0; i<20; i++) game.bag.push(mockTile('Z', 10));
+
+
+            saveGameStateToLocalStorage(game, mockStorage); // Save this specific setup
+
+            // This global currentGame is what applyTurnDataFromURL will operate on after loadGameFromURLOrStorage retrieves it.
+            // So, the 'game' variable here is effectively the 'currentGame' that will be affected.
+            currentGame = game;
+            localPlayerId = (localBrowserId === game.creatorId) ? "player1" : "player2";
+
+            return game; // Return the game state for assertions
+        };
+
+        const tearDownGameForURLTest = () => {
+            window.BROWSER_PLAYER_ID = window.BROWSER_PLAYER_ID_backup;
+            currentGame = null; // Clean up global
+            mockStorage.clear();
+        };
+
+        TestSuite.it("P2 loads URL from P1's simple word play, score calculated", () => {
+            // P1 plays HAT (H=4, A=1, T=1 -> 6 points). P1 is player index 0.
+            // URL is for turn 2 (P1's move was turn 1 completion).
+            // P2 (this browser) is loading.
+            // Game state should reflect P1 was current player (index 0) at turn 1.
+            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID);
+
+            const p1OriginalScore = game.players[0].score; // Should be 0
+            const p1OriginalRackSize = game.players[0].rack.length;
+            const initialBagSize = game.bag.length;
+
+            // gid, tn, w, wl, wd
+            const wordPlayURLParams = "gid=urlScoreTest&tn=2&w=HAT&wl=7.7&wd=horizontal";
+
+            // loadGameFromURLOrStorage will call applyTurnDataFromURL.
+            // applyTurnDataFromURL gets 'game' (which is 'currentGame') as its gameState.
+            // It will modify game.players[0].score (P1's score).
+            loadGameFromURLOrStorage(wordPlayURLParams, mockStorage);
+
+            TestSuite.assertEquals(p1OriginalScore + 6, game.players[0].score, "P1's score should be 6.");
+            TestSuite.assertEquals(0, game.players[1].score, "P2's score should be 0.");
+            TestSuite.assertEquals(2, game.turnNumber, "Turn number should advance to 2.");
+            TestSuite.assertEquals(1, game.currentPlayerIndex, "Current player should be P2 (index 1).");
+
+            // Check P1's rack was refilled (3 tiles played, 3 drawn)
+            TestSuite.assertEquals(p1OriginalRackSize, game.players[0].rack.length, "P1's rack size should be restored.");
+            TestSuite.assertEquals(initialBagSize - 3, game.bag.length, "Bag should have 3 fewer tiles.");
+
+            tearDownGameForURLTest();
+        });
+
+        TestSuite.it("P1 loads URL from P2's word play with DL bonus", () => {
+            // P2 plays 'AXE' (A=1, X=8, E=1). X on DL. Score: A + X*2 + E = 1 + 8*2 + 1 = 1+16+1 = 18.
+            // P2 is player index 1. P2's move completes turn 2 (URL will be for tn=3).
+            // P1 (this browser) is loading.
+            // Board setup: DL at 7,8 (where X will be placed)
+            const initialBoard = [{r:7,c:8, bonus:BONUS_TYPES.DL}];
+            game = setupGameForURLTest(initialBoard, 2, 1, P1_BROWSER_ID);
+
+            const p2OriginalScore = game.players[1].score; // Should be 0
+            const p2OriginalRackSize = game.players[1].rack.length;
+            const initialBagSize = game.bag.length;
+
+            const wordPlayURLParams = "gid=urlScoreTest&tn=3&w=AXE&wl=7.7&wd=horizontal";
+            loadGameFromURLOrStorage(wordPlayURLParams, mockStorage);
+
+            TestSuite.assertEquals(0, game.players[0].score, "P1's score should be 0.");
+            TestSuite.assertEquals(p2OriginalScore + 18, game.players[1].score, "P2's score should be 18.");
+            TestSuite.assertTrue(game.board.grid[7][8].bonusUsed, "DL bonus at 7,8 should be marked as used.");
+            TestSuite.assertEquals(3, game.turnNumber, "Turn number should advance to 3.");
+            TestSuite.assertEquals(0, game.currentPlayerIndex, "Current player should be P1 (index 0).");
+            TestSuite.assertEquals(p2OriginalRackSize, game.players[1].rack.length, "P2's rack size should be restored.");
+            TestSuite.assertEquals(initialBagSize - 3, game.bag.length, "Bag should have 3 fewer tiles after P2's play.");
+
+
+            tearDownGameForURLTest();
+        });
+
+        TestSuite.it("P2 loads URL from P1's play including a blank tile", () => {
+            // P1 plays H(blank O)ME. H=4, blank O=0, M=3, E=1. Score: 4+0+3+1=8.
+            // Blank O is at index 1 of "HOME", placed at 7,8.
+            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID);
+            const p1OriginalScore = game.players[0].score;
+            const p1OriginalRackSize = game.players[0].rack.length;
+            const initialBagSize = game.bag.length;
+
+            // gid, tn, w, wl, wd, bt (blank tile: index_in_w:AssignedLetter)
+            const wordPlayURLParams = "gid=urlScoreTest&tn=2&w=HOME&wl=7.7&wd=horizontal&bt=1:O";
+            loadGameFromURLOrStorage(wordPlayURLParams, mockStorage);
+
+            TestSuite.assertEquals(p1OriginalScore + 8, game.players[0].score, "P1's score for HOME (blank O) should be 8.");
+            const tileAt78 = game.board.grid[7][8].tile;
+            TestSuite.assertTrue(tileAt78.isBlank, "Tile at 7,8 should be blank.");
+            TestSuite.assertEquals("O", tileAt78.assignedLetter, "Blank tile at 7,8 should be assigned 'O'.");
+            TestSuite.assertEquals(0, tileAt78.value, "Blank tile value should be 0.");
+            TestSuite.assertEquals(p1OriginalRackSize, game.players[0].rack.length, "P1's rack size for HOME (4 tiles).");
+            TestSuite.assertEquals(initialBagSize - 4, game.bag.length, "Bag should have 4 fewer tiles for HOME.");
+
+
+            tearDownGameForURLTest();
+        });
+    });
 }
