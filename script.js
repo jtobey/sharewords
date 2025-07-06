@@ -480,14 +480,135 @@ function handleCommitPlay() {
     fullRender(currentGame, localPlayerId);
 }
 
-function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = null, settings = null) {
+function handlePassTurn() {
+    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
+        alert("It's not your turn or no game active!");
+        return;
+    }
+
+    console.log("Pass Turn initiated by:", currentGame.getCurrentPlayer().name);
+
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    // For a pass, exchangeData is an empty string.
+    // No turnData for word play.
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, null, "");
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Pass Turn URL:", turnURL);
+    }
+
+    alert("Turn passed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+}
+
+function handleExchangeTiles() {
+    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
+        alert("It's not your turn or no game active!");
+        return;
+    }
+
+    const player = currentGame.getCurrentPlayer();
+    const rackSize = player.rack.length;
+    if (rackSize === 0) {
+        alert("Your rack is empty. Cannot exchange tiles.");
+        return;
+    }
+
+    const indicesStr = prompt(`Enter comma-separated indices of tiles to exchange (0-${rackSize - 1}). For example, 0,2 to exchange the 1st and 3rd tile:`);
+    if (indicesStr === null) return; // User cancelled
+
+    const indicesToExchange = indicesStr.split(',')
+        .map(s => parseInt(s.trim()))
+        .filter(n => !isNaN(n) && n >= 0 && n < rackSize);
+
+    if (indicesToExchange.length === 0) {
+        alert("No valid tile indices selected for exchange.");
+        return;
+    }
+
+    // Remove duplicates by converting to Set and back to array
+    const uniqueIndices = [...new Set(indicesToExchange)].sort((a,b) => b-a); // Sort descending to splice correctly
+
+    if (currentGame.bag.length < uniqueIndices.length) {
+        alert(`Not enough tiles in the bag (${currentGame.bag.length}) to exchange ${uniqueIndices.length} tile(s).`);
+        return;
+    }
+
+    console.log(`Exchange initiated by ${player.name}. Indices: ${uniqueIndices.join(',')}`);
+
+    const tilesSetAsideForExchange = [];
+    for (const index of uniqueIndices) {
+        if (player.rack[index]) {
+            // Remove from rack and store temporarily
+            tilesSetAsideForExchange.push(player.rack.splice(index, 1)[0]);
+        }
+    }
+
+    if (tilesSetAsideForExchange.length === 0) {
+        alert("Something went wrong, no tiles were selected from rack for exchange process.");
+        // Add back any potentially spliced tiles if something went partially wrong before this check
+        // (though current logic makes this unlikely here, good for robustness if logic changes)
+        uniqueIndices.forEach((val, originalOrderIndex) => {
+            // This part is tricky as original indices are gone.
+            // The check for tilesSetAsideForExchange.length === 0 should be robust.
+            // If any tiles were actually spliced, they are in tilesSetAsideForExchange.
+            // If it's empty, nothing was spliced.
+        });
+        return;
+    }
+
+    // 2. Draw new tiles from the bag to replenish the player's rack.
+    // The number of tiles to draw is the number of tiles successfully set aside.
+    const numTilesToDraw = tilesSetAsideForExchange.length;
+    currentGame.drawTiles(player, numTilesToDraw);
+
+    // 3. Add the set-aside (exchanged) tiles to the game bag.
+    tilesSetAsideForExchange.forEach(tile => {
+        if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile before returning to bag
+        currentGame.bag.push(tile);
+    });
+
+    // 4. Shuffle the game bag.
+    currentGame._shuffleBag();
+
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    // exchangeData is the string of original indices provided by the user (before sorting for splice)
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, null, indicesToExchange.join(','));
+
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Exchange Turn URL:", turnURL);
+    }
+
+    alert(`Exchanged ${tilesSetAsideForExchange.length} tile(s). It's now ${currentGame.getCurrentPlayer().name}'s turn.`);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+}
+
+
+function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = null, settings = null, exchangeData = null) {
     const baseURL = window.location.origin + window.location.pathname;
     const params = new URLSearchParams();
     params.append('gid', gameId);
     params.append('tn', turnNumber);
+
     if (seed !== null) params.append('seed', seed);
     if (creator !== null) params.append('creator', creator);
-    if (turnData && turnData.word) {
+
+    if (exchangeData !== null) { // Check if exchangeData is provided (not null)
+        params.append('ex', exchangeData); // exchangeData is either "" for pass or "0,1,2" for exchange
+    } else if (turnData && turnData.word) {
         params.append('wl', `${turnData.start_row}.${turnData.start_col}`);
         params.append('wd', turnData.direction);
         if (turnData.blanks_info && turnData.blanks_info.length > 0) {
@@ -495,6 +616,8 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = nu
         }
         params.append('w', turnData.word);
     }
+    // Note: A turn can be a play, a pass, or an exchange, but not more than one.
+    // So, if 'ex' is present, 'w', 'wl', 'wd', 'bt' should not be.
     return `${baseURL}?${params.toString()}`;
 }
 
@@ -645,34 +768,72 @@ function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
 
 // --- Game Initialization and URL Handling ---
 function applyTurnDataFromURL(gameState, params) {
+    const exchangeParam = params.get('ex');
+
+    if (exchangeParam !== null) { // Check if 'ex' parameter exists
+        if (exchangeParam === "") {
+            console.log("Applying turn data: Player passed.");
+        } else {
+            console.log(`Applying turn data: Player exchanged tiles (indices: ${exchangeParam}).`);
+        }
+        // For pass or exchange, the main state changes (bag, other player's rack, turn number, current player)
+        // are handled by the player *making* the move, and then saved.
+        // The receiving player's `loadGameFromURLOrStorage` will load this updated state.
+        // This function's role for 'ex' is to acknowledge it and signal that no word placement needs to occur.
+        // It also implies that if 'ex' is present, word parameters should ideally not be, or should be ignored.
+        return true; // Signifies that the turn type (pass/exchange) was recognized.
+    }
+
     const word = params.get('w'); const wordLocation = params.get('wl');
     const wordDirection = params.get('wd'); const blankTileData = params.get('bt');
+
     if (word && wordLocation && wordDirection) {
         console.log(`Applying word-based turn data: ${word} at ${wordLocation} ${wordDirection}`);
-        const [startRowStr, startColStr] = wordLocation.split('.'); // Changed to dot
+        const [startRowStr, startColStr] = wordLocation.split('.');
         const startRow = parseInt(startRowStr); const startCol = parseInt(startColStr);
         if (isNaN(startRow) || isNaN(startCol)) { console.error("Invalid word location format:", wordLocation); return false; }
+
         const blanks = new Map();
-        if (blankTileData) blankTileData.split(';').forEach(item => { const [idxStr, al] = item.split(':'); blanks.set(parseInt(idxStr), al);});
+        if (blankTileData) {
+            blankTileData.split(';').forEach(item => {
+                const [idxStr, al] = item.split(':');
+                blanks.set(parseInt(idxStr), al);
+            });
+        }
+
         for (let i = 0; i < word.length; i++) {
             const char = word[i]; let r = startRow; let c = startCol;
-            if (wordDirection === 'horizontal') c += i; else if (wordDirection === 'vertical') r += i;
+            if (wordDirection === 'horizontal') c += i;
+            else if (wordDirection === 'vertical') r += i;
             else { console.error("Invalid word direction:", wordDirection); return false; }
+
             if (gameState.board.grid[r] && gameState.board.grid[r][c]) {
-                if (gameState.board.grid[r][c].tile && gameState.board.grid[r][c].tile.letter !== char && !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char))
+                if (gameState.board.grid[r][c].tile &&
+                    gameState.board.grid[r][c].tile.letter !== char &&
+                    !(gameState.board.grid[r][c].tile.isBlank && gameState.board.grid[r][c].tile.assignedLetter === char)) {
                     console.warn(`Square ${r},${c} already has a tile ${gameState.board.grid[r][c].tile.letter}. Overwriting with ${char} from URL.`);
+                }
                 let isBlankTile = false; let assignedLetterForBlank = null;
-                if (blanks.has(i)) { isBlankTile = true; assignedLetterForBlank = blanks.get(i); }
+                if (blanks.has(i)) {
+                    isBlankTile = true;
+                    assignedLetterForBlank = blanks.get(i);
+                }
                 const tileLetter = isBlankTile ? '' : char;
                 const newTile = new Tile(tileLetter, gameState.settings.tileValues[char.toUpperCase()] || 0, isBlankTile);
                 if (isBlankTile) newTile.assignedLetter = assignedLetterForBlank;
                 gameState.board.grid[r][c].tile = newTile;
-            } else { console.error(`Invalid square coordinates for word placement: ${r},${c}`); return false; }
+            } else {
+                console.error(`Invalid square coordinates for word placement: ${r},${c}`);
+                return false;
+            }
         }
-        return true;
+        return true; // Word data applied successfully
     }
-    console.log("No word-based turn data (w, wl, wd) found in URL params to apply."); return false;
+
+    console.log("No actionable turn data (word play, pass, or exchange) found in URL params to apply in applyTurnDataFromURL.");
+    return false; // No word data, and no 'ex' parameter was found by this function.
 }
+
 function loadGameFromURLOrStorage(searchStringOverride = null) {
     const searchSource = searchStringOverride !== null ? searchStringOverride : window.location.search;
     const params = new URLSearchParams(searchSource);
@@ -719,10 +880,11 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), {});
                 localPlayerId = 'player2';
                 currentGame.creatorId = params.get('creator') || null;
-                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && params.has('w')) {
-                    if(applyTurnDataFromURL(currentGame, params)) {
+                // If P1's first move is also in this URL (tn=1 and word data or ex data)
+                if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('w') || params.get('ex') !== null)) {
+                    if(applyTurnDataFromURL(currentGame, params)) { // apply P1's word OR P1's pass/exchange
                         currentGame.turnNumber = 1;
-                        currentGame.currentPlayerIndex = 1;
+                        currentGame.currentPlayerIndex = 1; // Now P2's turn
                     } else console.error("Failed to apply P1's first move for P2.");
                 }
                 saveGameStateToLocalStorage(currentGame);
@@ -753,8 +915,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded and parsed.");
     loadGameFromURLOrStorage();
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
-    document.getElementById('exchange-tiles-btn').addEventListener('click', () => alert('Exchange Tiles clicked! (Not implemented)'));
-    document.getElementById('pass-turn-btn').addEventListener('click', () => alert('Pass Turn clicked! (Not implemented)'));
+    document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
+    document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
     const newGameBtn = document.getElementById('new-game-btn');
     if (newGameBtn) newGameBtn.addEventListener('click', initializeNewGame);
 });
