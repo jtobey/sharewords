@@ -127,8 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function runValidationTests() {
     TestSuite.describe("generateTurnURL", () => {
+        const defaultSettings = { dictionaryType: 'permissive', dictionaryUrl: null };
+        const freeApiSettings = { dictionaryType: 'freeapi', dictionaryUrl: null };
+        const customApiSettings = { dictionaryType: 'custom', dictionaryUrl: 'https://example.com/dict/' };
+
         TestSuite.it("should generate correct URL for a pass action", () => {
-            const url = generateTurnURL("game123", 5, null, null, null, null, "");
+            const url = generateTurnURL("game123", 5, null, null, null, null, ""); // Settings not relevant for non-initial pass
             TestSuite.assertTrue(url.includes("gid=game123"), "URL should contain gameId");
             TestSuite.assertTrue(url.includes("tn=5"), "URL should contain turnNumber");
             TestSuite.assertTrue(url.includes("ex="), "URL should contain ex parameter for pass");
@@ -144,26 +148,55 @@ function runValidationTests() {
 
         TestSuite.it("should generate URL for word play without ex parameter if exchangeData is null", () => {
             const wordData = { word: "HELLO", start_row: 7, start_col: 7, direction: 'horizontal', blanks_info: [] };
-            const url = generateTurnURL("game789", 2, wordData, null, null, null, null);
+            const url = generateTurnURL("game789", 2, wordData, null, null, defaultSettings, null); // Non-initial turn
             TestSuite.assertTrue(url.includes("gid=game789"));
             TestSuite.assertTrue(url.includes("tn=2"));
             TestSuite.assertTrue(url.includes("w=HELLO"));
             TestSuite.assertFalse(url.includes("ex="), "URL for word play should not contain ex parameter");
+            TestSuite.assertFalse(url.includes("dt="), "Non-initial URL should not contain dt");
         });
-         TestSuite.it("should prioritize ex parameter over wordData if both provided (though not typical)", () => {
+
+        TestSuite.it("should prioritize ex parameter over wordData if both provided", () => {
             const wordData = { word: "HELLO", start_row: 7, start_col: 7, direction: 'horizontal', blanks_info: [] };
-            const url = generateTurnURL("gameXYZ", 4, wordData, null, null, null, "1,3");
+            const url = generateTurnURL("gameXYZ", 4, wordData, null, null, defaultSettings, "1,3"); // Non-initial
             TestSuite.assertTrue(url.includes("gid=gameXYZ"));
             TestSuite.assertTrue(url.includes("tn=4"));
             TestSuite.assertTrue(url.includes("ex=1,3"), "URL should contain ex parameter for exchange");
             TestSuite.assertFalse(url.includes("w=HELLO"), "URL should not contain word if ex is present");
+            TestSuite.assertFalse(url.includes("dt="), "Non-initial URL with ex should not contain dt");
+        });
+
+        TestSuite.it("should include dictionary type for initial URL (turn 1, creator) if not permissive", () => {
+            const wordData = { word: "FIRST", start_row: 7, start_col: 7, direction: 'h', blanks_info:[]};
+            const url = generateTurnURL("gameInit", 1, wordData, 12345, "creator1", freeApiSettings, null);
+            TestSuite.assertTrue(url.includes("dt=freeapi"), "Initial URL should include dt=freeapi");
+            TestSuite.assertFalse(url.includes("du="), "Initial URL for freeapi should not include du");
+        });
+
+        TestSuite.it("should include custom dictionary URL for initial URL if type is custom", () => {
+            const wordData = { word: "SETUP", start_row: 7, start_col: 7, direction: 'h', blanks_info:[]};
+            const url = generateTurnURL("gameCustom", 1, wordData, 54321, "creator2", customApiSettings, null);
+            TestSuite.assertTrue(url.includes("dt=custom"), "Initial URL should include dt=custom");
+            TestSuite.assertTrue(url.includes(`du=${encodeURIComponent(customApiSettings.dictionaryUrl)}`), "Initial URL should include du for custom type");
+        });
+
+        TestSuite.it("should NOT include dictionary type for initial URL if permissive", () => {
+            const wordData = { word: "BEGIN", start_row: 7, start_col: 7, direction: 'h', blanks_info:[]};
+            const url = generateTurnURL("gamePerm", 1, wordData, 67890, "creator3", defaultSettings, null);
+            TestSuite.assertFalse(url.includes("dt="), "Initial URL for permissive should not include dt");
+        });
+
+        TestSuite.it("should NOT include dictionary type for non-initial URLs (turn > 1)", () => {
+            const wordData = { word: "NEXT", start_row: 7, start_col: 8, direction: 'h', blanks_info:[]};
+            const url = generateTurnURL("gameNext", 2, wordData, null, null, freeApiSettings, null); // seed & creator null for non-initial
+            TestSuite.assertFalse(url.includes("dt="), "Non-initial URL should not include dt even if settings provided");
         });
     });
 
     // Helper to setup a basic game state for testing pass/exchange handlers
-    function setupTestGame(initialSeed = 12345, specificRack = null, specificBag = null) {
-        currentGame = new GameState("testGame", initialSeed, {});
-        localPlayerId = "player1";
+    function setupTestGame(initialSeed = 12345, gameSettings = {}, specificRack = null, specificBag = null) {
+        currentGame = new GameState("testGame", initialSeed, gameSettings);
+        localPlayerId = "player1"; // Assume P1 is running the test functions locally
         currentGame.players[0].name = "Player 1";
         currentGame.players[1].name = "Player 2";
         currentGame.currentPlayerIndex = 0;
@@ -197,22 +230,25 @@ function runValidationTests() {
     const _originalPrompt = window.prompt;
     let _mockAlertMessage = "";
     let _mockPromptResponse = "";
+    let mockNextRandom = 0.5; // Default mock random value
 
     TestSuite.describe("Pass and Exchange Logic", () => {
         let game;
 
-        const mockUI = () => {
+        const mockUIAndRandom = () => {
             window.alert = (msg) => { _mockAlertMessage = msg; console.log("Mock Alert:", msg); };
             window.prompt = (msg) => { console.log("Mock Prompt:", msg); return _mockPromptResponse; };
+            // Mulberry32 is initialized in GameState. To control drawing, we'd need to mock the PRNG instance
+            // or ensure a fixed seed and predictable sequence. For these tests, fixed seed in setupTestGame is enough.
         };
-        const unMockUI = () => {
+        const unMockUIAndRandom = () => {
             window.alert = _originalAlert;
             window.prompt = _originalPrompt;
         };
 
         TestSuite.it("handlePassTurn: should advance turn, switch player, generate pass URL", () => {
-            mockUI();
-            game = setupTestGame();
+            mockUIAndRandom();
+            game = setupTestGame(123, {}); // seed, settings
             const initialTurn = game.turnNumber;
             const initialPlayerIndex = game.currentPlayerIndex;
             const p1RackBefore = [...game.players[0].rack];
@@ -229,14 +265,15 @@ function runValidationTests() {
             TestSuite.assertTrue(turnUrlInput.value.includes("ex="), "Turn URL should indicate a pass.");
             TestSuite.assertFalse(turnUrlInput.value.includes("ex=0"), "Turn URL for pass should be 'ex=' not 'ex=0'.");
             TestSuite.assertTrue(_mockAlertMessage.includes("Turn passed!"), "Alert message for pass is incorrect.");
-            unMockUI();
+            unMockUIAndRandom();
         });
 
         TestSuite.it("handleExchangeTiles: should exchange tiles, update rack/bag, advance turn, generate exchange URL", () => {
-            mockUI();
+            mockUIAndRandom();
             // Setup with specific, identifiable tiles using the updated setupTestGame
+            // Provide explicit IDs for tiles to make assertions easier.
             const rackTiles = [
-                new Tile('R1',1,false,null,"racktile1"), new Tile('R2',1,false,null,"racktile2"),
+                new Tile('R1',1,false,null, "racktile1"), new Tile('R2',1,false,null, "racktile2"),
                 new Tile('R3',1,false,null,"racktile3")
             ];
             // Ensure bag has enough distinct tiles to draw, different from rack tiles
@@ -300,15 +337,16 @@ function runValidationTests() {
             const turnUrlInput = document.getElementById('turn-url');
             TestSuite.assertTrue(turnUrlInput.value.includes(`ex=${tilesToExchangeIndicesStr}`), "Turn URL should indicate specific tiles exchanged.");
             TestSuite.assertTrue(_mockAlertMessage.includes(`Exchanged ${numberOfTilesExchanged} tile(s)`), "Alert message for exchange is incorrect.");
-            unMockUI();
+            unMockUIAndRandom();
         });
 
         TestSuite.it("handleExchangeTiles: should not exchange if bag has too few tiles", () => {
-            mockUI();
+            mockUIAndRandom();
             // Use specific tile IDs for clarity
             const rackTiles = [new Tile('R1',1,false,null,"r1"), new Tile('R2',1,false,null,"r2")];
             const bagTiles = [new Tile('B1',10,false,null,"b1")]; // Only 1 tile in bag
-            game = setupTestGame(123, [...rackTiles], [...bagTiles]); // Pass copies
+            // Pass empty gameSettings object {}
+            game = setupTestGame(123, {}, [...rackTiles], [...bagTiles]);
 
             _mockPromptResponse = "0,1"; // Request to exchange 2 tiles
 
@@ -321,17 +359,17 @@ function runValidationTests() {
             TestSuite.assertDeepEquals(p1RackBefore, p1RackAfterIds, "Player rack (by tile IDs) should be unchanged if bag is too small.");
             TestSuite.assertEquals(initialTurn, game.turnNumber, "Turn number should not change if exchange fails.");
             TestSuite.assertTrue(_mockAlertMessage.includes("Not enough tiles in the bag"), "Alert message for insufficient bag is incorrect.");
-            unMockUI();
+            unMockUIAndRandom();
         });
 
          TestSuite.it("handleExchangeTiles: should handle non-numeric/out-of-bounds indices gracefully", () => {
-            mockUI();
+            mockUIAndRandom();
             const rackTiles = [
                 new Tile('R1',1,false,null,"r1"), new Tile('R2',1,false,null,"r2"),
                 new Tile('R3',1,false,null,"r3")
             ];
             const bagTiles = [new Tile('B1',10,false,null,"b1"), new Tile('B2',10,false,null,"b2")];
-            game = setupTestGame(123, [...rackTiles], [...bagTiles]);
+            game = setupTestGame(123, {}, [...rackTiles], [...bagTiles]); // Pass empty gameSettings
 
             const p1RackOriginalIds = game.players[0].rack.map(t => t.id);
             _mockPromptResponse = "0,foo,10,1"; // Exchange R1 (idx 0) and R2 (idx 1). foo invalid, 10 out of bounds.
@@ -349,7 +387,7 @@ function runValidationTests() {
             TestSuite.assertTrue(_mockAlertMessage.includes("Exchanged 2 tile(s)"), "Should report exchanging 2 valid tiles.");
             const turnUrlInput = document.getElementById('turn-url');
             TestSuite.assertTrue(turnUrlInput.value.includes("ex=0,foo,10,1"), "URL should contain original (unclean) indices as per current implementation.");
-            unMockUI();
+            unMockUIAndRandom();
         });
 
     });
@@ -373,113 +411,132 @@ function runValidationTests() {
         const P2_BROWSER_ID = "browserP2";
 
         // This setup runs before each 'it' block in this 'describe'
-        const beforeEachTest = (currentTurn, currentPlayerIdx, localBrowserId = P1_BROWSER_ID) => {
+        const beforeEachURLTest = (currentTurn, currentPlayerIdx, gameSettings = {}, localBrowserId = P1_BROWSER_ID) => {
             mockStorage = MockLocalStorage();
-            currentGame = new GameState("urlTestGame", 67890, {});
+            currentGame = new GameState("urlTestGame", 67890, gameSettings); // Use provided settings
             currentGame.turnNumber = currentTurn;
             currentGame.currentPlayerIndex = currentPlayerIdx; // 0 for P1, 1 for P2
             currentGame.creatorId = P1_BROWSER_ID; // P1 created the game
 
-            // Set localPlayerId based on who is "viewing" the URL
-            // BROWSER_PLAYER_ID is a global in script.js, so we need to mock it or control localPlayerId directly
-            // For simplicity, we'll assume loadGameFromURLOrStorage correctly sets localPlayerId based on BROWSER_PLAYER_ID and creatorId.
-            // We will manually set localPlayerId for the test's perspective.
-            // And we'll need to ensure BROWSER_PLAYER_ID is temporarily something for the test.
             window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID; // Backup global
             window.BROWSER_PLAYER_ID = localBrowserId;
-            localPlayerId = localBrowserId === currentGame.creatorId ? "player1" : "player2";
+            // Determine localPlayerId based on who is "viewing" this game instance
+            localPlayerId = (localBrowserId === currentGame.creatorId) ? "player1" : "player2";
 
+            // Simulate player racks and bag for realism
+            currentGame.players[0].rack = [mockTile('A'), mockTile('B'), mockTile('C'), mockTile('D'), mockTile('E'), mockTile('F'), mockTile('G')];
+            currentGame.players[1].rack = [mockTile('H'), mockTile('I'), mockTile('J'), mockTile('K'), mockTile('L'), mockTile('M'), mockTile('N')];
+            currentGame.bag = [];
+            for(let i=0; i<20; i++) currentGame.bag.push(mockTile(`Z${i}`,10));
 
-            // Simulate player racks and bag for realism, though not strictly needed for URL processing logic itself
-            currentGame.players[0].rack = [mockTile('A'), mockTile('B')];
-            currentGame.players[1].rack = [mockTile('C'), mockTile('D')];
-            currentGame.bag = [mockTile('E'), mockTile('F')];
 
             saveGameStateToLocalStorage(currentGame, mockStorage); // Save initial state
             originalGameState = JSON.parse(JSON.stringify(currentGame)); // Deep copy for comparison
         };
-        const afterEachTest = () => {
+        const afterEachURLTest = () => {
              window.BROWSER_PLAYER_ID = window.BROWSER_PLAYER_ID_backup; // Restore global
              currentGame = null; // Clean up
+             mockStorage.clear();
         };
 
 
-        TestSuite.it("P2 loads URL from P1 who passed turn", () => {
-            // P1 (local) was current player (index 0), turn 1. P1 passes.
-            // URL will be for turn 2, player becomes P2 (index 1).
-            beforeEachTest(1, 0, P2_BROWSER_ID); // P2 is loading, game was P1's turn (0) at turn 1.
-
-            const passUrlParams = "gid=urlTestGame&tn=2&ex="; // P1 passed, advancing to turn 2
+        TestSuite.it("P2 loads URL from P1 who passed turn (default permissive settings)", () => {
+            beforeEachURLTest(1, 0, {}, P2_BROWSER_ID); // P2 loading, P1's turn 1, default settings
+            const passUrlParams = "gid=urlTestGame&tn=2&ex=&seed=67890&creator=" + P1_BROWSER_ID;
             loadGameFromURLOrStorage(passUrlParams, mockStorage);
 
-            TestSuite.assertEquals(2, currentGame.turnNumber, "Game turn should be 2 after P1's pass.");
-            TestSuite.assertEquals(1, currentGame.currentPlayerIndex, "Current player should be P2 (index 1).");
-            // Board, bag, racks unchanged by a pass itself, but this test focuses on turn/player update.
-            afterEachTest();
+            TestSuite.assertEquals(2, currentGame.turnNumber);
+            TestSuite.assertEquals(1, currentGame.currentPlayerIndex);
+            TestSuite.assertEquals("permissive", currentGame.settings.dictionaryType);
+            afterEachURLTest();
         });
 
-        TestSuite.it("P1 loads URL from P2 who exchanged tiles", () => {
-            // P2 (local) was current player (index 1), turn 2. P2 exchanges.
-            // URL will be for turn 3, player becomes P1 (index 0).
-            beforeEachTest(2, 1, P1_BROWSER_ID); // P1 is loading, game was P2's turn (1) at turn 2.
+        TestSuite.it("P1 loads URL from P2 who exchanged tiles (default permissive settings)", () => {
+            beforeEachURLTest(2, 1, {}, P1_BROWSER_ID); // P1 loading, P2's turn 2
+            const p2InitialRackBeforeExchange = [...currentGame.players[1].rack]; // Copy P2's rack before exchange
+            const initialBagBeforeExchange = [...currentGame.bag];
 
-            const exchangeUrlParams = "gid=urlTestGame&tn=3&ex=0,1"; // P2 exchanged, advancing to turn 3
+            const exchangeUrlParams = "gid=urlTestGame&tn=3&ex=0,1"; // P2 exchanged 2 tiles
             loadGameFromURLOrStorage(exchangeUrlParams, mockStorage);
 
-            TestSuite.assertEquals(3, currentGame.turnNumber, "Game turn should be 3 after P2's exchange.");
-            TestSuite.assertEquals(0, currentGame.currentPlayerIndex, "Current player should be P1 (index 0).");
+            TestSuite.assertEquals(3, currentGame.turnNumber);
+            TestSuite.assertEquals(0, currentGame.currentPlayerIndex);
+            TestSuite.assertEquals("permissive", currentGame.settings.dictionaryType);
 
-            // --- Detailed checks for bag and opponent's rack state ---
-            const p2_rack = currentGame.players[1].rack;
-            const bag = currentGame.bag;
-
-            // In this test setup:
-            // Initial P2 rack (from beforeEachTest, if not overridden by a more specific setup for this test): [mockTile('C'), mockTile('D')]
-            // Initial bag (from beforeEachTest): [mockTile('E'), mockTile('F')]
-            // URL ex=0,1 means P2 exchanged its 2 tiles 'C' and 'D'.
-            // P2 should have drawn 2 new tiles from the bag ('E', 'F').
-            // The bag should now contain 'C' and 'D' and no longer 'E', 'F'.
-
-            // For this specific test, let's refine its setup for clarity for these new assertions.
-            // We'll use the default beforeEachTest which gives P2 two tiles (C,D) and bag two tiles (E,F)
-            // This means P2 exchanges its entire rack.
-
-            TestSuite.assertEquals(2, p2_rack.length, "P2's rack should still have 2 tiles after exchange.");
-
-            // Verify that original P2 tiles ('C', 'D') are now in the bag.
-            // The mockTile helper creates tiles with letter as their ID for simplicity here if not specified.
-            // Let's assume mockTile in beforeEachTest creates tiles with letters C, D, E, F.
-            // So, IDs would be 'C', 'D', 'E', 'F'.
-            TestSuite.assertTrue(bag.some(t => t.letter === 'C'), "Tile 'C' (exchanged by P2) should be in the bag.");
-            TestSuite.assertTrue(bag.some(t => t.letter === 'D'), "Tile 'D' (exchanged by P2) should be in the bag.");
-
-            // Verify that original bag tiles ('E', 'F') are now in P2's rack (drawn by P2).
-            TestSuite.assertTrue(p2_rack.some(t => t.letter === 'E'), "Tile 'E' (drawn by P2) should be in P2's rack.");
-            TestSuite.assertTrue(p2_rack.some(t => t.letter === 'F'), "Tile 'F' (drawn by P2) should be in P2's rack.");
-
-            // And original bag tiles ('E', 'F') should NOT be in the bag anymore.
-            TestSuite.assertFalse(bag.some(t => t.letter === 'E'), "Tile 'E' (drawn by P2) should NOT be in the bag.");
-            TestSuite.assertFalse(bag.some(t => t.letter === 'F'), "Tile 'F' (drawn by P2) should NOT be in the bag.");
-
-            afterEachTest();
+            // Verify P2's rack and bag were modified correctly due to exchange by P2
+            const p2 = currentGame.players[1];
+            TestSuite.assertEquals(7, p2.rack.length, "P2 rack size should be maintained.");
+            // Check that the two exchanged tiles are different from original first two
+            TestSuite.assertFalse(p2.rack[0].id === p2InitialRackBeforeExchange[0].id && p2.rack[1].id === p2InitialRackBeforeExchange[1].id, "P2's first two tiles should have changed.");
+            // Check that the two original tiles are now in the bag (approx check, PRNG makes exact hard without mocking it)
+            TestSuite.assertEquals(initialBagBeforeExchange.length, currentGame.bag.length, "Bag size should be maintained after exchange.");
+            afterEachURLTest();
         });
 
-        TestSuite.it("P2 loads initial game URL from P1 that includes P1's first move as a pass", () => {
-            mockStorage = MockLocalStorage(); // P2 has no local game yet
-            currentGame = null;
+        TestSuite.it("P2 loads initial game URL from P1 (first move pass) with 'freeapi' dictionary setting", () => {
+            // P2 has no local game. P1 (creator) makes first move (pass) and generates URL.
+            mockStorage = MockLocalStorage();
+            currentGame = null; // No game loaded yet for P2
             window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID;
             window.BROWSER_PLAYER_ID = P2_BROWSER_ID; // P2 is this browser
 
-            const initialUrlWithP1Pass = "gid=newGamePass&tn=1&seed=111&creator=" + P1_BROWSER_ID + "&ex=";
+            const initialUrlWithP1Pass = `gid=newGameFreeApi&tn=1&seed=111&creator=${P1_BROWSER_ID}&dt=freeapi&ex=`;
             loadGameFromURLOrStorage(initialUrlWithP1Pass, mockStorage);
 
             TestSuite.assertNotNull(currentGame, "Game should be initialized for P2.");
-            TestSuite.assertEquals("newGamePass", currentGame.gameId);
+            TestSuite.assertEquals("newGameFreeApi", currentGame.gameId);
             TestSuite.assertEquals(1, currentGame.turnNumber, "Turn number should be 1 (P1's completed turn).");
             TestSuite.assertEquals(1, currentGame.currentPlayerIndex, "Current player should be P2 (index 1).");
-            TestSuite.assertEquals(P2_BROWSER_ID === currentGame.creatorId ? "player1" : "player2", localPlayerId, "Local player ID for P2 is wrong.");
-            afterEachTest();
+            TestSuite.assertEquals("player2", localPlayerId, "Local player ID for P2 should be 'player2'.");
+            TestSuite.assertEquals("freeapi", currentGame.settings.dictionaryType, "Dictionary type should be 'freeapi'.");
+            TestSuite.assertNull(currentGame.settings.dictionaryUrl, "Dictionary URL should be null for freeapi.");
+            afterEachURLTest();
         });
+
+         TestSuite.it("P2 loads initial game URL from P1 (no first move yet) with 'custom' dictionary setting", () => {
+            mockStorage = MockLocalStorage();
+            currentGame = null;
+            window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID;
+            window.BROWSER_PLAYER_ID = P2_BROWSER_ID;
+
+            const customUrl = "https://my.dict.co/api?q=";
+            const initialUrlCustom = `gid=newGameCustom&seed=222&creator=${P1_BROWSER_ID}&dt=custom&du=${encodeURIComponent(customUrl)}`;
+            // Note: tn is missing, so it's pre-first-move state (turn 0, P1 to play)
+            loadGameFromURLOrStorage(initialUrlCustom, mockStorage);
+
+            TestSuite.assertNotNull(currentGame);
+            TestSuite.assertEquals("newGameCustom", currentGame.gameId);
+            TestSuite.assertEquals(0, currentGame.turnNumber, "Turn should be 0 (P1 to make first move).");
+            TestSuite.assertEquals(0, currentGame.currentPlayerIndex, "Player should be P1 (index 0).");
+            TestSuite.assertEquals("player2", localPlayerId);
+            TestSuite.assertEquals("custom", currentGame.settings.dictionaryType);
+            TestSuite.assertEquals(customUrl, currentGame.settings.dictionaryUrl);
+            afterEachURLTest();
+        });
+
+
+        TestSuite.it("P2 loads initial game URL from P1 (first move word play) with 'permissive' (implicit)", () => {
+            mockStorage = MockLocalStorage();
+            currentGame = null;
+            window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID;
+            window.BROWSER_PLAYER_ID = P2_BROWSER_ID;
+
+            // No dt/du params means permissive
+            const initialUrlP1Word = `gid=newGameWord&tn=1&seed=333&creator=${P1_BROWSER_ID}&w=HELLO&wl=7.7&wd=h`;
+            loadGameFromURLOrStorage(initialUrlP1Word, mockStorage);
+
+            TestSuite.assertNotNull(currentGame);
+            TestSuite.assertEquals("newGameWord", currentGame.gameId);
+            TestSuite.assertEquals(1, currentGame.turnNumber); // P1's move applied
+            TestSuite.assertEquals(1, currentGame.currentPlayerIndex); // P2's turn
+            TestSuite.assertEquals("player2", localPlayerId);
+            TestSuite.assertEquals("permissive", currentGame.settings.dictionaryType, "Default to permissive if no dt in URL.");
+            // Check that P1's score reflects HELLO (H4+E1+L1+L1+O1 = 8)
+            TestSuite.assertEquals(8, currentGame.players[0].score, "P1 score for HELLO should be 8.");
+            afterEachURLTest();
+        });
+
+
     });
 
     TestSuite.describe("validatePlacement - Single Line & Gaps", () => {
@@ -946,27 +1003,26 @@ function runValidationTests() {
 
             // This global currentGame is what applyTurnDataFromURL will operate on after loadGameFromURLOrStorage retrieves it.
             // So, the 'game' variable here is effectively the 'currentGame' that will be affected.
-            currentGame = game;
-            localPlayerId = (localBrowserId === game.creatorId) ? "player1" : "player2";
-
-            return game; // Return the game state for assertions
+            // No, loadGameFromURLOrStorage sets the global `currentGame`. The `game` var here is a local reference to that.
+            // localPlayerId is also set globally by loadGameFromURLOrStorage.
+            // We return `game` just to make assertions on it directly if needed, as it's the same object as global `currentGame`.
+            return game;
         };
 
         const tearDownGameForURLTest = () => {
-            window.BROWSER_PLAYER_ID = window.BROWSER_PLAYER_ID_backup;
+            window.BROWSER_PLAYER_ID = window.BROWSER_PLAYER_ID_backup; // Restore
             currentGame = null; // Clean up global
+            localPlayerId = null; // Clean up global
             mockStorage.clear();
         };
 
         TestSuite.it("P2 loads URL from P1's simple word play, score calculated", () => {
             // P1 plays HAT (H=4, A=1, T=1 -> 6 points). P1 is player index 0.
-            // URL is for turn 2 (P1's move was turn 1 completion).
-            // P2 (this browser) is loading.
-            // Game state should reflect P1 was current player (index 0) at turn 1.
-            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID);
+            // Game state before this URL: P1 (idx 0) was current player, turn 1. Settings are default.
+            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID); // P2 is this browser
 
-            const p1OriginalScore = game.players[0].score; // Should be 0
-            const p1OriginalRackSize = game.players[0].rack.length;
+            const p1OriginalScore = game.players[0].score;
+            const p1OriginalRackSize = game.players[0].rack.length; // Should be 7 from setup
             const initialBagSize = game.bag.length;
 
             // gid, tn, w, wl, wd
@@ -1019,7 +1075,7 @@ function runValidationTests() {
         TestSuite.it("P2 loads URL from P1's play including a blank tile", () => {
             // P1 plays H(blank O)ME. H=4, blank O=0, M=3, E=1. Score: 4+0+3+1=8.
             // Blank O is at index 1 of "HOME", placed at 7,8.
-            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID);
+            game = setupGameForURLTest([], 1, 0, P2_BROWSER_ID); // P2 is this browser
             const p1OriginalScore = game.players[0].score;
             const p1OriginalRackSize = game.players[0].rack.length;
             const initialBagSize = game.bag.length;
@@ -1029,15 +1085,95 @@ function runValidationTests() {
             loadGameFromURLOrStorage(wordPlayURLParams, mockStorage);
 
             TestSuite.assertEquals(p1OriginalScore + 8, game.players[0].score, "P1's score for HOME (blank O) should be 8.");
-            const tileAt78 = game.board.grid[7][8].tile;
+            const tileAt78 = game.board.grid[7][8].tile; // Word HOME, H at 7,7, O(blank) at 7,8
             TestSuite.assertTrue(tileAt78.isBlank, "Tile at 7,8 should be blank.");
             TestSuite.assertEquals("O", tileAt78.assignedLetter, "Blank tile at 7,8 should be assigned 'O'.");
             TestSuite.assertEquals(0, tileAt78.value, "Blank tile value should be 0.");
-            TestSuite.assertEquals(p1OriginalRackSize, game.players[0].rack.length, "P1's rack size for HOME (4 tiles).");
+            TestSuite.assertEquals(p1OriginalRackSize, game.players[0].rack.length, "P1's rack size should be maintained after playing 4 tiles.");
             TestSuite.assertEquals(initialBagSize - 4, game.bag.length, "Bag should have 4 fewer tiles for HOME.");
 
-
             tearDownGameForURLTest();
+        });
+    });
+
+    TestSuite.describe("LocalStorage Persistence of Dictionary Settings", () => {
+        let mockStorage;
+        const P1_ID = "p1_localStorage_test";
+
+        const setupLocalStorageTest = () => {
+            mockStorage = MockLocalStorage();
+            // Mock BROWSER_PLAYER_ID for consistent creatorId
+            window.BROWSER_PLAYER_ID_backup = window.BROWSER_PLAYER_ID;
+            window.BROWSER_PLAYER_ID = P1_ID;
+        };
+        const teardownLocalStorageTest = () => {
+            window.BROWSER_PLAYER_ID = window.BROWSER_PLAYER_ID_backup;
+            mockStorage.clear();
+            currentGame = null; // Ensure no leakage
+        };
+
+        TestSuite.it("should save and load 'permissive' dictionary settings", () => {
+            setupLocalStorageTest();
+            const gameId = "lsPermissiveGame";
+            const settings = { dictionaryType: 'permissive', dictionaryUrl: null };
+            let game = new GameState(gameId, 123, settings);
+            game.creatorId = P1_ID;
+            saveGameStateToLocalStorage(game, mockStorage);
+
+            let loadedGame = loadGameStateFromLocalStorage(gameId, mockStorage);
+            TestSuite.assertNotNull(loadedGame);
+            TestSuite.assertEquals("permissive", loadedGame.settings.dictionaryType);
+            TestSuite.assertNull(loadedGame.settings.dictionaryUrl);
+            teardownLocalStorageTest();
+        });
+
+        TestSuite.it("should save and load 'freeapi' dictionary settings", () => {
+            setupLocalStorageTest();
+            const gameId = "lsFreeApiGame";
+            const settings = { dictionaryType: 'freeapi', dictionaryUrl: null };
+            let game = new GameState(gameId, 456, settings);
+            game.creatorId = P1_ID;
+            saveGameStateToLocalStorage(game, mockStorage);
+
+            let loadedGame = loadGameStateFromLocalStorage(gameId, mockStorage);
+            TestSuite.assertNotNull(loadedGame);
+            TestSuite.assertEquals("freeapi", loadedGame.settings.dictionaryType);
+            TestSuite.assertNull(loadedGame.settings.dictionaryUrl);
+            teardownLocalStorageTest();
+        });
+
+        TestSuite.it("should save and load 'custom' dictionary settings with URL", () => {
+            setupLocalStorageTest();
+            const gameId = "lsCustomGame";
+            const customUrl = "http://my.api.com/lookup=";
+            const settings = { dictionaryType: 'custom', dictionaryUrl: customUrl };
+            let game = new GameState(gameId, 789, settings);
+            game.creatorId = P1_ID;
+            saveGameStateToLocalStorage(game, mockStorage);
+
+            let loadedGame = loadGameStateFromLocalStorage(gameId, mockStorage);
+            TestSuite.assertNotNull(loadedGame);
+            TestSuite.assertEquals("custom", loadedGame.settings.dictionaryType);
+            TestSuite.assertEquals(customUrl, loadedGame.settings.dictionaryUrl);
+            teardownLocalStorageTest();
+        });
+
+        TestSuite.it("loadGameStateFromLocalStorage should handle older game state without dictionary settings (defaulting)", () => {
+            setupLocalStorageTest();
+            const gameId = "lsOldGame";
+            // Simulate an old game state string that wouldn't have dictionaryType/Url in its settings field
+            const oldGameSerializable = {
+                gameId: gameId, randomSeed: 101, settings: { boardSize: 15 }, // No dict settings
+                turnNumber: 5, currentPlayerIndex: 0, players: [], bag: [], boardGrid: []
+            };
+            mockStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameId, JSON.stringify(oldGameSerializable));
+
+            let loadedGame = loadGameStateFromLocalStorage(gameId, mockStorage);
+            TestSuite.assertNotNull(loadedGame);
+            // GameState constructor defaults to 'permissive' if not provided in settings
+            TestSuite.assertEquals("permissive", loadedGame.settings.dictionaryType, "Should default to permissive for old state.");
+            TestSuite.assertNull(loadedGame.settings.dictionaryUrl, "Should default to null URL for old state.");
+            teardownLocalStorageTest();
         });
     });
 }

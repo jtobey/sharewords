@@ -87,11 +87,16 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.gameId = gameId;
     this.randomSeed = randomSeed;
     this.settings = {
-        boardSize: BOARD_SIZE, rackSize: RACK_SIZE, blankTileCount: 2, sevenTileBonus: 50,
-        dictionaryType: 'permissive', dictionaryUrl: null,
+        boardSize: settings.boardSize || BOARD_SIZE, // Allow overriding via settings
+        rackSize: settings.rackSize || RACK_SIZE, // Allow overriding via settings
+        blankTileCount: settings.blankTileCount !== undefined ? settings.blankTileCount : 2,
+        sevenTileBonus: settings.sevenTileBonus !== undefined ? settings.sevenTileBonus : 50,
+        dictionaryType: settings.dictionaryType || 'permissive', // Default to permissive
+        dictionaryUrl: settings.dictionaryUrl || null,
         tileValues: settings.tileValues || DEFAULT_TILE_VALUES,
         letterDistribution: settings.letterDistribution || DEFAULT_LETTER_DISTRIBUTION,
-        customBoardLayout: null, ...settings
+        customBoardLayout: settings.customBoardLayout || null,
+        ...settings // Spread any other settings passed in
     };
     this.prng = Mulberry32(this.randomSeed);
     this._initializeBag = function() {
@@ -446,6 +451,47 @@ function handleCommitPlay() {
     const identifiedDirection = validation.direction;
     console.log("Placement validation passed. Direction:", identifiedDirection);
 
+    // --- Dictionary Validation (Conceptual) ---
+    if (currentGame.settings.dictionaryType !== 'permissive') {
+        // Identify the main word played. This might need to be more robust or use a specific output from validatePlacement.
+        // For now, let's use identifyPlayedWord which is also used for URL generation.
+        // Note: identifyPlayedWord itself might need access to the board *after* tiles are tentatively placed but before commit.
+        // The current `actualCommittedMoves` are suitable for this.
+        const tempBoardForWordIdentification = JSON.parse(JSON.stringify(currentGame.board)); // Create a temporary deep copy
+        actualCommittedMoves.forEach(move => { // Apply moves to this temporary board
+            if (tempBoardForWordIdentification.grid[move.to.row] && tempBoardForWordIdentification.grid[move.to.row][move.to.col]) {
+                tempBoardForWordIdentification.grid[move.to.row][move.to.col].tile = move.tileRef;
+            }
+        });
+
+        const mainWordData = identifyPlayedWord(actualCommittedMoves, tempBoardForWordIdentification, identifiedDirection);
+
+        if (mainWordData && mainWordData.word) {
+            const wordToValidate = mainWordData.word;
+            let validationApiUrl = "";
+            if (currentGame.settings.dictionaryType === 'freeapi') {
+                validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidate}`;
+            } else if (currentGame.settings.dictionaryType === 'custom' && currentGame.settings.dictionaryUrl) {
+                validationApiUrl = `${currentGame.settings.dictionaryUrl}${wordToValidate}`;
+            }
+
+            if (validationApiUrl) {
+                console.log(`[CONCEPTUAL] Word to validate: "${wordToValidate}" using URL: ${validationApiUrl}`);
+                // FUTURE: Implement actual fetch call here.
+                // For now, assume valid:
+                console.log(`[CONCEPTUAL] Assuming "${wordToValidate}" is valid for now.`);
+                // If validation were to fail:
+                // alert(`Word "${wordToValidate}" is not valid according to the selected dictionary. Play rejected.`);
+                // return; // Stop further processing of the commit
+            }
+        } else {
+            console.warn("Could not identify main word for dictionary validation.");
+            // Decide if this is critical - perhaps only if dictionary is not permissive.
+            // For now, allow play to continue if word identification fails here for permissive.
+        }
+    }
+    // --- End Dictionary Validation ---
+
     const actualCommittedMoves = [...currentGame.currentTurnMoves]; // These are the {tileId, tileRef, from, to}
     const playerWhoPlayed = currentGame.getCurrentPlayer();
 
@@ -491,10 +537,13 @@ function handleCommitPlay() {
     updateGameStatus(currentGame);
 
     let turnURL;
+    // Pass relevant settings for URL generation, especially for the first turn
+    const relevantSettings = (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) ? currentGame.settings : null;
     if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, currentGame.creatorId);
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, currentGame.creatorId, relevantSettings);
     } else {
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL);
+        // For subsequent turns, dictionary settings are not needed in the URL as they are part of the game state loaded from localStorage
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, null, null, null);
     }
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -822,6 +871,16 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = nu
     if (seed !== null) params.append('seed', seed);
     if (creator !== null) params.append('creator', creator);
 
+    // Add dictionary settings to URL only for the very first turn URL (game creation)
+    if (settings && turnNumber === 1 && creator) { // Check turnNumber and creator to identify initial share
+        if (settings.dictionaryType && settings.dictionaryType !== 'permissive') {
+            params.append('dt', settings.dictionaryType);
+            if (settings.dictionaryType === 'custom' && settings.dictionaryUrl) {
+                params.append('du', settings.dictionaryUrl);
+            }
+        }
+    }
+
     if (exchangeData !== null) { // Check if exchangeData is provided (not null)
         params.append('ex', exchangeData); // exchangeData is either "" for pass or "0,1,2" for exchange
     } else if (turnData && turnData.word) {
@@ -851,7 +910,64 @@ function initializeNewGame() {
         turnUrlInput.value = "";
         turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
+    // Do not generate URL here, it will be done after first move by P1
+    // or when P2 loads the game.
 }
+
+function showNewGameModal() {
+    document.getElementById('new-game-modal').style.display = 'block';
+    // Reset modal to defaults
+    document.querySelector('input[name="dictionaryType"][value="permissive"]').checked = true;
+    document.getElementById('custom-dictionary-url').style.display = 'none';
+    document.getElementById('custom-dictionary-url').value = '';
+}
+
+function hideNewGameModal() {
+    document.getElementById('new-game-modal').style.display = 'none';
+}
+
+function startGameWithSettings() {
+    const selectedDictionaryType = document.querySelector('input[name="dictionaryType"]:checked').value;
+    let customUrl = null;
+    if (selectedDictionaryType === 'custom') {
+        customUrl = document.getElementById('custom-dictionary-url').value.trim();
+        if (!customUrl) {
+            alert("Please enter a Custom Dictionary URL.");
+            return;
+        }
+        // Basic validation for URL prefix - should not end with the word placeholder
+        if (customUrl.endsWith("<word>") || customUrl.endsWith("{word}")) {
+            alert("Please provide the base URL only. The word will be appended automatically.");
+            return;
+        }
+    }
+
+    hideNewGameModal();
+
+    const gameId = `game-${Date.now()}`;
+    const randomSeed = Math.floor(Math.random() * 1000000);
+    const gameSettings = {
+        dictionaryType: selectedDictionaryType,
+        dictionaryUrl: customUrl
+        // Add other game settings here if they become configurable in the modal
+    };
+
+    currentGame = new GameState(gameId, randomSeed, gameSettings);
+    currentGame.creatorId = BROWSER_PLAYER_ID; // This browser is P1
+    localPlayerId = 'player1';
+
+    console.log("New game started with settings:", gameSettings, currentGame);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = ""; // Clear any old URL
+        turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
+    }
+    // The initial shareable URL will be generated after P1's first move.
+}
+
 
 // --- LocalStorage Functions ---
 const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
@@ -1134,6 +1250,10 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
     const urlGameId = params.get('gid');
     const urlTurnNumberStr = params.get('tn');
     const urlSeed = params.get('seed');
+    const urlCreator = params.get('creator');
+    const urlDictType = params.get('dt');
+    const urlDictUrl = params.get('du');
+
     if (urlGameId) {
         console.log(`URL contains gameId: ${urlGameId}`);
         currentGame = loadGameStateFromLocalStorage(urlGameId);
@@ -1169,21 +1289,36 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                 }
             }
         } else {
-            if (urlSeed && (!urlTurnNumberStr || parseInt(urlTurnNumberStr) <= 1)) {
+            if (urlSeed && (!urlTurnNumberStr || parseInt(urlTurnNumberStr) <= 1)) { // Game not found locally, but URL has seed (and optionally P1's first move)
                 console.log(`New game ${urlGameId} from URL with seed ${urlSeed}. This client is P2.`);
-                currentGame = new GameState(urlGameId, parseInt(urlSeed), {});
-                localPlayerId = 'player2';
-                currentGame.creatorId = params.get('creator') || null;
+                const newGameSettings = {};
+                if (urlDictType) {
+                    newGameSettings.dictionaryType = urlDictType;
+                    if (urlDictType === 'custom' && urlDictUrl) {
+                        newGameSettings.dictionaryUrl = urlDictUrl;
+                    }
+                }
+                currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
+                localPlayerId = 'player2'; // This client is Player 2
+                currentGame.creatorId = urlCreator || null; // Store creator from URL
+
                 // If P1's first move is also in this URL (tn=1 and word data or ex data)
                 if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('w') || params.get('ex') !== null)) {
                     if(applyTurnDataFromURL(currentGame, params)) { // apply P1's word OR P1's pass/exchange
                         currentGame.turnNumber = 1;
-                        currentGame.currentPlayerIndex = 1; // Now P2's turn
-                    } else console.error("Failed to apply P1's first move for P2.");
+                        currentGame.currentPlayerIndex = 1; // Now P2's turn (index 1)
+                    } else {
+                        console.error("Failed to apply P1's first move data for P2 when creating game from URL.");
+                        // Potentially revert game creation or alert user more strongly
+                    }
                 }
+                // If tn=0 or no turn data, it's just game setup, P1 hasn't moved yet.
+                // currentPlayerIndex remains 0 (P1's turn). turnNumber remains 0.
+                // This is already handled by GameState constructor defaults.
+
                 saveGameStateToLocalStorage(currentGame);
             } else {
-                 alert(`Game ${urlGameId} not found locally. Load initial new game URL from Player 1.`);
+                 alert(`Game ${urlGameId} not found locally and URL does not contain sufficient data to start it (e.g. missing seed for a new game instance). Load initial new game URL from Player 1.`);
                  document.getElementById('board-container').innerHTML = `<p>Error: Game ${urlGameId} not found. Load P1's first URL.</p>`; return;
             }
         }
@@ -1211,6 +1346,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
     document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
     document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
+
+    // New Game Modal Logic
     const newGameBtn = document.getElementById('new-game-btn');
-    if (newGameBtn) newGameBtn.addEventListener('click', initializeNewGame);
+    if (newGameBtn) newGameBtn.addEventListener('click', showNewGameModal);
+
+    const startGameBtn = document.getElementById('start-game-btn');
+    if (startGameBtn) startGameBtn.addEventListener('click', startGameWithSettings);
+
+    const cancelNewGameBtn = document.getElementById('cancel-new-game-btn');
+    if (cancelNewGameBtn) cancelNewGameBtn.addEventListener('click', hideNewGameModal);
+
+    document.querySelectorAll('input[name="dictionaryType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('custom-dictionary-url').style.display =
+                (this.value === 'custom') ? 'block' : 'none';
+        });
+    });
 });
