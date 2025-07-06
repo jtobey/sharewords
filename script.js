@@ -771,17 +771,60 @@ function applyTurnDataFromURL(gameState, params) {
     const exchangeParam = params.get('ex');
 
     if (exchangeParam !== null) { // Check if 'ex' parameter exists
-        if (exchangeParam === "") {
-            console.log("Applying turn data: Player passed.");
-        } else {
-            console.log(`Applying turn data: Player exchanged tiles (indices: ${exchangeParam}).`);
+        const exchangingPlayer = gameState.getCurrentPlayer(); // Player whose turn it was
+
+        if (exchangeParam === "") { // Pass
+            console.log(`Applying turn data: Player ${exchangingPlayer.name} passed.`);
+            // No direct state change here beyond what loadGameFromURLOrStorage handles for turn/player advancement
+            return true;
+        } else { // Exchange
+            console.log(`Applying turn data: Player ${exchangingPlayer.name} exchanged tiles (indices from their rack: ${exchangeParam}).`);
+            const indicesToExchange = exchangeParam.split(',')
+                .map(s => parseInt(s.trim()))
+                .filter(n => !isNaN(n) && n >= 0 && n < exchangingPlayer.rack.length); // Validate against current rack size
+
+            // Remove duplicates and sort descending for correct splicing
+            const uniqueIndices = [...new Set(indicesToExchange)].sort((a, b) => b - a);
+
+            if (uniqueIndices.length === 0) {
+                console.error("Exchange failed: No valid tile indices to apply from URL for player " + exchangingPlayer.name);
+                return false; // Indicate error
+            }
+            if (gameState.bag.length < uniqueIndices.length) {
+                console.error(`Exchange failed for ${exchangingPlayer.name}: Not enough tiles in bag (${gameState.bag.length}) to exchange ${uniqueIndices.length} tile(s) as per URL.`);
+                // This indicates a desync or an invalid URL from sender.
+                return false;
+            }
+
+            const tilesSetAside = [];
+            for (const index of uniqueIndices) {
+                if (exchangingPlayer.rack[index]) {
+                    tilesSetAside.push(exchangingPlayer.rack.splice(index, 1)[0]);
+                }
+            }
+
+            if (tilesSetAside.length !== uniqueIndices.length) {
+                 console.error(`Exchange logic mismatch for ${exchangingPlayer.name}: Tried to exchange ${uniqueIndices.length}, but only set aside ${tilesSetAside.length}.`);
+                 // Attempt to revert rack changes if any partially happened
+                 tilesSetAside.forEach(t => exchangingPlayer.rack.push(t)); // Crude revert, better to ensure this path isn't hit.
+                 return false;
+            }
+
+            // Simulate drawing new tiles for the exchanging player
+            gameState.drawTiles(exchangingPlayer, tilesSetAside.length);
+
+            // Add the set-aside (exchanged) tiles to the game bag
+            tilesSetAside.forEach(tile => {
+                if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile
+                gameState.bag.push(tile);
+            });
+
+            // Shuffle the game bag (uses PRNG, should be deterministic)
+            gameState._shuffleBag();
+
+            console.log(`Applied exchange for ${exchangingPlayer.name}. Rack size: ${exchangingPlayer.rack.length}, Bag size: ${gameState.bag.length}`);
+            return true; // Exchange processed successfully
         }
-        // For pass or exchange, the main state changes (bag, other player's rack, turn number, current player)
-        // are handled by the player *making* the move, and then saved.
-        // The receiving player's `loadGameFromURLOrStorage` will load this updated state.
-        // This function's role for 'ex' is to acknowledge it and signal that no word placement needs to occur.
-        // It also implies that if 'ex' is present, word parameters should ideally not be, or should be ignored.
-        return true; // Signifies that the turn type (pass/exchange) was recognized.
     }
 
     const word = params.get('w'); const wordLocation = params.get('wl');

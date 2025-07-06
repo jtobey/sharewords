@@ -428,8 +428,39 @@ function runValidationTests() {
 
             TestSuite.assertEquals(3, currentGame.turnNumber, "Game turn should be 3 after P2's exchange.");
             TestSuite.assertEquals(0, currentGame.currentPlayerIndex, "Current player should be P1 (index 0).");
-            // Bag/P2's rack would have changed due to exchange - this is reflected by loading the state P2 saved.
-            // This test primarily verifies the turn/player advancement for P1.
+
+            // --- Detailed checks for bag and opponent's rack state ---
+            const p2_rack = currentGame.players[1].rack;
+            const bag = currentGame.bag;
+
+            // In this test setup:
+            // Initial P2 rack (from beforeEachTest, if not overridden by a more specific setup for this test): [mockTile('C'), mockTile('D')]
+            // Initial bag (from beforeEachTest): [mockTile('E'), mockTile('F')]
+            // URL ex=0,1 means P2 exchanged its 2 tiles 'C' and 'D'.
+            // P2 should have drawn 2 new tiles from the bag ('E', 'F').
+            // The bag should now contain 'C' and 'D' and no longer 'E', 'F'.
+
+            // For this specific test, let's refine its setup for clarity for these new assertions.
+            // We'll use the default beforeEachTest which gives P2 two tiles (C,D) and bag two tiles (E,F)
+            // This means P2 exchanges its entire rack.
+
+            TestSuite.assertEquals(2, p2_rack.length, "P2's rack should still have 2 tiles after exchange.");
+
+            // Verify that original P2 tiles ('C', 'D') are now in the bag.
+            // The mockTile helper creates tiles with letter as their ID for simplicity here if not specified.
+            // Let's assume mockTile in beforeEachTest creates tiles with letters C, D, E, F.
+            // So, IDs would be 'C', 'D', 'E', 'F'.
+            TestSuite.assertTrue(bag.some(t => t.letter === 'C'), "Tile 'C' (exchanged by P2) should be in the bag.");
+            TestSuite.assertTrue(bag.some(t => t.letter === 'D'), "Tile 'D' (exchanged by P2) should be in the bag.");
+
+            // Verify that original bag tiles ('E', 'F') are now in P2's rack (drawn by P2).
+            TestSuite.assertTrue(p2_rack.some(t => t.letter === 'E'), "Tile 'E' (drawn by P2) should be in P2's rack.");
+            TestSuite.assertTrue(p2_rack.some(t => t.letter === 'F'), "Tile 'F' (drawn by P2) should be in P2's rack.");
+
+            // And original bag tiles ('E', 'F') should NOT be in the bag anymore.
+            TestSuite.assertFalse(bag.some(t => t.letter === 'E'), "Tile 'E' (drawn by P2) should NOT be in the bag.");
+            TestSuite.assertFalse(bag.some(t => t.letter === 'F'), "Tile 'F' (drawn by P2) should NOT be in the bag.");
+
             afterEachTest();
         });
 
