@@ -1010,24 +1010,21 @@ async function handleCommitPlay() {
 
     let turnURL;
     // Pass relevant settings for URL generation, especially for the first turn
-    const relevantSettings = (currentGame.turnNumber === 1 && localPlayerId === 'player1') ? currentGame.settings : null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
-        // Pass seed for P1's first turn URL. Settings are passed if relevant.
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, relevantSettings);
+    // NOTE: When calling finalizeTurnAndShowModal, currentGame.turnNumber will be incremented.
+    // So, for generating the URL for *this* turn, we use currentGame.turnNumber (before it's incremented by finalizeTurn...).
+    // The `generateTurnURL` function itself uses the passed turn number.
+    const currentTurnForURL = currentGame.turnNumber; // Capture before potential increment
+    const relevantSettings = (currentTurnForURL === 0 && localPlayerId === 'player1') ? currentGame.settings : null; // Turn 0 becomes 1
+
+    if (currentTurnForURL === 0 && localPlayerId === 'player1') {
+        // Pass seed for P1's first turn URL (which will be turn 1 after finalization). Settings are passed.
+        turnURL = generateTurnURL(currentGame.gameId, currentTurnForURL + 1, wordDataForURL, currentGame.randomSeed, relevantSettings);
     } else {
         // For subsequent turns, dictionary settings and seed are not needed in the URL.
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, null, null);
+        turnURL = generateTurnURL(currentGame.gameId, currentTurnForURL + 1, wordDataForURL, null, null);
     }
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Turn URL:", turnURL);
-    }
-    // alert("Play committed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
-    showPostMoveModal(scoreResult.score, turnURL); // MODIFIED LINE
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+
+    finalizeTurnAndShowModal(turnURL, scoreResult.score);
 }
 
 
@@ -1046,6 +1043,24 @@ function showPostMoveModal(pointsEarned, turnURL) {
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for copy button
     if (modalCopyCheckbox) modalCopyCheckbox.checked = true;
     postMoveModalElement.removeAttribute('hidden');
+}
+
+// --- Centralized Turn Finalization ---
+function finalizeTurnAndShowModal(turnURL, pointsEarned = 0) {
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Finalized Turn URL:", turnURL);
+    }
+
+    showPostMoveModal(pointsEarned, turnURL);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+    console.log(`Turn finalized. Player: ${currentGame.getCurrentPlayer().name}, Turn: ${currentGame.turnNumber}, Score (this turn): ${pointsEarned}`);
 }
 
 // --- Scoring Logic ---
@@ -1266,28 +1281,18 @@ function handlePassTurn() {
 
     console.log("Pass Turn initiated by:", currentGame.getCurrentPlayer().name);
 
-    currentGame.turnNumber++;
-    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-
     // For a pass, exchangeData is an empty string.
     let urlSeed = null;
     let urlSettings = null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+    // Similar to handleCommitPlay, turnNumber for URL generation is currentTurn + 1
+    const nextTurnNumber = currentGame.turnNumber + 1;
+    if (nextTurnNumber === 1 && localPlayerId === 'player1') {
         urlSeed = currentGame.randomSeed;
-        urlSettings = currentGame.settings;
+        urlSettings = currentGame.settings; // Pass full settings for P1's first turn's URL
     }
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
+    const turnURL = generateTurnURL(currentGame.gameId, nextTurnNumber, null, urlSeed, urlSettings, "");
 
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Pass Turn URL:", turnURL);
-    }
-
-    alert("Turn passed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+    finalizeTurnAndShowModal(turnURL);
 }
 
 function handleExchangeTiles() {
@@ -1385,30 +1390,19 @@ function handleExchangeTiles() {
     // 4. Shuffle the game bag.
     currentGame._shuffleBag();
 
-    currentGame.turnNumber++;
-    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
     // Seed and settings are not needed for exchange turns unless P1's first turn.
     let urlSeed = null;
     let urlSettings = null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+    const nextTurnNumber = currentGame.turnNumber + 1; // For URL generation
+    if (nextTurnNumber === 1 && localPlayerId === 'player1') {
         urlSeed = currentGame.randomSeed;
-        urlSettings = currentGame.settings;
+        urlSettings = currentGame.settings; // Pass full settings for P1's first turn's URL
     }
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
+    // Note: `indicesToExchange.join(',')` is the `exchangeData` for the URL
+    const turnURL = generateTurnURL(currentGame.gameId, nextTurnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
 
-
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Exchange Turn URL:", turnURL);
-    }
-
-    alert(`Exchanged ${tilesSetAsideForExchange.length} tile(s). It's now ${currentGame.getCurrentPlayer().name}'s turn.`);
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+    finalizeTurnAndShowModal(turnURL);
 }
 
 
