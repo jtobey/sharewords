@@ -1,83 +1,113 @@
 body {
     font-family: Arial, sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    margin-top: 20px;
+    flex-direction: column; /* Stack game and info vertically by default for mobile-first */
+    align-items: center; /* Center content */
+    padding: 10px; /* Add some padding for smaller screens */
     background-color: #f0f0f0;
+    box-sizing: border-box;
 }
 
 #game-container {
     display: flex;
-    gap: 20px;
+    flex-direction: column; /* Stack board and info container */
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Define CSS variables for tile size and font sizes for easier adjustments */
+:root {
+    --board-size: 90vw; /* Board width relative to viewport width */
+    --tile-size: calc(var(--board-size) / 15);
+    --tile-font-size: calc(var(--tile-size) * 0.5);
+    --value-font-size: calc(var(--tile-size) * 0.3);
+    --rack-tile-size: 35px; /* Keep rack tiles a bit more fixed or use different logic if needed */
+    --rack-tile-font-size: 18px;
+    --rack-value-font-size: 10px;
 }
 
 #board-container {
     display: grid;
-    grid-template-columns: repeat(15, 30px);
-    grid-template-rows: repeat(15, 30px);
+    /* grid-template-columns will be set by JS */
+    /* grid-template-rows will be set by JS */
     border: 2px solid #333;
-    width: 450px; /* 15 * 30px */
-    height: 450px; /* 15 * 30px */
+    width: var(--board-size);
+    height: var(--board-size); /* Maintain square aspect ratio */
+    max-width: 450px; /* Max size for larger screens */
+    max-height: 450px; /* Max size for larger screens */
+    touch-action: none; /* Prevent scrolling/zooming while dragging on board */
 }
 
 .square {
-    width: 30px;
-    height: 30px;
+    width: var(--tile-size);
+    height: var(--tile-size);
     border: 1px solid #ccc;
     box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 18px;
+    font-size: var(--tile-font-size);
     font-weight: bold;
     text-transform: uppercase;
     background-color: #fff;
     user-select: none;
-    position: relative; /* For absolute positioning of .value span on board tiles */
+    position: relative;
 }
 
 /* Styles for the letter and value spans, shared by rack and board tiles */
 .tile-letter {
     text-transform: uppercase;
-    line-height: 1; /* Remove extra space around letter */
-    font-weight: bold; /* Ensure letter is bold */
+    line-height: 1;
+    font-weight: bold;
 }
 
 .tile-value {
-    font-size: 10px;
     position: absolute;
-    bottom: 2px;
-    right: 3px;
+    bottom: calc(var(--tile-size) * 0.05); /* Adjust based on tile size */
+    right: calc(var(--tile-size) * 0.1);  /* Adjust based on tile size */
     line-height: 1;
-    font-weight: normal; /* Value doesn't need to be bold */
+    font-weight: normal;
+    font-size: var(--value-font-size);
 }
 
 /* Specific font size for letters on rack vs board if needed */
 .tile-in-rack .tile-letter {
-    font-size: 16px;
+    font-size: var(--rack-tile-font-size);
+}
+.tile-in-rack .tile-value {
+    font-size: var(--rack-value-font-size);
+    /* Position rack tile values differently if needed (absolute vs relative) */
+    position: absolute; /* Or adjust existing relative positioning */
+    bottom: 2px;
+    right: 3px;
 }
 
 .square.tile-on-board .tile-letter {
-    font-size: 18px; /* Keep board letter size slightly larger or same as square's default */
+    font-size: var(--tile-font-size);
+}
+.square.tile-on-board .tile-value {
+    font-size: var(--value-font-size);
 }
 
 
-.square.dl { background-color: #add8e6; } /* Light Blue for Double Letter */
-.square.tl { background-color: #4169e1; color: white; } /* Royal Blue for Triple Letter */
-.square.dw { background-color: #ffcccb; } /* Light Pink for Double Word */
-.square.tw { background-color: #ff4500; color: white; } /* OrangeRed for Triple Word */
-.square.center { background-color: #ffd700; } /* Gold for Center */
+.square.dl { background-color: #add8e6; }
+.square.tl { background-color: #4169e1; color: white; }
+.square.dw { background-color: #ffcccb; }
+.square.tw { background-color: #ff4500; color: white; }
+.square.center { background-color: #ffd700; }
 
 .tile-on-board {
-    background-color: #f5deb3; /* Wheat */
-    border: 1px solid #8b4513; /* SaddleBrown */
+    background-color: #f5deb3;
+    border: 1px solid #8b4513;
 }
 
 #info-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px; /* Reduced gap for smaller screens */
+    width: 100%;
+    max-width: 450px; /* Match board max width for alignment */
 }
 
 .rack {
@@ -85,43 +115,61 @@ body {
     gap: 5px;
     border: 1px solid #666;
     padding: 5px;
-    min-height: 40px; /* Accommodate tile height */
+    min-height: calc(var(--rack-tile-size) + 10px); /* Accommodate tile height + padding */
     background-color: #e0e0e0;
+    flex-wrap: wrap; /* Allow tiles to wrap if rack is too narrow */
+    justify-content: center; /* Center tiles in rack */
+    touch-action: none; /* Prevent scrolling/zooming while dragging on rack */
 }
 
 .tile-in-rack {
-    width: 30px;
-    height: 30px;
+    width: var(--rack-tile-size);
+    height: var(--rack-tile-size);
     border: 1px solid #333;
-    background-color: #f5deb3; /* Wheat */
-    display: flex;
+    background-color: #f5deb3;
+    display: flex; /* Using flex for centering letter/value */
+    flex-direction: column; /* Stack letter and value if needed, or use absolute for value */
     justify-content: center;
     align-items: center;
-    font-size: 16px;
     font-weight: bold;
     cursor: grab;
+    position: relative; /* For absolute positioning of value */
+    box-sizing: border-box;
 }
 
+/*
 .tile-in-rack .letter {
-    text-transform: uppercase;
+    text-transform: uppercase; // Handled by .tile-letter
 }
 
-.tile-in-rack .value {
+.tile-in-rack .value { // This was causing issues, using the shared .tile-value now
     font-size: 10px;
     position: relative;
     top: 8px;
     left: 8px;
 }
+*/
+
+
+#controls-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: center; /* Center buttons */
+    gap: 5px;
+}
 
 #controls-container button {
-    margin-right: 5px;
-    padding: 8px 12px;
+    /* margin-right: 5px; */ /* Replaced by gap */
+    padding: 8px 10px; /* Slightly smaller padding */
+    flex-grow: 1; /* Allow buttons to grow */
+    min-width: 100px; /* Minimum width for buttons */
 }
 
 #turn-url-container input {
     width: 100%;
-    padding: 5px;
+    padding: 8px; /* Increased padding for easier touch */
     box-sizing: border-box;
+    font-size: 14px;
 }
 
 #new-game-modal {
@@ -134,9 +182,56 @@ body {
     border: 1px solid #ccc;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     z-index: 1000;
+    width: 80%;
+    max-width: 400px;
 }
 
 /* Basic styling for selected tiles or active elements if needed later */
 .selected {
     border: 2px solid red !important;
+}
+
+/* Media Query for larger screens */
+@media (min-width: 768px) {
+    body {
+        /* flex-direction: row; /* Game and info side-by-side - game-container handles this */
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px; /* Restore some padding */
+    }
+
+    #game-container {
+        flex-direction: row; /* Board and info container side-by-side */
+        align-items: flex-start;
+        gap: 20px; /* Restore original gap */
+        /* width: auto; /* Allow it to size based on content up to a max */
+    }
+
+    /* :root {
+        /* On larger screens, we can let the board use its max-width/max-height
+           instead of being tied to viewport width if that's preferred.
+           The max-width: 450px on #board-container will take effect.
+           If we want it to be viewport-based but larger:
+           --board-size: 60vh; /* Example: 60% of viewport height */
+       /* Or rely on max-width on #board-container if that's sufficient */
+    /* } */
+
+    #info-container {
+        /* width: auto; Or a specific width like 300px */
+        min-width: 280px; /* Ensure it has some width */
+        max-width: 350px; /* Prevent it from becoming too wide */
+        /* flex-grow: 1; /* Allow info container to take available space if desired */
+    }
+
+    #board-container {
+        /* Ensure board doesn't shrink too much if info-container grows */
+        /* flex-shrink: 0; */ /* This might be needed depending on #info-container's flex properties */
+    }
+}
+
+#copy-url-btn {
+    padding: 3px 8px;
+    font-size: 12px;
+    margin-left: 5px;
+    vertical-align: middle; /* Align with the input field */
 }

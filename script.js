@@ -167,8 +167,9 @@ function renderBoard(gameState) {
         return;
     }
     boardContainer.innerHTML = '';
-    boardContainer.style.gridTemplateColumns = `repeat(${gameState.board.size}, 30px)`;
-    boardContainer.style.gridTemplateRows = `repeat(${gameState.board.size}, 30px)`;
+    // Use CSS variables for responsive grid sizing
+    boardContainer.style.gridTemplateColumns = `repeat(${gameState.board.size}, var(--tile-size))`;
+    boardContainer.style.gridTemplateRows = `repeat(${gameState.board.size}, var(--tile-size))`;
     const centerR = Math.floor(gameState.board.size / 2);
     const centerC = Math.floor(gameState.board.size / 2);
     for (let r = 0; r < gameState.board.size; r++) {
@@ -195,11 +196,16 @@ function renderBoard(gameState) {
                     squareDiv.draggable = true;
                     squareDiv.addEventListener('dragstart', handleDragStart);
                     squareDiv.addEventListener('dragend', handleDragEnd);
+                    // Add touch listeners for tiles on board
+                    squareDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
                     squareDiv.dataset.tileId = tile.id;
                 }
             }
             squareDiv.addEventListener('dragover', handleDragOver);
             squareDiv.addEventListener('drop', handleDropOnBoard);
+            // Touch listeners for drop targets (board squares)
+            // squareDiv.addEventListener('touchmove', handleTouchMove, { passive: false }); // Moved to document
+            // squareDiv.addEventListener('touchend', handleTouchEndBoard); // Moved to document
             boardContainer.appendChild(squareDiv);
         }
     }
@@ -212,6 +218,8 @@ function renderTileInRack(tile, isDraggable = false) {
         tileDiv.draggable = true;
         tileDiv.addEventListener('dragstart', handleDragStart);
         tileDiv.addEventListener('dragend', handleDragEnd);
+        // Add touch listeners for rack tiles
+        tileDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
     }
     const letterSpan = document.createElement('span');
     letterSpan.classList.add('tile-letter');
@@ -269,7 +277,226 @@ function fullRender(gameState, localPlayerId) {
 }
 
 // --- Drag and Drop Handlers ---
-let draggedTileId = null;
+let draggedTileId = null; // For mouse DND
+
+// --- Touch Drag and Drop Handlers ---
+let touchDraggedElement = null; // The element being dragged
+let touchDraggedTileId = null;  // The ID of the tile being dragged (from dataset.tileId)
+let initialTouchX = 0; // Touch X position relative to viewport
+let initialTouchY = 0; // Touch Y position relative to viewport
+let offsetX = 0; // Offset from touch point to tile's top-left corner
+let offsetY = 0; // Offset from touch point to tile's top-left corner
+let originalParentNode = null; // Original parent of the dragged tile
+let originalNextSibling = null; // For restoring position in flex container like the rack
+let draggedElementOriginalStyles = null; // To restore original styles
+
+function handleTouchStart(event) {
+    const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
+    if (!currentGame || currentTurnPlayerId !== localPlayerId) {
+        console.log("Touch drag prevented: Not current player's turn or local player mismatch.");
+        return;
+    }
+
+    const tileElement = event.target.closest('[data-tile-id]');
+    if (!tileElement) return;
+
+    // Check if the tile is actually draggable (already on board by current player, or in current player's rack)
+    const tileId = tileElement.dataset.tileId;
+    const player = currentGame.getCurrentPlayer();
+    const isTileInRack = player.rack.some(t => t.id === tileId);
+    const isTileOnBoardFromCurrentTurn = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
+
+    if (!isTileInRack && !isTileOnBoardFromCurrentTurn) {
+        console.log("Touch drag prevented: Tile is not draggable by current player.", tileId);
+        return;
+    }
+
+    event.preventDefault(); // IMPORTANT: Prevent default touch actions like scrolling
+
+    touchDraggedTileId = tileId;
+    touchDraggedElement = tileElement;
+
+    console.log('Touch Start:', touchDraggedTileId);
+
+    originalParentNode = touchDraggedElement.parentNode;
+    originalNextSibling = touchDraggedElement.nextSibling;
+
+    // Store original styles to revert if not dropped on a valid target
+    draggedElementOriginalStyles = {
+        position: touchDraggedElement.style.position,
+        left: touchDraggedElement.style.left,
+        top: touchDraggedElement.style.top,
+        opacity: touchDraggedElement.style.opacity,
+        zIndex: touchDraggedElement.style.zIndex,
+        transform: touchDraggedElement.style.transform // If using transform for movement
+    };
+
+    // Visually lift the tile and prepare for movement
+    const rect = touchDraggedElement.getBoundingClientRect();
+    offsetX = event.touches[0].clientX - rect.left;
+    offsetY = event.touches[0].clientY - rect.top;
+
+    // Move element to body to ensure it's on top and position is relative to viewport
+    document.body.appendChild(touchDraggedElement);
+    touchDraggedElement.style.position = 'absolute';
+    touchDraggedElement.style.left = (event.touches[0].clientX - offsetX) + 'px';
+    touchDraggedElement.style.top = (event.touches[0].clientY - offsetY) + 'px';
+    touchDraggedElement.style.opacity = '0.7';
+    touchDraggedElement.style.zIndex = '1001'; // Ensure it's on top
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd); // Handle abrupt cancels
+}
+
+function handleTouchMove(event) {
+    if (!touchDraggedElement) return;
+    event.preventDefault(); // Prevent scrolling during drag
+
+    const touch = event.touches[0];
+    touchDraggedElement.style.left = (touch.clientX - offsetX) + 'px';
+    touchDraggedElement.style.top = (touch.clientY - offsetY) + 'px';
+
+    // Visual feedback for drop targets
+    document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
+    const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elementUnderTouch) {
+        const potentialDropTarget = elementUnderTouch.closest('.square, .rack');
+        if (potentialDropTarget) {
+            // Check if the square is empty or is the original square of the tile being moved
+            const isSquare = potentialDropTarget.classList.contains('square');
+            if (isSquare) {
+                const r = parseInt(potentialDropTarget.dataset.row);
+                const c = parseInt(potentialDropTarget.dataset.col);
+                const boardSquare = currentGame.board.grid[r][c];
+                // Allow drop on empty square, or on its own square if moving a tile already on board
+                const isOriginalSquare = boardSquare.tile && boardSquare.tile.id === touchDraggedTileId;
+                if (!boardSquare.tile || isOriginalSquare) {
+                    potentialDropTarget.classList.add('touch-drag-over');
+                }
+            } else { // It's a rack
+                potentialDropTarget.classList.add('touch-drag-over');
+            }
+        }
+    }
+}
+
+function handleTouchEnd(event) {
+    if (!touchDraggedElement) return;
+
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
+    document.removeEventListener('touchcancel', handleTouchEnd);
+    document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
+
+    // Temporarily hide the dragged element to correctly find the element underneath
+    touchDraggedElement.style.display = 'none';
+    const touch = event.changedTouches[0];
+    const dropTargetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+    touchDraggedElement.style.display = ''; // Make it visible again
+
+    // Restore initial styles before decision, will be overridden by game logic if drop is successful
+    // touchDraggedElement.style.position = draggedElementOriginalStyles.position;
+    // touchDraggedElement.style.left = draggedElementOriginalStyles.left;
+    // touchDraggedElement.style.top = draggedElementOriginalStyles.top;
+    // touchDraggedElement.style.opacity = draggedElementOriginalStyles.opacity;
+    // touchDraggedElement.style.zIndex = draggedElementOriginalStyles.zIndex;
+
+
+    let droppedSuccessfully = false;
+
+    if (dropTargetElement) {
+        const boardSquareElement = dropTargetElement.closest('.square');
+        const rackElement = dropTargetElement.closest('.rack');
+
+        if (boardSquareElement) {
+            const r = parseInt(boardSquareElement.dataset.row);
+            const c = parseInt(boardSquareElement.dataset.col);
+            const boardSquare = currentGame.board.grid[r][c];
+
+            // Allow drop if square is empty, or if it's the original square of the tile (moving a tile on board)
+            if (!boardSquare.tile || (boardSquare.tile && boardSquare.tile.id === touchDraggedTileId)) {
+                console.log(`Touch Drop on Board: tile ${touchDraggedTileId} to (${r},${c})`);
+
+                // The touchDraggedElement is currently child of document.body.
+                // The handleDropOnBoard function expects the tile to be logically in the rack or on the board (data structure).
+                // It then re-renders, which will create new DOM elements.
+                // So, we can remove touchDraggedElement from body before calling, as fullRender will recreate it.
+                touchDraggedElement.remove();
+
+
+                const realDraggedTileIdBackup = draggedTileId; // Backup mouse DND state
+                draggedTileId = touchDraggedTileId;    // Set for handleDropOnBoard
+
+                const mockDropEvent = { preventDefault: () => {}, target: boardSquareElement };
+                handleDropOnBoard(mockDropEvent); // This function should call fullRender
+
+                draggedTileId = realDraggedTileIdBackup; // Restore mouse DND state
+                droppedSuccessfully = true;
+            } else {
+                 console.log("Touch Drop on Board: Square occupied by a different tile. Returning tile.");
+            }
+        } else if (rackElement && rackElement.id === `${currentGame.getCurrentPlayer().id}-rack`) {
+            // Ensure it's the current player's rack
+            console.log(`Touch Drop on Rack: tile ${touchDraggedTileId}`);
+            touchDraggedElement.remove();
+
+            const realDraggedTileIdBackup = draggedTileId;
+            draggedTileId = touchDraggedTileId;
+
+            const mockDropEvent = { preventDefault: () => {}, target: rackElement };
+            handleDropOnRack(mockDropEvent); // This function should call fullRender
+
+            draggedTileId = realDraggedTileIdBackup;
+            droppedSuccessfully = true;
+        }
+    }
+
+    if (!droppedSuccessfully) {
+        console.log("Touch Drop failed or on invalid target. Returning tile to original position.");
+        // If the element was not removed by a successful drop, return it.
+        if (touchDraggedElement.parentNode === document.body) { // Check if it's still child of body
+             touchDraggedElement.remove(); // Remove from body first
+        }
+        // Re-insert into original position if it was in the rack or re-render for board
+        if (originalParentNode) {
+             // Restore styles before re-inserting
+            touchDraggedElement.style.position = draggedElementOriginalStyles.position;
+            touchDraggedElement.style.left = draggedElementOriginalStyles.left;
+            touchDraggedElement.style.top = draggedElementOriginalStyles.top;
+            touchDraggedElement.style.opacity = draggedElementOriginalStyles.opacity;
+            touchDraggedElement.style.zIndex = draggedElementOriginalStyles.zIndex;
+            touchDraggedElement.style.transform = draggedElementOriginalStyles.transform;
+
+            originalParentNode.insertBefore(touchDraggedElement, originalNextSibling);
+        }
+        // If the drop failed, a fullRender might be needed to ensure consistency,
+        // especially if the tile was from the board. The drop handlers usually call fullRender.
+        // If we got here, it means no drop handler was called.
+        fullRender(currentGame, localPlayerId);
+    }
+
+    // Reset state
+    touchDraggedElement = null;
+    touchDraggedTileId = null;
+    originalParentNode = null;
+    originalNextSibling = null;
+    draggedElementOriginalStyles = null;
+}
+
+// Add a simple CSS class for visual feedback on touch drag over
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+    .touch-drag-over { background-color: #cccccc !important; outline: 1px dashed #333; }
+    /* Style for the tile being dragged by touch */
+    .tile-touch-dragging {
+        /* opacity: 0.7; */ /* Already set by JS */
+        /* transform: scale(1.1); */ /* Optional: make it slightly larger */
+    }
+`;
+document.head.appendChild(styleSheet);
+
+
 function handleDragStart(event) {
     const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
     console.log(`Drag Start Attempt: localPlayerId='${localPlayerId}', currentTurnPlayerId='${currentTurnPlayerId}'`);
@@ -1415,4 +1642,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 (this.value === 'custom') ? 'block' : 'none';
         });
     });
+
+    const copyUrlBtn = document.getElementById('copy-url-btn');
+    const turnUrlInput = document.getElementById('turn-url');
+
+    if (copyUrlBtn && turnUrlInput) {
+        copyUrlBtn.addEventListener('click', () => {
+            const urlToCopy = turnUrlInput.value;
+            if (urlToCopy) {
+                navigator.clipboard.writeText(urlToCopy)
+                    .then(() => {
+                        const originalButtonText = copyUrlBtn.textContent;
+                        copyUrlBtn.textContent = 'Copied!';
+                        copyUrlBtn.disabled = true;
+                        setTimeout(() => {
+                            copyUrlBtn.textContent = originalButtonText;
+                            copyUrlBtn.disabled = false;
+                        }, 2000); // Revert after 2 seconds
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy URL: ', err);
+                        // Fallback for older browsers or if permissions are denied
+                        // You could select the text and use document.execCommand('copy') here
+                        // but that's also becoming deprecated.
+                        // For now, just log the error. User can still manually copy.
+                        alert("Failed to copy URL. Please copy it manually.");
+                    });
+            } else {
+                // Optionally, provide feedback if there's no URL to copy
+                const originalButtonText = copyUrlBtn.textContent;
+                copyUrlBtn.textContent = 'No URL!';
+                setTimeout(() => {
+                    copyUrlBtn.textContent = originalButtonText;
+                }, 1500);
+            }
+        });
+    }
 });
