@@ -442,7 +442,7 @@ function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
     return { word:wordString, start_row:startRow, start_col:startCol, direction:identifiedDirection, blanks_info:blanksInfo };
 }
 
-function handleCommitPlay() {
+async function handleCommitPlay() {
     if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) { alert("It's not your turn or no game active!"); return; }
     if (currentGame.currentTurnMoves.length === 0) { alert("You haven't placed any tiles."); return; }
 
@@ -451,51 +451,101 @@ function handleCommitPlay() {
     const identifiedDirection = validation.direction;
     console.log("Placement validation passed. Direction:", identifiedDirection);
 
-    // --- Dictionary Validation (Conceptual) ---
+    const actualCommittedMoves = [...currentGame.currentTurnMoves];
+
+    // --- Dictionary Validation ---
     if (currentGame.settings.dictionaryType !== 'permissive') {
-        // Identify the main word played. This might need to be more robust or use a specific output from validatePlacement.
-        // For now, let's use identifyPlayedWord which is also used for URL generation.
-        // Note: identifyPlayedWord itself might need access to the board *after* tiles are tentatively placed but before commit.
-        // The current `actualCommittedMoves` are suitable for this.
-        const tempBoardForWordIdentification = JSON.parse(JSON.stringify(currentGame.board)); // Create a temporary deep copy
-        actualCommittedMoves.forEach(move => { // Apply moves to this temporary board
-            if (tempBoardForWordIdentification.grid[move.to.row] && tempBoardForWordIdentification.grid[move.to.row][move.to.col]) {
-                tempBoardForWordIdentification.grid[move.to.row][move.to.col].tile = move.tileRef;
-            }
-        });
+        const tempBoardForWordIdentification = JSON.parse(JSON.stringify(currentGame.board));
+        // Moves are already on currentGame.board due to drag/drop, so tempBoard has them.
+        // identifyPlayedWord uses this board state.
 
-        const mainWordData = identifyPlayedWord(actualCommittedMoves, tempBoardForWordIdentification, identifiedDirection);
+        // We need to validate ALL words formed, not just the "main" one initially identified by validatePlacement's direction.
+        // identifyAllPlayedWords will give us all words based on the current board state and newly placed tiles.
+        const allWordsDataForValidation = identifyAllPlayedWords(actualCommittedMoves, tempBoardForWordIdentification, identifiedDirection);
 
-        if (mainWordData && mainWordData.word) {
-            const wordToValidate = mainWordData.word;
-            let validationApiUrl = "";
-            if (currentGame.settings.dictionaryType === 'freeapi') {
-                validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidate}`;
-            } else if (currentGame.settings.dictionaryType === 'custom' && currentGame.settings.dictionaryUrl) {
-                validationApiUrl = `${currentGame.settings.dictionaryUrl}${wordToValidate}`;
-            }
-
-            if (validationApiUrl) {
-                console.log(`[CONCEPTUAL] Word to validate: "${wordToValidate}" using URL: ${validationApiUrl}`);
-                // FUTURE: Implement actual fetch call here.
-                // For now, assume valid:
-                console.log(`[CONCEPTUAL] Assuming "${wordToValidate}" is valid for now.`);
-                // If validation were to fail:
-                // alert(`Word "${wordToValidate}" is not valid according to the selected dictionary. Play rejected.`);
-                // return; // Stop further processing of the commit
-            }
+        if (!allWordsDataForValidation || allWordsDataForValidation.length === 0) {
+            console.warn("No words identified for dictionary validation, though placement was valid. Allowing play.");
         } else {
-            console.warn("Could not identify main word for dictionary validation.");
-            // Decide if this is critical - perhaps only if dictionary is not permissive.
-            // For now, allow play to continue if word identification fails here for permissive.
+            for (const wordArr of allWordsDataForValidation) {
+                const wordToValidate = wordArr.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join('');
+                if (wordToValidate.length <= 1 && currentGame.settings.dictionaryType !== 'permissive') { // Single letters usually not in dicts
+                    console.log(`Skipping dictionary validation for single letter: "${wordToValidate}"`);
+                    continue;
+                }
+
+                let validationApiUrl = "";
+                let dictionaryName = "";
+
+                if (currentGame.settings.dictionaryType === 'freeapi') {
+                    validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidate.toLowerCase()}`;
+                    dictionaryName = "Free Dictionary API";
+                } else if (currentGame.settings.dictionaryType === 'custom' && currentGame.settings.dictionaryUrl) {
+                    validationApiUrl = `${currentGame.settings.dictionaryUrl}${wordToValidate.toLowerCase()}`; // Assuming custom API also wants lowercase
+                    dictionaryName = "Custom Dictionary";
+                }
+
+                if (validationApiUrl) {
+                    console.log(`Validating word: "${wordToValidate}" using ${dictionaryName} at URL: ${validationApiUrl}`);
+                    try {
+                        const response = await fetch(validationApiUrl);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                alert(`Word "${wordToValidate}" not found in ${dictionaryName}. Play rejected.`);
+                            } else {
+                                alert(`Error validating word "${wordToValidate}" with ${dictionaryName} (Status: ${response.status}). Play rejected.`);
+                            }
+                            // Before returning, revert tiles from board and put back to rack if they came from there.
+                            // This is complex because currentTurnMoves doesn't store original rack state for each tile.
+                            // A simpler immediate solution is to just alert and return, requiring user to manually fix.
+                            // For now: alert and return. User must manually drag tiles back.
+                            // TODO: Implement robust rollback of tiles on validation failure.
+                            fullRender(currentGame, localPlayerId); // Re-render to show current (pre-commit) state.
+                            return;
+                        }
+                        // For Free Dictionary API, a 200 OK can still mean "no definition found" (empty array or specific message)
+                        if (currentGame.settings.dictionaryType === 'freeapi') {
+                            const data = await response.json();
+                            if (!Array.isArray(data) || data.length === 0 || (data[0] && data[0].title === "No Definitions Found")) {
+                                alert(`Word "${wordToValidate}" not found or has no definition in ${dictionaryName}. Play rejected.`);
+                                fullRender(currentGame, localPlayerId);
+                                return;
+                            }
+                        }
+                        console.log(`Word "${wordToValidate}" is valid according to ${dictionaryName}.`);
+                    } catch (error) {
+                        console.error(`Network or other error validating word "${wordToValidate}":`, error);
+                        alert(`Could not reach ${dictionaryName} to validate "${wordToValidate}". Play rejected. Check connection or API status.`);
+                        fullRender(currentGame, localPlayerId);
+                        return;
+                    }
+                }
+            }
         }
     }
     // --- End Dictionary Validation ---
 
-    const actualCommittedMoves = [...currentGame.currentTurnMoves]; // These are the {tileId, tileRef, from, to}
     const playerWhoPlayed = currentGame.getCurrentPlayer();
 
     // --- Scoring Integration ---
+    // Note: identifyAllPlayedWords and calculateWordScore will use currentGame.board,
+    // which at this point *does not* have the currentTurnMoves applied yet.
+    // This is correct for scoring: bonuses are on the original board state.
+    // The tiles themselves are taken from actualCommittedMoves.
+    // However, identifyAllPlayedWords needs the board to reflect the newly placed tiles to find all words.
+    // So, similar to dictionary validation, we need to apply moves to a temporary board state,
+    // or apply them to the actual board *before* this step, then roll back on validation failure.
+    // The current identifyAllPlayedWords takes the board as argument.
+    // Let's ensure the board state used for identifyAllPlayedWords has the new tiles.
+    // The most straightforward way is to apply to main board and then clear if validation fails later.
+    // Or, more safely, use a temporary board for all lookups before final commit.
+
+    // For now, the dictionary validation section correctly uses a temp board.
+    // The scoring section *after* this needs to operate on the *final* board state with committed moves.
+    // The current structure of handleCommitPlay commits tiles to currentGame.board *implicitly*
+    // because drag/drop operations modify it directly. The currentTurnMoves are reflections of these.
+    // This means currentGame.board *already* has the tiles when handleCommitPlay is called.
+    // So, identifyAllPlayedWords should correctly see them.
+
     const allWordsPlayed = identifyAllPlayedWords(actualCommittedMoves, currentGame.board, identifiedDirection);
     if (allWordsPlayed.length === 0 && actualCommittedMoves.length > 0) {
         // This case should ideally be caught by validation, but as a fallback:
