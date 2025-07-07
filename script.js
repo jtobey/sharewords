@@ -41,6 +41,19 @@ const DEFAULT_LETTER_DISTRIBUTION = {
     'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1
 };
 
+// --- Custom Game Settings JSON Structure Definition ---
+/*
+Example structure for customGameSettings:
+{
+  "tileDistribution": { "A": 9, "B": 2, "C": 2, "D": 4, "E": 12, "F": 2, "G": 3, "H": 2, "I": 9, "J": 1, "K": 1, "L": 4, "M": 2, "N": 6, "O": 8, "P": 2, "Q": 1, "R": 6, "S": 4, "T": 6, "U": 4, "V": 2, "W": 2, "X": 1, "Y": 2, "Z": 1 },
+  "tileValues": { "A": 1, "B": 3, "C": 3, "D": 2, "E": 1, "F": 4, "G": 2, "H": 4, "I": 1, "J": 8, "K": 5, "L": 1, "M": 3, "N": 1, "O": 1, "P": 3, "Q": 10, "R": 1, "S": 1, "T": 1, "U": 1, "V": 4, "W": 4, "X": 8, "Y": 4, "Z": 10, "_": 0 },
+  "blankTileCount": 2,
+  "sevenTileBonus": 50
+}
+This structure can be passed to the GameState constructor or a dedicated settings update function.
+The `GameState` constructor already has logic to use parts of such a settings object.
+*/
+
 // --- Data Structures ---
 function Tile(letter, value, isBlank = false) {
     this.letter = letter;
@@ -1403,6 +1416,19 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
                 params.append('du', settings.dictionaryUrl);
             }
         }
+        // Add custom game rule settings if they differ from defaults
+        if (settings.letterDistribution && JSON.stringify(settings.letterDistribution) !== JSON.stringify(DEFAULT_LETTER_DISTRIBUTION)) {
+            params.append('td', JSON.stringify(settings.letterDistribution));
+        }
+        if (settings.tileValues && JSON.stringify(settings.tileValues) !== JSON.stringify(DEFAULT_TILE_VALUES)) {
+            params.append('tv', JSON.stringify(settings.tileValues));
+        }
+        if (settings.blankTileCount !== undefined && settings.blankTileCount !== 2) { // Default is 2
+            params.append('bc', settings.blankTileCount);
+        }
+        if (settings.sevenTileBonus !== undefined && settings.sevenTileBonus !== 50) { // Default is 50
+            params.append('sb', settings.sevenTileBonus);
+        }
     }
 
     if (exchangeData !== null) { // Check if exchangeData is provided (not null)
@@ -1458,23 +1484,82 @@ function startGameWithSettings() {
             alert("Please enter a Custom Dictionary URL.");
             return;
         }
-        // Basic validation for URL prefix - should not end with the word placeholder
         if (customUrl.endsWith("<word>") || customUrl.endsWith("{word}")) {
             alert("Please provide the base URL only. The word will be appended automatically.");
             return;
         }
     }
 
-    hideNewGameModal();
-
-    const gameId = `game-${Date.now()}`;
-    const randomSeed = Math.floor(Math.random() * 1000000);
     const gameSettings = {
         dictionaryType: selectedDictionaryType,
         dictionaryUrl: customUrl
-        // Add other game settings here if they become configurable in the modal
+        // Other game settings will be added below
     };
 
+    // Read and parse custom tile distribution
+    const tileDistributionStr = document.getElementById('custom-tile-distribution').value.trim();
+    if (tileDistributionStr) {
+        try {
+            const parsedDistribution = JSON.parse(tileDistributionStr);
+            if (typeof parsedDistribution === 'object' && parsedDistribution !== null) {
+                gameSettings.letterDistribution = parsedDistribution;
+            } else {
+                alert("Invalid JSON format for Tile Distribution. It must be an object (e.g., {\"A\": 9, ...}).");
+                return;
+            }
+        } catch (e) {
+            alert("Error parsing Tile Distribution JSON: " + e.message);
+            return;
+        }
+    }
+
+    // Read and parse custom tile values
+    const tileValuesStr = document.getElementById('custom-tile-values').value.trim();
+    if (tileValuesStr) {
+        try {
+            const parsedValues = JSON.parse(tileValuesStr);
+            if (typeof parsedValues === 'object' && parsedValues !== null) {
+                gameSettings.tileValues = parsedValues;
+            } else {
+                alert("Invalid JSON format for Tile Values. It must be an object (e.g., {\"A\": 1, ...}).");
+                return;
+            }
+        } catch (e) {
+            alert("Error parsing Tile Values JSON: " + e.message);
+            return;
+        }
+    }
+
+    // Read custom blank tile count
+    const blankTileCountStr = document.getElementById('custom-blank-tile-count').value.trim();
+    if (blankTileCountStr) {
+        const parsedBlankCount = parseInt(blankTileCountStr, 10);
+        if (!isNaN(parsedBlankCount) && parsedBlankCount >= 0) {
+            gameSettings.blankTileCount = parsedBlankCount;
+        } else {
+            alert("Invalid Blank Tile Count. It must be a non-negative number.");
+            return;
+        }
+    }
+
+    // Read custom seven-tile bonus
+    const sevenTileBonusStr = document.getElementById('custom-seven-tile-bonus').value.trim();
+    if (sevenTileBonusStr) {
+        const parsedBonus = parseInt(sevenTileBonusStr, 10);
+        if (!isNaN(parsedBonus) && parsedBonus >= 0) {
+            gameSettings.sevenTileBonus = parsedBonus;
+        } else {
+            alert("Invalid Seven Tile Bonus. It must be a non-negative number.");
+            return;
+        }
+    }
+
+    hideNewGameModal(); // Hide modal after successful parsing
+
+    const gameId = `game-${Date.now()}`;
+    const randomSeed = Math.floor(Math.random() * 1000000);
+
+    // gameSettings object is now populated with custom values if provided and valid
     currentGame = new GameState(gameId, randomSeed, gameSettings);
     localPlayerId = 'player1'; // This browser is P1
 
@@ -1834,6 +1919,43 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                         newGameSettings.dictionaryUrl = urlDictUrl;
                     }
                 }
+
+                // Parse custom game settings from URL
+                const urlTileDistribution = params.get('td');
+                if (urlTileDistribution) {
+                    try {
+                        newGameSettings.letterDistribution = JSON.parse(urlTileDistribution);
+                    } catch (e) {
+                        console.error("Error parsing tile distribution from URL:", e);
+                    }
+                }
+                const urlTileValues = params.get('tv');
+                if (urlTileValues) {
+                    try {
+                        newGameSettings.tileValues = JSON.parse(urlTileValues);
+                    } catch (e) {
+                        console.error("Error parsing tile values from URL:", e);
+                    }
+                }
+                const urlBlankCount = params.get('bc');
+                if (urlBlankCount !== null) {
+                    const parsedBC = parseInt(urlBlankCount, 10);
+                    if (!isNaN(parsedBC) && parsedBC >= 0) {
+                        newGameSettings.blankTileCount = parsedBC;
+                    } else {
+                        console.error("Invalid blank tile count in URL:", urlBlankCount);
+                    }
+                }
+                const urlSevenBonus = params.get('sb');
+                if (urlSevenBonus !== null) {
+                    const parsedSB = parseInt(urlSevenBonus, 10);
+                    if (!isNaN(parsedSB) && parsedSB >= 0) {
+                        newGameSettings.sevenTileBonus = parsedSB;
+                    } else {
+                        console.error("Invalid seven tile bonus in URL:", urlSevenBonus);
+                    }
+                }
+
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
                 localPlayerId = 'player2'; // This client is Player 2
 
