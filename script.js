@@ -190,8 +190,9 @@ function renderBoard(gameState) {
                 squareDiv.innerHTML = '';
                 squareDiv.appendChild(letterSpan); squareDiv.appendChild(valueSpan);
                 squareDiv.classList.add('tile-on-board');
+                // A tile part of currentTurnMoves is implicitly the local player's uncommitted move.
                 const isCurrentTurnMove = currentGame.currentTurnMoves.find(m => m.tileId === tile.id && m.to.row === r && m.to.col === c);
-                if (isCurrentTurnMove && currentGame.getCurrentPlayer().id === localPlayerId) {
+                if (isCurrentTurnMove) { // Tiles in currentTurnMoves are always draggable by localPlayer
                     squareDiv.draggable = true;
                     squareDiv.addEventListener('dragstart', handleDragStart);
                     squareDiv.addEventListener('dragend', handleDragEnd);
@@ -243,25 +244,16 @@ function renderRacks(gameState, localPlayerId) {
 
     localRackElement.innerHTML = ''; // Clear existing tiles
 
-    // Determine if the local player is the current turn player
-    const isLocalPlayerTurn = currentGame && localPlayer.id === currentGame.getCurrentPlayer().id;
-
-    // Add or remove DND listeners for the rack
-    if (isLocalPlayerTurn) {
-        localRackElement.addEventListener('dragover', handleDragOver);
-        localRackElement.addEventListener('drop', handleDropOnRack);
-        // Touch DND listeners are added to individual tiles, but the rack itself needs to be a drop target.
-        // The original `handleTouchEnd` logic checks `dropTargetElement.closest('.rack')`.
-        // So, no specific touch listeners needed directly on the rack div beyond what might be handled globally
-        // or if it were to accept direct drops (which it does via elementFromPoint).
-    } else {
-        localRackElement.removeEventListener('dragover', handleDragOver);
-        localRackElement.removeEventListener('drop', handleDropOnRack);
-    }
+    // Add DND listeners for the local player's rack.
+    // Local player can always drop onto their own rack.
+    localRackElement.addEventListener('dragover', handleDragOver);
+    localRackElement.addEventListener('drop', handleDropOnRack);
+    // Touch DND listeners are added to individual tiles.
 
     // Render tiles for the local player
     localPlayer.rack.forEach(tile => {
-        const isDraggable = isLocalPlayerTurn; // Tiles are draggable if it's the local player's turn
+        // Tiles in the local player's rack are always draggable by them.
+        const isDraggable = (localPlayer.id === localPlayerId);
         localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
 }
@@ -311,26 +303,31 @@ let originalNextSibling = null; // For restoring position in flex container like
 let draggedElementOriginalStyles = null; // To restore original styles
 
 function handleTouchStart(event) {
-    const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
-    if (!currentGame || currentTurnPlayerId !== localPlayerId) {
-        console.log("Touch drag prevented: Not current player's turn or local player mismatch.");
+    if (!currentGame) {
+        console.log("Touch drag prevented: No current game.");
         return;
     }
 
     const tileElement = event.target.closest('[data-tile-id]');
     if (!tileElement) return;
 
-    // Check if the tile is actually draggable (already on board by current player, or in current player's rack)
     const tileId = tileElement.dataset.tileId;
-    const player = currentGame.getCurrentPlayer();
-    const isTileInRack = player.rack.some(t => t.id === tileId);
-    const isTileOnBoardFromCurrentTurn = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
+    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
 
-    if (!isTileInRack && !isTileOnBoardFromCurrentTurn) {
-        console.log("Touch drag prevented: Tile is not draggable by current player.", tileId);
+    if (!localPlayerInstance) {
+        console.log("Touch drag prevented: Local player instance not found.");
         return;
     }
 
+    const isTileInLocalPlayerRack = localPlayerInstance.rack.some(t => t.id === tileId);
+    const isTileInCurrentTurnMoves = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
+
+    if (!isTileInLocalPlayerRack && !isTileInCurrentTurnMoves) {
+        console.log("Touch drag prevented: Tile is not in local player's rack and not in current turn moves.", tileId);
+        return;
+    }
+    // If we reach here, the tile is draggable by the local player.
+    console.log(`Touch Start allowed for local player: tile ${tileId}`);
     event.preventDefault(); // IMPORTANT: Prevent default touch actions like scrolling
 
     touchDraggedTileId = tileId;
@@ -448,6 +445,7 @@ function handleTouchEnd(event) {
                 const realDraggedTileIdBackup = draggedTileId; // Backup mouse DND state
                 draggedTileId = touchDraggedTileId;    // Set for handleDropOnBoard
 
+            // Pass the specific boardSquareElement as the target
                 const mockDropEvent = { preventDefault: () => {}, target: boardSquareElement };
                 handleDropOnBoard(mockDropEvent); // This function should call fullRender
 
@@ -464,7 +462,11 @@ function handleTouchEnd(event) {
             const realDraggedTileIdBackup = draggedTileId;
             draggedTileId = touchDraggedTileId;
 
-            const mockDropEvent = { preventDefault: () => {}, target: rackElement };
+            // Pass the actual dropTargetElement if it's within the rack,
+            // otherwise pass the rackElement itself.
+            // The target for handleDropOnRack should be the specific element the user dropped on.
+            const mockEventTarget = rackElement.contains(dropTargetElement) ? dropTargetElement : rackElement;
+            const mockDropEvent = { preventDefault: () => {}, target: mockEventTarget };
             handleDropOnRack(mockDropEvent); // This function should call fullRender
 
             draggedTileId = realDraggedTileIdBackup;
@@ -518,15 +520,35 @@ document.head.appendChild(styleSheet);
 
 
 function handleDragStart(event) {
-    const currentTurnPlayerId = currentGame ? currentGame.getCurrentPlayer().id : null;
-    console.log(`Drag Start Attempt: localPlayerId='${localPlayerId}', currentTurnPlayerId='${currentTurnPlayerId}'`);
-    if (!currentGame || currentTurnPlayerId !== localPlayerId) {
-        console.log("Drag prevented: Not current player's turn or local player mismatch.");
+    if (!currentGame) {
+        console.log("Drag prevented: No current game.");
         event.preventDefault(); return;
     }
+
     const tileElement = event.target.closest('[data-tile-id]');
-    if (!tileElement) { event.preventDefault(); return; }
-    draggedTileId = tileElement.dataset.tileId;
+    if (!tileElement) {
+        console.log("Drag prevented: No tile element found.");
+        event.preventDefault(); return;
+    }
+
+    const tileId = tileElement.dataset.tileId;
+    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+
+    if (!localPlayerInstance) {
+        console.log("Drag prevented: Local player instance not found.");
+        event.preventDefault(); return;
+    }
+
+    const isTileInLocalPlayerRack = localPlayerInstance.rack.some(t => t.id === tileId);
+    const isTileInCurrentTurnMoves = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
+
+    if (!isTileInLocalPlayerRack && !isTileInCurrentTurnMoves) {
+        console.log("Drag prevented: Tile is not in local player's rack and not in current turn moves.", tileId);
+        event.preventDefault(); return;
+    }
+    // If we reach here, the tile is draggable by the local player.
+    console.log(`Drag Start allowed for local player: tile ${tileId}`);
+    draggedTileId = tileId;
     event.dataTransfer.setData('text/plain', draggedTileId);
     event.dataTransfer.effectAllowed = 'move';
     event.target.style.opacity = '0.5';
@@ -551,26 +573,56 @@ function handleDropOnBoard(event) {
              console.log("Square already occupied by a different tile or tile is not from board."); return;
         }
     }
-    const player = currentGame.getCurrentPlayer(); let tile; let originalSourceType = 'rack';
+
+    // Operations involve localPlayer for rack interactions, currentTurnMoves are always localPlayer's
+    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+    if (!localPlayerInstance) {
+        console.error("Drop on board: Local player instance not found.");
+        draggedTileId = null; fullRender(currentGame, localPlayerId); return;
+    }
+
+    let tile;
+    let originalSourceType = 'rack'; // Assume tile comes from rack unless found in currentTurnMoves
+
     const existingMoveIndex = currentGame.currentTurnMoves.findIndex(move => move.tileId === draggedTileId);
+
     if (existingMoveIndex !== -1) {
-        const move = currentGame.currentTurnMoves[existingMoveIndex]; tile = move.tileRef; originalSourceType = 'board';
+        // Tile is being moved from another position on the board (was part of currentTurnMoves)
+        const move = currentGame.currentTurnMoves[existingMoveIndex];
+        tile = move.tileRef;
+        originalSourceType = 'board';
         let originalPosition = { row: move.to.row, col: move.to.col };
-        if (originalPosition.row === row && originalPosition.col === col) { draggedTileId = null; fullRender(currentGame, localPlayerId); return; }
+
+        // If dropped on the same square, do nothing.
+        if (originalPosition.row === row && originalPosition.col === col) {
+            draggedTileId = null; fullRender(currentGame, localPlayerId); return;
+        }
+        // Clear the old board position
         currentGame.board.grid[originalPosition.row][originalPosition.col].tile = null;
+        // Update move's destination
         move.to = { row, col };
     } else {
-        const tileIndexInRack = player.rack.findIndex(t => t.id === draggedTileId);
-        if (tileIndexInRack === -1) { draggedTileId = null; fullRender(currentGame, localPlayerId); return; }
-        tile = player.rack[tileIndexInRack]; player.rack.splice(tileIndexInRack, 1);
+        // Tile is being moved from the local player's rack
+        const tileIndexInRack = localPlayerInstance.rack.findIndex(t => t.id === draggedTileId);
+        if (tileIndexInRack === -1) {
+            // Should not happen if dragStart logic is correct (tile not in local rack and not in currentTurnMoves)
+            console.error("Drop on board: Tile not found in local player's rack or currentTurnMoves.", draggedTileId);
+            draggedTileId = null; fullRender(currentGame, localPlayerId); return;
+        }
+        tile = localPlayerInstance.rack[tileIndexInRack];
+        localPlayerInstance.rack.splice(tileIndexInRack, 1); // Remove from local player's rack
         currentGame.currentTurnMoves.push({ tileId: tile.id, tileRef: tile, from: 'rack', to: { row, col }});
     }
+
+    // Handle blank tile assignment if it's new from rack
     if (originalSourceType === 'rack' && tile.isBlank && !tile.assignedLetter) {
         let assigned = '';
         while (assigned.length !== 1 || !/^[A-Z]$/i.test(assigned)) {
             assigned = prompt("Enter a letter for the blank tile (A-Z):");
-            if (assigned === null) {
-                if (originalSourceType === 'rack') player.rack.push(tile);
+            if (assigned === null) { // User cancelled prompt
+                // Return tile to local player's rack
+                localPlayerInstance.rack.push(tile);
+                // Remove from currentTurnMoves if it was added
                 const newMoveIdx = currentGame.currentTurnMoves.findIndex(m => m.tileId === tile.id);
                 if (newMoveIdx !== -1) currentGame.currentTurnMoves.splice(newMoveIdx, 1);
                 draggedTileId = null; fullRender(currentGame, localPlayerId); return;
@@ -579,15 +631,25 @@ function handleDropOnBoard(event) {
         }
         tile.assignedLetter = assigned;
     }
-    boardSquare.tile = tile;
+
+    boardSquare.tile = tile; // Place tile on the target square
     console.log(`Tile ${tile.id} (${tile.letter || 'blank'}) moved to (${row},${col}). currentTurnMoves:`, currentGame.currentTurnMoves);
-    fullRender(currentGame, localPlayerId); draggedTileId = null;
+    fullRender(currentGame, localPlayerId);
+    draggedTileId = null;
 }
+
 function handleDropOnRack(event) {
     event.preventDefault(); if (!draggedTileId) return;
-    const player = currentGame.getCurrentPlayer();
-    const targetRackElement = document.getElementById('local-player-rack'); // Corrected ID
 
+    // When dropping on rack, interacts with localPlayerId's rack or currentTurnMoves
+    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+    if (!localPlayerInstance) {
+        console.error("Drop on rack: Local player instance not found.");
+        draggedTileId = null; fullRender(currentGame, localPlayerId); return;
+    }
+    const playerRack = localPlayerInstance.rack; // Use local player's rack
+
+    const targetRackElement = document.getElementById('local-player-rack');
     // Check if the drop event's target is the rack itself or a child of the rack (for mouse DND),
     // or if the identified rack element exists (for touch DND, event.target is the rack directly from elementFromPoint).
     // The `handleTouchEnd` already ensures that `rackElement` passed to `handleDropOnRack` (via mock event) is the correct one.
@@ -605,23 +667,96 @@ function handleDropOnRack(event) {
     const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
 
     if (moveIndex === -1) {
-        // Tile was not on the board this turn (e.g., dragged from rack and dropped back on rack).
-        // No game state change, but ensure UI is correct.
-        console.log("Tile dragged to rack was not from board this turn, or was dragged from rack to rack.", draggedTileId);
-        fullRender(currentGame, localPlayerId);
-        // For mouse DND, draggedTileId is reset by handleDragEnd.
-        // For touch DND, touchDraggedTileId is reset by handleTouchEnd.
-        // If this is a mouse drag from rack to rack, draggedTileId should be cleared by handleDragEnd.
+        // Tile was dragged from the local player's rack and dropped back on their rack (rearrangement).
+        const tileIndexInRack = playerRack.findIndex(t => t.id === draggedTileId);
+
+        if (tileIndexInRack !== -1) {
+            const tileToMove = playerRack.splice(tileIndexInRack, 1)[0]; // Remove from rack
+
+            let targetIndex = playerRack.length; // Default to appending
+
+            const targetTileElement = event.target.closest('.tile-in-rack');
+            if (targetTileElement && targetTileElement.dataset.tileId !== draggedTileId) {
+                const targetTileId = targetTileElement.dataset.tileId;
+                const targetTileActualIndex = playerRack.findIndex(t => t.id === targetTileId);
+                if (targetTileActualIndex !== -1) {
+                    targetIndex = targetTileActualIndex; // Insert before the target tile
+                }
+            }
+            playerRack.splice(targetIndex, 0, tileToMove); // Add tile to rack at new position
+            console.log(`Tile ${draggedTileId} rearranged in local player's rack. New order:`, playerRack.map(t => t.id).join(', '));
+        } else {
+            // This case should ideally not be reached if drag source validation is correct
+            console.warn("Rearrange rack: Dragged tile ID not found in local player's rack.", draggedTileId);
+        }
+        // Resetting draggedTileId is handled by handleDragEnd or handleTouchEnd
+    } else {
+        // Tile was on the board (part of currentTurnMoves) and is being returned to the local player's rack.
+        const move = currentGame.currentTurnMoves[moveIndex];
+        const tile = move.tileRef;
+
+        // Clear the tile from its current board position
+        currentGame.board.grid[move.to.row][move.to.col].tile = null;
+        // Add tile back to the local player's rack
+        playerRack.push(tile);
+
+        // If it was a blank tile placed from rack this turn, reset its assigned letter
+        if (tile.isBlank && move.from === 'rack') {
+            tile.assignedLetter = null;
+        }
+        // Remove the move from currentTurnMoves
+        currentGame.currentTurnMoves.splice(moveIndex, 1);
+        console.log(`Tile ${tile.id} (${tile.letter}) returned to local player's rack. currentTurnMoves:`, currentGame.currentTurnMoves);
+        // Resetting draggedTileId is handled by handleDragEnd or handleTouchEnd, but for board-to-rack, we clear it.
+        draggedTileId = null;
+    }
+
+    fullRender(currentGame, localPlayerId);
+    // Note: draggedTileId is set to null if it was a board-to-rack move.
+    // For rack-to-rack, it's cleared by the respective drag/touch end handlers.
+}
+
+function handleRecallTiles() {
+    if (!currentGame) {
+        console.log("Cannot recall tiles: No game active.");
         return;
     }
-    // Tile was on the board this turn.
-    const move = currentGame.currentTurnMoves[moveIndex]; const tile = move.tileRef;
-    currentGame.board.grid[move.to.row][move.to.col].tile = null;
-    player.rack.push(tile);
-    if (tile.isBlank && move.from === 'rack') tile.assignedLetter = null;
-    currentGame.currentTurnMoves.splice(moveIndex, 1);
-    console.log(`Tile ${tile.id} (${tile.letter}) returned to rack. currentTurnMoves:`, currentGame.currentTurnMoves);
-    fullRender(currentGame, localPlayerId); draggedTileId = null;
+    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+    if (!localPlayerInstance) {
+        console.error("Cannot recall tiles: Local player instance not found.");
+        return;
+    }
+
+    if (!currentGame.currentTurnMoves || currentGame.currentTurnMoves.length === 0) {
+        console.log("No uncommitted tiles to recall.");
+        return;
+    }
+
+    console.log("Recalling all uncommitted tiles to rack...");
+    // Iterate backwards to safely remove items from currentTurnMoves
+    for (let i = currentGame.currentTurnMoves.length - 1; i >= 0; i--) {
+        const move = currentGame.currentTurnMoves[i];
+        const tileToRecall = move.tileRef;
+
+        // Return tile to local player's rack
+        localPlayerInstance.rack.push(tileToRecall);
+
+        // Reset blank tile status if applicable
+        if (tileToRecall.isBlank) {
+            tileToRecall.assignedLetter = null;
+        }
+
+        // Clear the tile from the board
+        if (currentGame.board.grid[move.to.row] && currentGame.board.grid[move.to.row][move.to.col]) {
+            currentGame.board.grid[move.to.row][move.to.col].tile = null;
+        } else {
+            console.warn(`Attempted to clear tile from invalid board location: ${move.to.row}, ${move.to.col}`);
+        }
+    }
+
+    currentGame.currentTurnMoves = []; // Clear the array of uncommitted moves
+    console.log("All uncommitted tiles recalled. Rack:", localPlayerInstance.rack.map(t => t.id));
+    fullRender(currentGame, localPlayerId); // Refresh the display
 }
 
 // --- Game Validation and Action Handlers ---
@@ -1093,6 +1228,27 @@ function handlePassTurn() {
         return;
     }
 
+    // Recall any uncommitted tiles before passing
+    if (currentGame.currentTurnMoves && currentGame.currentTurnMoves.length > 0) {
+        console.log("Recalling uncommitted tiles before passing turn...");
+        const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+        if (localPlayerInstance) { // Should always be found if localPlayerId is valid
+            for (let i = currentGame.currentTurnMoves.length - 1; i >= 0; i--) {
+                const move = currentGame.currentTurnMoves[i];
+                const tileToRecall = move.tileRef;
+                localPlayerInstance.rack.push(tileToRecall);
+                if (tileToRecall.isBlank) {
+                    tileToRecall.assignedLetter = null;
+                }
+                if (currentGame.board.grid[move.to.row] && currentGame.board.grid[move.to.row][move.to.col]) {
+                    currentGame.board.grid[move.to.row][move.to.col].tile = null;
+                }
+            }
+            currentGame.currentTurnMoves = [];
+            // A fullRender will happen at the end of handlePassTurn
+        }
+    }
+
     console.log("Pass Turn initiated by:", currentGame.getCurrentPlayer().name);
 
     currentGame.turnNumber++;
@@ -1120,7 +1276,32 @@ function handleExchangeTiles() {
         return;
     }
 
-    const player = currentGame.getCurrentPlayer();
+    // Recall any uncommitted tiles before exchanging
+    if (currentGame.currentTurnMoves && currentGame.currentTurnMoves.length > 0) {
+        console.log("Recalling uncommitted tiles before exchanging...");
+        const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+        if (localPlayerInstance) { // Should be the current player if conditions above are met
+            for (let i = currentGame.currentTurnMoves.length - 1; i >= 0; i--) {
+                const move = currentGame.currentTurnMoves[i];
+                const tileToRecall = move.tileRef;
+                localPlayerInstance.rack.push(tileToRecall);
+                if (tileToRecall.isBlank) {
+                    tileToRecall.assignedLetter = null;
+                }
+                if (currentGame.board.grid[move.to.row] && currentGame.board.grid[move.to.row][move.to.col]) {
+                    currentGame.board.grid[move.to.row][move.to.col].tile = null;
+                }
+            }
+            currentGame.currentTurnMoves = [];
+            // fullRender will be called at the end of handleExchangeTiles,
+            // so the rack will be up-to-date for the prompt.
+            // However, to make the UI consistent *before* the prompt, render here.
+            renderRacks(currentGame, localPlayerId);
+            renderBoard(currentGame); // Also render board to show tiles removed
+        }
+    }
+
+    const player = currentGame.getCurrentPlayer(); // This is correct, exchange is a turn action for current player
     const rackSize = player.rack.length;
     if (rackSize === 0) {
         alert("Your rack is empty. Cannot exchange tiles.");
@@ -1563,6 +1744,30 @@ function applyTurnDataFromURL(gameState, params) {
         gameState.drawTiles(playerWhoseTurnItWas, tilesPlayedCount);
         console.log(`URL Processing: Simulated drawing ${tilesPlayedCount} tiles for ${playerWhoseTurnItWas.name}. New rack size: ${playerWhoseTurnItWas.rack.length}. Bag size: ${gameState.bag.length}`);
 
+        // New logic to handle local player's uncommitted tiles conflicting with opponent's move
+        if (gameState.currentTurnMoves && gameState.currentTurnMoves.length > 0) {
+            const localPlayerInstance = gameState.players.find(p => p.id === localPlayerId);
+            if (localPlayerInstance) {
+                console.log("Checking for conflicts with local player's uncommitted tiles...");
+                for (let i = gameState.currentTurnMoves.length - 1; i >= 0; i--) {
+                    const localMove = gameState.currentTurnMoves[i];
+                    const r = localMove.to.row;
+                    const c = localMove.to.col;
+                    const boardSquare = gameState.board.grid[r][c];
+
+                    // Check if the square is now occupied by a tile that isn't the local player's uncommitted tile
+                    if (boardSquare.tile && boardSquare.tile.id !== localMove.tileRef.id) {
+                        console.log(`Conflict: Opponent's move at (${r},${c}) overrides local player's uncommitted tile ${localMove.tileRef.id} (Letter: ${localMove.tileRef.letter}). Returning to rack.`);
+                        const tileToReturn = localMove.tileRef;
+                        if (tileToReturn.isBlank) {
+                            tileToReturn.assignedLetter = null; // Reset blank tile
+                        }
+                        localPlayerInstance.rack.push(tileToReturn);
+                        gameState.currentTurnMoves.splice(i, 1); // Remove from uncommitted moves
+                    }
+                }
+            }
+        }
         return true;
     }
 
@@ -1683,6 +1888,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
     document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
     document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
+    document.getElementById('recall-tiles-btn').addEventListener('click', handleRecallTiles);
 
     // New Game Modal Logic
     const newGameBtn = document.getElementById('new-game-btn');
