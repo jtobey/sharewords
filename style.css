@@ -277,6 +277,47 @@ body {
     margin-right: auto; /* Center it if max-width is applied */
 }
 
+#post-move-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 90%; /* Ensure it's not overly wide on small screens */
+    text-align: center;
+    /* display: none; /* Will be controlled by JS by adding/removing 'hidden' attribute or inline style */
+}
+
+#post-move-modal p {
+    margin-bottom: 15px; /* Add some space below the points paragraph */
+}
+
+#modal-points-earned {
+    font-weight: bold;
+}
+
+#post-move-modal button {
+    padding: 8px 10px; /* Consistent with #controls-container button */
+    min-width: 100px;   /* Consistent with #controls-container button */
+    margin: 5px; /* Add some margin around buttons */
+    /* flex-grow: 1; /* Not needed here as buttons are centered */
+}
+
+/* Specific styling for buttons if needed, e.g., background colors, can be added here */
+/* For now, they will inherit browser default or general button styles if any */
+
+@media (min-width: 768px) {
+    #post-move-modal {
+        min-width: 300px; /* Can be more specific for larger screens if needed */
+        max-width: 400px; /* Or a fixed width like #new-game-modal */
+    }
+}
+
 .header-player-info {
     font-size: 0.9em; /* Slightly smaller font */
     font-weight: bold;
