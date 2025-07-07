@@ -1006,28 +1006,20 @@ async function handleCommitPlay() {
     console.log("Player switched. New current player:", currentGame.getCurrentPlayer().name);
 
     // Update UI with new scores before generating URL or saving
-    updateGameStatus(currentGame);
+    updateGameStatus(currentGame); // This is okay here, reflects score before turn officially ends.
 
-    let turnURL;
-    // Pass relevant settings for URL generation, especially for the first turn
-    const relevantSettings = (currentGame.turnNumber === 1 && localPlayerId === 'player1') ? currentGame.settings : null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
-        // Pass seed for P1's first turn URL. Settings are passed if relevant.
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, relevantSettings);
-    } else {
-        // For subsequent turns, dictionary settings and seed are not needed in the URL.
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, null, null);
+    // Ensure currentGame.turnNumber is 0 at this point for P1's first move.
+    const turnNumberForURL = currentGame.turnNumber + 1; // Should be 1 for P1's first move's URL
+    let seedForURL = null;
+    let settingsForURL = null;
+
+    if (currentGame.turnNumber === 0 && localPlayerId === 'player1') {
+        seedForURL = currentGame.randomSeed;
+        settingsForURL = currentGame.settings;
     }
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Turn URL:", turnURL);
-    }
-    // alert("Play committed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
-    showPostMoveModal(scoreResult.score, turnURL); // MODIFIED LINE
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+
+    const turnURL = generateTurnURL(currentGame.gameId, turnNumberForURL, wordDataForURL, seedForURL, settingsForURL);
+    finalizeTurnAndShowModal(turnURL, scoreResult.score);
 }
 
 
@@ -1046,6 +1038,24 @@ function showPostMoveModal(pointsEarned, turnURL) {
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for copy button
     if (modalCopyCheckbox) modalCopyCheckbox.checked = true;
     postMoveModalElement.removeAttribute('hidden');
+}
+
+// --- Centralized Turn Finalization ---
+function finalizeTurnAndShowModal(turnURL, pointsEarned = 0) {
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Finalized Turn URL:", turnURL);
+    }
+
+    showPostMoveModal(pointsEarned, turnURL);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+    console.log(`Turn finalized. Player: ${currentGame.getCurrentPlayer().name}, Turn: ${currentGame.turnNumber}, Score (this turn): ${pointsEarned}`);
 }
 
 // --- Scoring Logic ---
@@ -1266,28 +1276,17 @@ function handlePassTurn() {
 
     console.log("Pass Turn initiated by:", currentGame.getCurrentPlayer().name);
 
-    currentGame.turnNumber++;
-    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+    const turnNumberForURL = currentGame.turnNumber + 1;
+    let seedForURL = null;
+    let settingsForURL = null;
 
-    // For a pass, exchangeData is an empty string.
-    let urlSeed = null;
-    let urlSettings = null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
-        urlSeed = currentGame.randomSeed;
-        urlSettings = currentGame.settings;
-    }
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
-
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Pass Turn URL:", turnURL);
+    if (currentGame.turnNumber === 0 && localPlayerId === 'player1') {
+        seedForURL = currentGame.randomSeed;
+        settingsForURL = currentGame.settings;
     }
 
-    alert("Turn passed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+    const turnURL = generateTurnURL(currentGame.gameId, turnNumberForURL, null, seedForURL, settingsForURL, ""); // "" for pass
+    finalizeTurnAndShowModal(turnURL);
 }
 
 function handleExchangeTiles() {
@@ -1385,30 +1384,19 @@ function handleExchangeTiles() {
     // 4. Shuffle the game bag.
     currentGame._shuffleBag();
 
-    currentGame.turnNumber++;
-    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
-    // Seed and settings are not needed for exchange turns unless P1's first turn.
-    let urlSeed = null;
-    let urlSettings = null;
-    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
-        urlSeed = currentGame.randomSeed;
-        urlSettings = currentGame.settings;
-    }
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
+    const turnNumberForURL = currentGame.turnNumber + 1;
+    let seedForURL = null;
+    let settingsForURL = null;
 
-
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player.";
-        console.log("Exchange Turn URL:", turnURL);
+    if (currentGame.turnNumber === 0 && localPlayerId === 'player1') {
+        seedForURL = currentGame.randomSeed;
+        settingsForURL = currentGame.settings;
     }
 
-    alert(`Exchanged ${tilesSetAsideForExchange.length} tile(s). It's now ${currentGame.getCurrentPlayer().name}'s turn.`);
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+    const exchangeDataForURL = indicesToExchange.join(',');
+    const turnURL = generateTurnURL(currentGame.gameId, turnNumberForURL, null, seedForURL, settingsForURL, exchangeDataForURL);
+    finalizeTurnAndShowModal(turnURL);
 }
 
 
@@ -1446,17 +1434,17 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
             }
         }
         // Add custom game rule settings if they differ from defaults
-        if (settings.letterDistribution && JSON.stringify(settings.letterDistribution) !== JSON.stringify(DEFAULT_LETTER_DISTRIBUTION)) {
-            params.append('td', JSON.stringify(settings.letterDistribution));
+        if (effectiveSettings.letterDistribution && JSON.stringify(effectiveSettings.letterDistribution) !== JSON.stringify(DEFAULT_LETTER_DISTRIBUTION)) {
+            params.append('td', JSON.stringify(effectiveSettings.letterDistribution));
         }
-        if (settings.tileValues && JSON.stringify(settings.tileValues) !== JSON.stringify(DEFAULT_TILE_VALUES)) {
-            params.append('tv', JSON.stringify(settings.tileValues));
+        if (effectiveSettings.tileValues && JSON.stringify(effectiveSettings.tileValues) !== JSON.stringify(DEFAULT_TILE_VALUES)) {
+            params.append('tv', JSON.stringify(effectiveSettings.tileValues));
         }
-        if (settings.blankTileCount !== undefined && settings.blankTileCount !== 2) { // Default is 2
-            params.append('bc', settings.blankTileCount);
+        if (effectiveSettings.blankTileCount !== undefined && effectiveSettings.blankTileCount !== 2) { // Default is 2
+            params.append('bc', effectiveSettings.blankTileCount);
         }
-        if (settings.sevenTileBonus !== undefined && settings.sevenTileBonus !== 50) { // Default is 50
-            params.append('sb', settings.sevenTileBonus);
+        if (effectiveSettings.sevenTileBonus !== undefined && effectiveSettings.sevenTileBonus !== 50) { // Default is 50
+            params.append('sb', effectiveSettings.sevenTileBonus);
         }
     }
 
