@@ -237,18 +237,14 @@ body {
 }
 
 .player-score-area h2,
-.player-score-area p,
-#local-player-rack-area h3 {
+.player-score-area p { /* h3 rule removed from here */
     margin-top: 0.2em;
     margin-bottom: 0.2em;
     padding: 0;
     /* text-align: left; /* Let the container's align-items handle overall block centering */
 }
 
-#local-player-rack-area h3 {
-    font-size: 1.1em; /* Slightly smaller than player name H2s */
-    margin-bottom: 0.3em;
-}
+/* Rule for #local-player-rack-area h3 is removed as the element is gone. */
 
 /* Minor adjustments for spacing within info-container sections */
 #info-container > div:not(.rack) { /* Apply to direct children that are sections */

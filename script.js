@@ -236,18 +236,13 @@ function renderRacks(gameState, localPlayerId) {
 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
     const localRackElement = document.getElementById('local-player-rack');
-    const localPlayerRackTitleElement = document.getElementById('local-player-rack-title');
 
-    if (!localPlayer || !localRackElement || !localPlayerRackTitleElement) {
-        console.error("Could not find local player or their rack element.");
+    if (!localPlayer || !localRackElement) {
+        console.error("Could not find local player or their rack element DOM reference.");
         return;
     }
 
     localRackElement.innerHTML = ''; // Clear existing tiles
-
-    // Update rack title
-    localPlayerRackTitleElement.textContent = `${localPlayer.name}'s Rack (You)`;
-
 
     // Determine if the local player is the current turn player
     const isLocalPlayerTurn = currentGame && localPlayer.id === currentGame.getCurrentPlayer().id;
