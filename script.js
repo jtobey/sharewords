@@ -1255,8 +1255,13 @@ function handlePassTurn() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // For a pass, exchangeData is an empty string.
-    // No turnData for word play. Seed and settings are not needed for pass turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, "");
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
 
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -1369,8 +1374,14 @@ function handleExchangeTiles() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
-    // Seed and settings are not needed for exchange turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, indicesToExchange.join(','));
+    // Seed and settings are not needed for exchange turns unless P1's first turn.
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
 
 
     const turnUrlInput = document.getElementById('turn-url');
@@ -1392,15 +1403,31 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
     params.append('gid', gameId);
     params.append('tn', turnNumber);
 
-    if (seed !== null) params.append('seed', seed);
+    let effectiveSeed = seed;
+    let effectiveSettings = settings;
+
+    if (turnNumber === 1 && localPlayerId === 'player1') {
+        effectiveSeed = currentGame.randomSeed; // Always use currentGame.randomSeed for P1, T1
+        // If settings are explicitly passed by caller for P1,T1, use them.
+        // Otherwise (if null was passed), default to currentGame.settings for P1,T1.
+        // The modifications to handlePassTurn/handleExchangeTiles will ensure currentGame.settings is passed.
+        if (effectiveSettings === null) {
+            effectiveSettings = currentGame.settings;
+        }
+    }
+
+    if (effectiveSeed !== null) { // This condition now correctly uses currentGame.randomSeed for P1,T1
+        params.append('seed', effectiveSeed);
+    }
 
     // Add dictionary settings to URL only for the very first turn URL (game creation by player1)
-    // localPlayerId is a global variable.
-    if (settings && turnNumber === 1 && localPlayerId === 'player1') {
-        if (settings.dictionaryType && settings.dictionaryType !== 'permissive') {
-            params.append('dt', settings.dictionaryType);
-            if (settings.dictionaryType === 'custom' && settings.dictionaryUrl) {
-                params.append('du', settings.dictionaryUrl);
+    if (effectiveSettings && turnNumber === 1 && localPlayerId === 'player1') {
+        // This block now correctly uses effectiveSettings, which would be currentGame.settings for P1,T1
+        // if either null or currentGame.settings was passed by the caller.
+        if (effectiveSettings.dictionaryType && effectiveSettings.dictionaryType !== 'permissive') {
+            params.append('dt', effectiveSettings.dictionaryType);
+            if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrl) {
+                params.append('du', effectiveSettings.dictionaryUrl);
             }
         }
     }
