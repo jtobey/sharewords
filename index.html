@@ -34,56 +34,57 @@
                 <button id="exchange-tiles-btn">Exchange Tiles</button>
                 <button id="pass-turn-btn">Pass Turn</button>
                 <button id="recall-tiles-btn">Recall Tiles</button>
-                <button id="new-game-btn">New Game</button>
+                <button id="new-game-btn">Setup New Game</button> <!-- Text changed -->
             </div>
+
+            <!-- New Collapsible Section for Settings -->
+            <div id="custom-settings-section" style="display:none; border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
+                <h2>New Game Settings</h2>
+                <div id="dictionary-settings">
+                    <h3>Dictionary Options</h3>
+                    <label>
+                        <input type="radio" name="dictionaryType" value="permissive" checked> Permissive (Default)
+                    </label>
+                    <br>
+                    <label>
+                        <input type="radio" name="dictionaryType" value="freeapi"> Free Dictionary API
+                    </label>
+                    <br>
+                    <label>
+                        <input type="radio" name="dictionaryType" value="custom"> Custom URL
+                    </label>
+                    <br>
+                    <input type="text" id="custom-dictionary-url" placeholder="Enter dictionary URL prefix" style="display:none; margin-top: 5px;">
+                </div>
+
+                <div id="custom-game-settings-inputs">
+                    <h3>Custom Game Rules (Optional)</h3>
+                    <p><small>Leave fields blank to use default Scrabble rules.</small></p>
+
+                    <label for="custom-tile-distribution">Tile Distribution (JSON format):</label><br>
+                    <textarea id="custom-tile-distribution" rows="5" cols="40" placeholder='Example: {"A": 9, "B": 2, ...}'></textarea><br>
+                    <small>Default: Standard Scrabble distribution.</small><br><br>
+
+                    <label for="custom-tile-values">Tile Values (JSON format):</label><br>
+                    <textarea id="custom-tile-values" rows="5" cols="40" placeholder='Example: {"A": 1, "B": 3, "_": 0, ...}'></textarea><br>
+                    <small>Default: Standard Scrabble values. Use "_" for blank tile value.</small><br><br>
+
+                    <label for="custom-blank-tile-count">Number of Blank Tiles:</label><br>
+                    <input type="number" id="custom-blank-tile-count" min="0" placeholder="Default: 2"><br>
+                    <small>Default: 2.</small><br><br>
+
+                    <label for="custom-seven-tile-bonus">Seven-Tile Bonus ("Bingo"):</label><br>
+                    <input type="number" id="custom-seven-tile-bonus" min="0" placeholder="Default: 50"><br>
+                    <small>Default: 50 points.</small><br><br>
+                </div>
+                <button id="start-game-btn" style="margin-top:10px;">Start New Game with These Settings</button>
+            </div> <!-- End of custom-settings-section -->
+
             <div id="turn-url-container">
                 <p>Turn URL: <input type="text" id="turn-url" readonly> <button id="copy-url-btn" title="Copy Game URL">Copy</button></p>
             </div>
-        </div>
-    </div>
-    <div id="new-game-modal" style="display:none;">
-        <h2>New Game Settings</h2>
-        <div id="dictionary-settings">
-            <h3>Dictionary Options</h3>
-            <label>
-                <input type="radio" name="dictionaryType" value="permissive" checked> Permissive (Default)
-            </label>
-            <br>
-            <label>
-                <input type="radio" name="dictionaryType" value="freeapi"> Free Dictionary API
-            </label>
-            <br>
-            <label>
-                <input type="radio" name="dictionaryType" value="custom"> Custom URL
-            </label>
-            <br>
-            <input type="text" id="custom-dictionary-url" placeholder="Enter dictionary URL prefix" style="display:none; margin-top: 5px;">
-        </div>
-
-        <div id="custom-game-settings">
-            <h3>Custom Game Rules (Optional)</h3>
-            <p><small>Leave fields blank to use default Scrabble rules.</small></p>
-
-            <label for="custom-tile-distribution">Tile Distribution (JSON format):</label><br>
-            <textarea id="custom-tile-distribution" rows="5" cols="40" placeholder='Example: {"A": 9, "B": 2, ...}'></textarea><br>
-            <small>Default: Standard Scrabble distribution.</small><br><br>
-
-            <label for="custom-tile-values">Tile Values (JSON format):</label><br>
-            <textarea id="custom-tile-values" rows="5" cols="40" placeholder='Example: {"A": 1, "B": 3, "_": 0, ...}'></textarea><br>
-            <small>Default: Standard Scrabble values. Use "_" for blank tile value.</small><br><br>
-
-            <label for="custom-blank-tile-count">Number of Blank Tiles:</label><br>
-            <input type="number" id="custom-blank-tile-count" min="0" placeholder="Default: 2"><br>
-            <small>Default: 2.</small><br><br>
-
-            <label for="custom-seven-tile-bonus">Seven-Tile Bonus ("Bingo"):</label><br>
-            <input type="number" id="custom-seven-tile-bonus" min="0" placeholder="Default: 50"><br>
-            <small>Default: 50 points.</small><br><br>
-        </div>
-
-        <button id="start-game-btn">Start Game</button>
-        <button id="cancel-new-game-btn">Cancel</button>
-    </div>
+        </div> <!-- This closes info-container -->
+    </div> <!-- This closes game-container -->
     <script src="script.js"></script>
   <div id="post-move-modal" hidden>
     <p>Points Earned: <span id="modal-points-earned">0</span></p>

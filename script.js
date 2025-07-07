@@ -1463,16 +1463,27 @@ function initializeNewGame() {
     // or when P2 loads the game.
 }
 
-function showNewGameModal() {
-    document.getElementById('new-game-modal').style.display = 'block';
-    // Reset modal to defaults
-    document.querySelector('input[name="dictionaryType"][value="permissive"]').checked = true;
-    document.getElementById('custom-dictionary-url').style.display = 'none';
-    document.getElementById('custom-dictionary-url').value = '';
-}
+// New function to toggle the settings section
+function toggleCustomSettingsSection() {
+    const settingsSection = document.getElementById('custom-settings-section');
+    if (!settingsSection) return;
 
-function hideNewGameModal() {
-    document.getElementById('new-game-modal').style.display = 'none';
+    if (settingsSection.style.display === 'none' || settingsSection.style.display === '') {
+        settingsSection.style.display = 'block';
+        // Reset dictionary fields to defaults when opening
+        const defaultDictRadio = document.querySelector('input[name="dictionaryType"][value="permissive"]');
+        if (defaultDictRadio) defaultDictRadio.checked = true;
+
+        const customUrlInput = document.getElementById('custom-dictionary-url');
+        if (customUrlInput) {
+            customUrlInput.style.display = 'none';
+            customUrlInput.value = '';
+        }
+        // Custom game rule inputs are intentionally not reset here,
+        // allowing users to tweak previous settings if they reopen the section.
+    } else {
+        settingsSection.style.display = 'none';
+    }
 }
 
 function startGameWithSettings() {
@@ -1554,7 +1565,11 @@ function startGameWithSettings() {
         }
     }
 
-    hideNewGameModal(); // Hide modal after successful parsing
+    // If all settings are parsed and validated successfully:
+    const settingsSection = document.getElementById('custom-settings-section');
+    if (settingsSection) {
+        settingsSection.style.display = 'none'; // Hide section after collecting settings
+    }
 
     const gameId = `game-${Date.now()}`;
     const randomSeed = Math.floor(Math.random() * 1000000);
@@ -2012,15 +2027,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
     document.getElementById('recall-tiles-btn').addEventListener('click', handleRecallTiles);
 
-    // New Game Modal Logic
+    // New Game Settings Section Logic
     const newGameBtn = document.getElementById('new-game-btn');
-    if (newGameBtn) newGameBtn.addEventListener('click', showNewGameModal);
+    if (newGameBtn) newGameBtn.addEventListener('click', toggleCustomSettingsSection);
 
-    const startGameBtn = document.getElementById('start-game-btn');
+    const startGameBtn = document.getElementById('start-game-btn'); // This button is inside the new section
     if (startGameBtn) startGameBtn.addEventListener('click', startGameWithSettings);
 
-    const cancelNewGameBtn = document.getElementById('cancel-new-game-btn');
-    if (cancelNewGameBtn) cancelNewGameBtn.addEventListener('click', hideNewGameModal);
+    // Old cancelNewGameBtn listener is removed as the button is removed.
 
     document.querySelectorAll('input[name="dictionaryType"]').forEach(radio => {
         radio.addEventListener('change', function() {
