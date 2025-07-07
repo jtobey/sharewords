@@ -1312,7 +1312,7 @@ function handlePassTurn() {
         console.log("Pass Turn URL:", turnURL);
     }
 
-    alert("Turn passed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
+    showPostMoveModal(0, turnURL);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 }
@@ -1433,7 +1433,7 @@ function handleExchangeTiles() {
         console.log("Exchange Turn URL:", turnURL);
     }
 
-    alert(`Exchanged ${tilesSetAsideForExchange.length} tile(s). It's now ${currentGame.getCurrentPlayer().name}'s turn.`);
+    showPostMoveModal(0, turnURL);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 }
