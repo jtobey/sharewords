@@ -359,8 +359,8 @@ function handleTouchStart(event) {
     // Move element to body to ensure it's on top and position is relative to viewport
     document.body.appendChild(touchDraggedElement);
     touchDraggedElement.style.position = 'absolute';
-    touchDraggedElement.style.left = (event.touches[0].clientX - offsetX) + 'px';
-    touchDraggedElement.style.top = (event.touches[0].clientY - offsetY) + 'px';
+    touchDraggedElement.style.left = (event.touches[0].clientX - offsetX + (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft)) + 'px';
+    touchDraggedElement.style.top = (event.touches[0].clientY - offsetY + (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop)) + 'px';
     touchDraggedElement.style.opacity = '0.7';
     touchDraggedElement.style.zIndex = '1001'; // Ensure it's on top
 
@@ -374,8 +374,8 @@ function handleTouchMove(event) {
     event.preventDefault(); // Prevent scrolling during drag
 
     const touch = event.touches[0];
-    touchDraggedElement.style.left = (touch.clientX - offsetX) + 'px';
-    touchDraggedElement.style.top = (touch.clientY - offsetY) + 'px';
+    touchDraggedElement.style.left = (touch.clientX - offsetX + (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft)) + 'px';
+    touchDraggedElement.style.top = (touch.clientY - offsetY + (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop)) + 'px';
 
     // Visual feedback for drop targets
     document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
