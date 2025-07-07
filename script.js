@@ -230,44 +230,70 @@ function renderTileInRack(tile, isDraggable = false) {
     tileDiv.appendChild(letterSpan); tileDiv.appendChild(valueSpan);
     return tileDiv;
 }
+
 function renderRacks(gameState, localPlayerId) {
     if (!gameState || !gameState.players) return;
-    gameState.players.forEach(player => {
-        const rackElement = document.getElementById(`${player.id}-rack`);
-        if (rackElement) {
-            rackElement.innerHTML = '';
-            if (player.id === localPlayerId) {
-                if (currentGame && player.id === currentGame.getCurrentPlayer().id) {
-                    rackElement.addEventListener('dragover', handleDragOver);
-                    rackElement.addEventListener('drop', handleDropOnRack);
-                } else {
-                    rackElement.removeEventListener('dragover', handleDragOver);
-                    rackElement.removeEventListener('drop', handleDropOnRack);
-                }
-                player.rack.forEach(tile => {
-                    const isDraggable = (currentGame && player.id === currentGame.getCurrentPlayer().id && player.id === localPlayerId);
-                    rackElement.appendChild(renderTileInRack(tile, isDraggable));
-                });
-            } else {
-                rackElement.removeEventListener('dragover', handleDragOver);
-                rackElement.removeEventListener('drop', handleDropOnRack);
-                for (let i = 0; i < player.rack.length; i++) {
-                    const tileBack = document.createElement('div');
-                    tileBack.classList.add('tile-in-rack');
-                    tileBack.style.backgroundColor = "#888";
-                    rackElement.appendChild(tileBack);
-                }
-            }
-        }
+
+    const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+    const localRackElement = document.getElementById('local-player-rack');
+    const localPlayerRackTitleElement = document.getElementById('local-player-rack-title');
+
+    if (!localPlayer || !localRackElement || !localPlayerRackTitleElement) {
+        console.error("Could not find local player or their rack element.");
+        return;
+    }
+
+    localRackElement.innerHTML = ''; // Clear existing tiles
+
+    // Update rack title
+    localPlayerRackTitleElement.textContent = `${localPlayer.name}'s Rack (You)`;
+
+
+    // Determine if the local player is the current turn player
+    const isLocalPlayerTurn = currentGame && localPlayer.id === currentGame.getCurrentPlayer().id;
+
+    // Add or remove DND listeners for the rack
+    if (isLocalPlayerTurn) {
+        localRackElement.addEventListener('dragover', handleDragOver);
+        localRackElement.addEventListener('drop', handleDropOnRack);
+        // Touch DND listeners are added to individual tiles, but the rack itself needs to be a drop target.
+        // The original `handleTouchEnd` logic checks `dropTargetElement.closest('.rack')`.
+        // So, no specific touch listeners needed directly on the rack div beyond what might be handled globally
+        // or if it were to accept direct drops (which it does via elementFromPoint).
+    } else {
+        localRackElement.removeEventListener('dragover', handleDragOver);
+        localRackElement.removeEventListener('drop', handleDropOnRack);
+    }
+
+    // Render tiles for the local player
+    localPlayer.rack.forEach(tile => {
+        const isDraggable = isLocalPlayerTurn; // Tiles are draggable if it's the local player's turn
+        localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
 }
+
 function updateGameStatus(gameState) {
     if (!gameState) return;
-    document.getElementById('player1-score').textContent = gameState.players[0].score;
-    document.getElementById('player2-score').textContent = gameState.players[1].score;
+
+    // Update player names and scores
+    const player1 = gameState.players[0];
+    const player2 = gameState.players[1];
+
+    const p1NameDisplay = document.getElementById('player1-name-display');
+    const p1ScoreDisplay = document.getElementById('player1-score');
+    const p2NameDisplay = document.getElementById('player2-name-display');
+    const p2ScoreDisplay = document.getElementById('player2-score');
+
+    if (p1NameDisplay) p1NameDisplay.textContent = player1.name;
+    if (p1ScoreDisplay) p1ScoreDisplay.textContent = player1.score;
+    if (p2NameDisplay) p2NameDisplay.textContent = player2.name;
+    if (p2ScoreDisplay) p2ScoreDisplay.textContent = player2.score;
+
+    // Update turn player and tiles in bag
     document.getElementById('turn-player').textContent = gameState.getCurrentPlayer().name;
     document.getElementById('tiles-in-bag').textContent = gameState.bag.length;
 }
+
 function fullRender(gameState, localPlayerId) {
     if (!gameState) {
         document.getElementById('board-container').innerHTML = '<p>No game active. Start a new game or load one via URL.</p>';

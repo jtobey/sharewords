@@ -235,3 +235,31 @@ body {
     margin-left: 5px;
     vertical-align: middle; /* Align with the input field */
 }
+
+.player-score-area h2,
+.player-score-area p,
+#local-player-rack-area h3 {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+    padding: 0;
+    /* text-align: left; /* Let the container's align-items handle overall block centering */
+}
+
+#local-player-rack-area h3 {
+    font-size: 1.1em; /* Slightly smaller than player name H2s */
+    margin-bottom: 0.3em;
+}
+
+/* Minor adjustments for spacing within info-container sections */
+#info-container > div:not(.rack) { /* Apply to direct children that are sections */
+    padding: 5px 0; /* Add some vertical padding to sections */
+}
+
+.player-score-area {
+    border-bottom: 1px solid #eee; /* Separator line between player scores */
+    padding-bottom: 8px !important; /* Ensure padding is applied */
+    margin-bottom: 5px; /* Space below the score area */
+}
+.player-score-area:last-of-type { /* This might be too general if more divs are added */
+    /* border-bottom: none; */ /* No border for the last score area if needed */
+}
