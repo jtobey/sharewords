@@ -197,6 +197,8 @@ function GameState(gameId, randomSeed, settings = {}) {
 
 let currentGame = null;
 let localPlayerId = "player1";
+let isExchangeModeActive = false;
+let selectedTilesForExchange = [];
 
 // --- UI Rendering Functions ---
 function renderBoard(gameState) {
@@ -261,6 +263,37 @@ function renderTileInRack(tile, isDraggable = false) {
         // Add touch listeners for rack tiles
         tileDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
     }
+
+    if (isExchangeModeActive && currentGame && currentGame.getCurrentPlayer().id === localPlayerId) {
+        // Add click listener for selecting tiles for exchange
+        tileDiv.addEventListener('click', () => {
+            const tileId = tileDiv.dataset.tileId;
+            const player = currentGame.getCurrentPlayer();
+            const tileInRack = player.rack.find(t => t.id === tileId);
+
+            if (!tileInRack) return; // Should not happen if rack is rendered correctly
+
+            const indexInSelection = selectedTilesForExchange.findIndex(selectedTile => selectedTile.id === tileInRack.id);
+
+            if (indexInSelection > -1) {
+                // Tile is already selected, so deselect it
+                selectedTilesForExchange.splice(indexInSelection, 1);
+                tileDiv.classList.remove('selected-for-exchange');
+            } else {
+                // Tile is not selected, so select it
+                selectedTilesForExchange.push(tileInRack);
+                tileDiv.classList.add('selected-for-exchange');
+            }
+            console.log("Selected for exchange:", selectedTilesForExchange.map(t => t.letter || 'blank'));
+            updateControlButtonsVisibility(); // Update button states
+        });
+
+        // Add class if tile is already selected (e.g. after a re-render)
+        if (selectedTilesForExchange.some(selectedTile => selectedTile.id === tile.id)) {
+            tileDiv.classList.add('selected-for-exchange');
+        }
+    }
+
     const letterSpan = document.createElement('span');
     letterSpan.classList.add('tile-letter');
     letterSpan.textContent = tile.isBlank ? '?' : tile.letter.toUpperCase();
@@ -292,8 +325,8 @@ function renderRacks(gameState, localPlayerId) {
 
     // Render tiles for the local player
     localPlayer.rack.forEach(tile => {
-        // Tiles in the local player's rack are always draggable by them.
-        const isDraggable = (localPlayer.id === localPlayerId);
+        // Tiles in the local player's rack are draggable by them only if not in exchange mode.
+        const isDraggable = (localPlayer.id === localPlayerId && !isExchangeModeActive);
         localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
 }
@@ -797,6 +830,7 @@ function handleRecallTiles() {
     currentGame.currentTurnMoves = []; // Clear the array of uncommitted moves
     console.log("All uncommitted tiles recalled. Rack:", localPlayerInstance.rack.map(t => t.id));
     fullRender(currentGame, localPlayerId); // Refresh the display
+    updateControlButtonsVisibility();
 }
 
 // --- Game Validation and Action Handlers ---
@@ -1055,6 +1089,7 @@ async function handleCommitPlay() {
     showPostMoveModal(scoreResult.score, turnURL); // MODIFIED LINE
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
+    updateControlButtonsVisibility();
 }
 
 
@@ -1315,6 +1350,7 @@ function handlePassTurn() {
     showPostMoveModal(0, turnURL);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
+    updateControlButtonsVisibility();
 }
 
 function handleExchangeTiles() {
@@ -1437,7 +1473,178 @@ function handleExchangeTiles() {
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 }
+// Updated handleExchangeTiles function for Step 1
+function handleExchangeTiles() {
+    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
+        alert("It's not your turn or no game active!");
+        return;
+    }
 
+    // Recall any uncommitted tiles before attempting to enter exchange mode
+    if (currentGame.currentTurnMoves && currentGame.currentTurnMoves.length > 0) {
+        const recallConfirmed = confirm("You have pending moves. Exchanging tiles will recall your current moves. Are you sure?");
+        if (recallConfirmed) {
+            handleRecallTiles(); // Use the existing recall function
+        } else {
+            return; // User cancelled the exchange initiation
+        }
+    }
+
+    isExchangeModeActive = true;
+    selectedTilesForExchange = [];
+    updateControlButtonsVisibility(); // This function will be fully implemented in a later step
+    fullRender(currentGame, localPlayerId); // Re-render rack to potentially add selection listeners (in later step)
+
+    const player = currentGame.getCurrentPlayer();
+    const rackSize = player.rack.length;
+
+    if (rackSize === 0) {
+        alert("Your rack is empty. No tiles to exchange.");
+        isExchangeModeActive = false; // Reset mode if no tiles to exchange
+        updateControlButtonsVisibility(); // Update buttons accordingly
+        // No need to fullRender again here as the state hasn't changed visually for the rack
+        return;
+    }
+
+    console.log("Exchange mode activated. Select tiles to exchange.");
+    // The original logic for prompt, processing indices, drawing tiles,
+    // and ending the turn is removed. This will be handled by a new
+    // "Confirm Exchange" button and its handler.
+}
+
+function handleConfirmExchange() {
+    if (!isExchangeModeActive) {
+        console.log("handleConfirmExchange called when exchange mode is not active. Doing nothing.");
+        return;
+    }
+
+    if (selectedTilesForExchange.length === 0) {
+        alert("Please select at least one tile to exchange.");
+        return;
+    }
+
+    const player = currentGame.getCurrentPlayer();
+    if (currentGame.bag.length < selectedTilesForExchange.length) {
+        alert(`Not enough tiles in the bag (${currentGame.bag.length}) to exchange ${selectedTilesForExchange.length} tile(s).`);
+        return;
+    }
+
+    console.log(`Confirming exchange for ${player.name}. Tiles: ${selectedTilesForExchange.map(t => t.letter || 'blank').join(',')}`);
+
+    // Get the indices of the selected tiles from the player's current rack.
+    // These indices are relative to the rack state *before* any splicing for this exchange.
+    const currentRackIndicesForURL = selectedTilesForExchange.map(selectedTile => {
+        return player.rack.findIndex(rackTile => rackTile.id === selectedTile.id);
+    }).filter(index => index !== -1);
+
+    // For splicing, we need to sort these valid indices in descending order.
+    const indicesToSplice = [...currentRackIndicesForURL].sort((a, b) => b - a);
+
+    if (indicesToSplice.length !== selectedTilesForExchange.length) {
+        alert("Error: Some selected tiles could not be found in the rack for exchange. Please try again.");
+        // Reset selection and mode as a precaution, then re-render.
+        selectedTilesForExchange = [];
+        isExchangeModeActive = false;
+        updateControlButtonsVisibility();
+        fullRender(currentGame, localPlayerId);
+        return;
+    }
+
+    const tilesSetAsideForExchange = [];
+    for (const index of indicesToSplice) {
+        tilesSetAsideForExchange.push(player.rack.splice(index, 1)[0]);
+    }
+
+    currentGame.drawTiles(player, tilesSetAsideForExchange.length);
+    tilesSetAsideForExchange.forEach(tile => {
+        if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile before returning to bag
+        currentGame.bag.push(tile);
+    });
+    currentGame._shuffleBag();
+
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') { // Check if it's P1 making their *first overall game turn*
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, urlExchangeIndicesString);
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Exchange Turn URL:", turnURL);
+    }
+
+    // Cleanup
+    selectedTilesForExchange = [];
+    isExchangeModeActive = false;
+    updateControlButtonsVisibility();
+    showPostMoveModal(0, turnURL); // Show modal with 0 points for exchange
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+}
+
+function handleCancelExchange() {
+    if (!isExchangeModeActive) {
+        console.log("handleCancelExchange called when exchange mode is not active. Doing nothing.");
+        return;
+    }
+
+    console.log("Exchange cancelled by user.");
+
+    // Reset state
+    isExchangeModeActive = false;
+    selectedTilesForExchange = []; // Clear any selected tiles
+
+    updateControlButtonsVisibility(); // Update button visibility
+
+    // Re-render the game. This is important because:
+    // 1. isExchangeModeActive is now false, so renderRacks will make tiles draggable again (if it's the user's turn).
+    // 2. renderTileInRack will not add click listeners for selection.
+    // 3. renderTileInRack will not add the 'selected-for-exchange' class as selectedTilesForExchange is empty.
+    fullRender(currentGame, localPlayerId);
+}
+
+function updateControlButtonsVisibility() {
+    const playWordBtn = document.getElementById('play-word-btn');
+    const exchangeTilesBtn = document.getElementById('exchange-tiles-btn');
+    const passTurnBtn = document.getElementById('pass-turn-btn');
+    const recallTilesBtn = document.getElementById('recall-tiles-btn');
+    const confirmExchangeBtn = document.getElementById('confirm-exchange-btn');
+    const cancelExchangeBtn = document.getElementById('cancel-exchange-btn');
+
+    if (isExchangeModeActive) {
+        if (playWordBtn) playWordBtn.style.display = 'none';
+        if (exchangeTilesBtn) exchangeTilesBtn.style.display = 'none';
+        if (passTurnBtn) passTurnBtn.style.display = 'none';
+        if (recallTilesBtn) recallTilesBtn.style.display = 'none';
+
+        if (confirmExchangeBtn) confirmExchangeBtn.style.display = 'inline-block';
+        if (cancelExchangeBtn) cancelExchangeBtn.style.display = 'inline-block';
+
+        if (confirmExchangeBtn) {
+            confirmExchangeBtn.disabled = selectedTilesForExchange.length === 0;
+        }
+    } else {
+        // Normal play mode
+        if (playWordBtn) playWordBtn.style.display = 'inline-block';
+        if (exchangeTilesBtn) exchangeTilesBtn.style.display = 'inline-block';
+        if (passTurnBtn) passTurnBtn.style.display = 'inline-block';
+        if (recallTilesBtn) recallTilesBtn.style.display = 'inline-block';
+
+        if (confirmExchangeBtn) confirmExchangeBtn.style.display = 'none';
+        if (cancelExchangeBtn) cancelExchangeBtn.style.display = 'none';
+
+        // Ensure confirm button is not disabled when hidden (or set to a default state)
+        if (confirmExchangeBtn) confirmExchangeBtn.disabled = false;
+    }
+}
 
 function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = null, exchangeData = null) {
     const baseURL = window.location.origin + window.location.pathname;
@@ -1520,6 +1727,7 @@ function initializeNewGame() {
         turnUrlInput.value = "";
         turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
+    updateControlButtonsVisibility();
     // Do not generate URL here, it will be done after first move by P1
     // or when P2 loads the game.
 }
@@ -1671,6 +1879,7 @@ function startGameWithSettings() {
         turnUrlInput.value = ""; // Clear any old URL
         turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
+    updateControlButtonsVisibility();
     // The initial shareable URL will be generated after P1's first move.
 }
 
@@ -2115,11 +2324,13 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
         console.log("No game parameters in URL. Initializing a new local test game.");
         initializeNewGame(); return;
     }
-    if (currentGame) fullRender(currentGame, localPlayerId);
-    else {
+    if (currentGame) {
+        fullRender(currentGame, localPlayerId);
+    } else {
         console.log("No game active. Displaying new game prompt.");
         document.getElementById('board-container').innerHTML = '<p>Start a new game or load one via URL.</p>';
     }
+    updateControlButtonsVisibility(); // Call regardless of game state to set initial button visibility
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2136,6 +2347,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
     document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
     document.getElementById('recall-tiles-btn').addEventListener('click', handleRecallTiles);
+    // Assuming a button with ID 'confirm-exchange-btn' will be added to the HTML
+    document.getElementById('confirm-exchange-btn').addEventListener('click', handleConfirmExchange);
+    // Assuming a button with ID 'cancel-exchange-btn' will be added to the HTML
+    document.getElementById('cancel-exchange-btn').addEventListener('click', handleCancelExchange);
+
 
     // New Game Settings Section Logic
     const newGameBtn = document.getElementById('new-game-btn');
