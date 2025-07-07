@@ -366,3 +366,100 @@ body {
         flex-shrink: 0; /* Prevent info panel from being squeezed */
     }
 }
+
+/* New Styles for Custom Settings Section */
+#custom-settings-section {
+    background-color: #f9f9f9; /* Light background to distinguish from other info sections */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+#custom-settings-section h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+#custom-settings-section h3 {
+    font-size: 1.1em;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#custom-settings-section label {
+    display: block; /* Make labels take full width for better spacing */
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+#custom-settings-section input[type="text"],
+#custom-settings-section input[type="number"],
+#custom-settings-section textarea {
+    width: 95%; /* Make inputs and textareas take most of the width of the section */
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+#custom-settings-section textarea {
+    resize: vertical; /* Allow vertical resizing of textareas */
+    min-height: 60px;
+}
+
+#custom-settings-section input[type="radio"] {
+    margin-right: 5px;
+}
+
+#custom-settings-section small {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.85em;
+    color: #555;
+}
+
+#custom-settings-section button#start-game-btn {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 20px;
+    display: block; /* Make button take its own line */
+    width: auto; /* Adjust width based on content or set specific width */
+}
+
+#custom-settings-section button#start-game-btn:hover {
+    background-color: #45a049;
+}
+
+/* Responsive adjustments for the settings section if needed */
+@media (max-width: 600px) {
+    #custom-settings-section {
+        padding: 10px;
+        margin-left: 5px; /* Adjust margins if it's inside a flex/grid container */
+        margin-right: 5px;
+    }
+
+    #custom-settings-section input[type="text"],
+    #custom-settings-section input[type="number"],
+    #custom-settings-section textarea {
+        width: 100%; /* Full width on smaller screens */
+    }
+}
+
+/* Ensure info-container can accommodate the new section properly */
+#info-container {
+    /* display: flex; flex-direction: column; align-items: center; already there */
+    /* padding: 10px; already there */
+    /* width: 300px; already there, might need to be more flexible if settings make it too tall */
+    /* Consider max-height and overflow-y: auto for info-container if it can get too long */
+}
