@@ -230,44 +230,65 @@ function renderTileInRack(tile, isDraggable = false) {
     tileDiv.appendChild(letterSpan); tileDiv.appendChild(valueSpan);
     return tileDiv;
 }
+
 function renderRacks(gameState, localPlayerId) {
     if (!gameState || !gameState.players) return;
-    gameState.players.forEach(player => {
-        const rackElement = document.getElementById(`${player.id}-rack`);
-        if (rackElement) {
-            rackElement.innerHTML = '';
-            if (player.id === localPlayerId) {
-                if (currentGame && player.id === currentGame.getCurrentPlayer().id) {
-                    rackElement.addEventListener('dragover', handleDragOver);
-                    rackElement.addEventListener('drop', handleDropOnRack);
-                } else {
-                    rackElement.removeEventListener('dragover', handleDragOver);
-                    rackElement.removeEventListener('drop', handleDropOnRack);
-                }
-                player.rack.forEach(tile => {
-                    const isDraggable = (currentGame && player.id === currentGame.getCurrentPlayer().id && player.id === localPlayerId);
-                    rackElement.appendChild(renderTileInRack(tile, isDraggable));
-                });
-            } else {
-                rackElement.removeEventListener('dragover', handleDragOver);
-                rackElement.removeEventListener('drop', handleDropOnRack);
-                for (let i = 0; i < player.rack.length; i++) {
-                    const tileBack = document.createElement('div');
-                    tileBack.classList.add('tile-in-rack');
-                    tileBack.style.backgroundColor = "#888";
-                    rackElement.appendChild(tileBack);
-                }
-            }
-        }
+
+    const localPlayer = gameState.players.find(p => p.id === localPlayerId);
+    const localRackElement = document.getElementById('local-player-rack');
+
+    if (!localPlayer || !localRackElement) {
+        console.error("Could not find local player or their rack element DOM reference.");
+        return;
+    }
+
+    localRackElement.innerHTML = ''; // Clear existing tiles
+
+    // Determine if the local player is the current turn player
+    const isLocalPlayerTurn = currentGame && localPlayer.id === currentGame.getCurrentPlayer().id;
+
+    // Add or remove DND listeners for the rack
+    if (isLocalPlayerTurn) {
+        localRackElement.addEventListener('dragover', handleDragOver);
+        localRackElement.addEventListener('drop', handleDropOnRack);
+        // Touch DND listeners are added to individual tiles, but the rack itself needs to be a drop target.
+        // The original `handleTouchEnd` logic checks `dropTargetElement.closest('.rack')`.
+        // So, no specific touch listeners needed directly on the rack div beyond what might be handled globally
+        // or if it were to accept direct drops (which it does via elementFromPoint).
+    } else {
+        localRackElement.removeEventListener('dragover', handleDragOver);
+        localRackElement.removeEventListener('drop', handleDropOnRack);
+    }
+
+    // Render tiles for the local player
+    localPlayer.rack.forEach(tile => {
+        const isDraggable = isLocalPlayerTurn; // Tiles are draggable if it's the local player's turn
+        localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
 }
+
 function updateGameStatus(gameState) {
     if (!gameState) return;
-    document.getElementById('player1-score').textContent = gameState.players[0].score;
-    document.getElementById('player2-score').textContent = gameState.players[1].score;
+
+    // Update player names and scores in the header
+    const player1 = gameState.players[0];
+    const player2 = gameState.players[1];
+
+    const headerP1Name = document.getElementById('header-player1-name');
+    const headerP1Score = document.getElementById('header-player1-score');
+    const headerP2Name = document.getElementById('header-player2-name');
+    const headerP2Score = document.getElementById('header-player2-score');
+
+    if (headerP1Name) headerP1Name.textContent = player1.name;
+    if (headerP1Score) headerP1Score.textContent = player1.score;
+    if (headerP2Name) headerP2Name.textContent = player2.name;
+    if (headerP2Score) headerP2Score.textContent = player2.score;
+
+    // Update turn player and tiles in bag (these elements remain in the info panel)
     document.getElementById('turn-player').textContent = gameState.getCurrentPlayer().name;
     document.getElementById('tiles-in-bag').textContent = gameState.bag.length;
 }
+
 function fullRender(gameState, localPlayerId) {
     if (!gameState) {
         document.getElementById('board-container').innerHTML = '<p>No game active. Start a new game or load one via URL.</p>';
@@ -436,8 +457,8 @@ function handleTouchEnd(event) {
             } else {
                  console.log("Touch Drop on Board: Square occupied by a different tile. Returning tile.");
             }
-        } else if (rackElement && rackElement.id === `${currentGame.getCurrentPlayer().id}-rack`) {
-            // Ensure it's the current player's rack
+        } else if (rackElement && rackElement.id === 'local-player-rack') { // Corrected ID check
+            // Ensure it's the current player's rack (implicitly, as only local player's rack has this ID and is interactive)
             console.log(`Touch Drop on Rack: tile ${touchDraggedTileId}`);
             touchDraggedElement.remove();
 
@@ -566,10 +587,35 @@ function handleDropOnBoard(event) {
 function handleDropOnRack(event) {
     event.preventDefault(); if (!draggedTileId) return;
     const player = currentGame.getCurrentPlayer();
-    const rackElement = document.getElementById(`${player.id}-rack`);
-    if (!rackElement || !rackElement.contains(event.target)) return;
+    const targetRackElement = document.getElementById('local-player-rack'); // Corrected ID
+
+    // Check if the drop event's target is the rack itself or a child of the rack (for mouse DND),
+    // or if the identified rack element exists (for touch DND, event.target is the rack directly from elementFromPoint).
+    // The `handleTouchEnd` already ensures that `rackElement` passed to `handleDropOnRack` (via mock event) is the correct one.
+    // So, for touch, event.target will be 'local-player-rack'. For mouse, it could be a tile within it, or the rack.
+    if (!targetRackElement || (event.target !== targetRackElement && !targetRackElement.contains(event.target))) {
+        // This condition primarily guards mouse DND if the drop somehow misses the intended rack element
+        // but is still within something that calls handleDropOnRack (less likely with current setup).
+        // For touch, handleTouchEnd should ensure the target is correct.
+        console.warn("Drop on rack: event target is not the local player's rack or its child.", event.target, targetRackElement);
+        fullRender(currentGame, localPlayerId); // Re-render to be safe
+        draggedTileId = null; // Clear draggedTileId for mouse DND if it was a faulty drop
+        return;
+    }
+
     const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
-    if (moveIndex === -1) { console.log("Tile dragged to rack was not from board this turn."); return; }
+
+    if (moveIndex === -1) {
+        // Tile was not on the board this turn (e.g., dragged from rack and dropped back on rack).
+        // No game state change, but ensure UI is correct.
+        console.log("Tile dragged to rack was not from board this turn, or was dragged from rack to rack.", draggedTileId);
+        fullRender(currentGame, localPlayerId);
+        // For mouse DND, draggedTileId is reset by handleDragEnd.
+        // For touch DND, touchDraggedTileId is reset by handleTouchEnd.
+        // If this is a mouse drag from rack to rack, draggedTileId should be cleared by handleDragEnd.
+        return;
+    }
+    // Tile was on the board this turn.
     const move = currentGame.currentTurnMoves[moveIndex]; const tile = move.tileRef;
     currentGame.board.grid[move.to.row][move.to.col].tile = null;
     player.rack.push(tile);

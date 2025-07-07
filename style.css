@@ -235,3 +235,93 @@ body {
     margin-left: 5px;
     vertical-align: middle; /* Align with the input field */
 }
+
+.player-score-area h2,
+.player-score-area p { /* h3 rule removed from here */
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+    padding: 0;
+    /* text-align: left; /* Let the container's align-items handle overall block centering */
+}
+
+/* Rule for #local-player-rack-area h3 is removed as the element is gone. */
+
+/* Minor adjustments for spacing within info-container sections */
+#info-container > div:not(.rack) { /* Apply to direct children that are sections */
+    padding: 5px 0; /* Add some vertical padding to sections */
+}
+
+.player-score-area {
+    border-bottom: 1px solid #eee; /* Separator line between player scores */
+    padding-bottom: 8px !important; /* Ensure padding is applied */
+    margin-bottom: 5px; /* Space below the score area */
+}
+.player-score-area:last-of-type { /* This might be too general if more divs are added */
+    /* border-bottom: none; */ /* No border for the last score area if needed */
+}
+
+#game-header-scores {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px; /* Vertical and horizontal padding */
+    margin-bottom: 10px; /* Space below the header and above the game board */
+    background-color: #e9e9e9; /* Light background to distinguish it */
+    border-bottom: 1px solid #ccc;
+    width: 100%; /* Span full width */
+    box-sizing: border-box; /* Include padding in width calculation */
+    max-width: var(--board-size); /* Align with board's max width on desktop */
+    /* If --board-size is vw, this might need adjustment on desktop, or use a fixed max-width */
+    /* For desktop, if board has max-width 450px, header could also have it */
+     margin-left: auto;  /* Center it if max-width is applied */
+    margin-right: auto; /* Center it if max-width is applied */
+}
+
+.header-player-info {
+    font-size: 0.9em; /* Slightly smaller font */
+    font-weight: bold;
+}
+
+/* Media Query for larger screens */
+@media (min-width: 768px) {
+    body {
+        justify-content: center;
+        align-items: center; /* Center the whole game area (header + game-container) */
+        padding: 20px;
+    }
+
+    :root { /* Redefine --board-size for desktop */
+        --board-size: 450px;
+        /* --tile-size will automatically update based on this new --board-size if it's defined globally using it.
+           Let's check global :root for --tile-size definition.
+           Global is: --tile-size: calc(var(--board-size) / 15);
+           So this redefinition of --board-size is enough. Tiles will become 30px.
+        */
+    }
+
+    #game-header-scores {
+         /* max-width is already var(--board-size) which is now 450px here */
+         /* So, no change needed here if it correctly uses var(--board-size) or is already 450px */
+    }
+
+    #game-container {
+        flex-direction: row; /* Board and info container side-by-side */
+        align-items: flex-start;
+        gap: 20px;
+        /* width: auto; /* Let it size by content: board (450px) + info (max 350px) + gap */
+    }
+
+    #board-container {
+        /* width: var(--board-size); is already set globally. Now --board-size is 450px here. */
+        /* height: var(--board-size); is already set globally. */
+        /* max-width: 450px; is already set globally and matches. */
+        /* max-height: 450px; is already set globally and matches. */
+        flex-shrink: 0; /* Prevent board from shrinking if space is unexpectedly tight */
+    }
+
+    #info-container {
+        min-width: 280px;
+        max-width: 350px;
+        flex-shrink: 0; /* Prevent info panel from being squeezed */
+    }
+}
