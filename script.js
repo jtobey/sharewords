@@ -1,3 +1,5 @@
+"use strict";
+
 // Placeholder for game logic and UI interaction
 console.log("Crossword Builder Game script loaded.");
 
