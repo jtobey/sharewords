@@ -282,27 +282,46 @@ body {
     font-weight: bold;
 }
 
-/* Media query to adjust max-width for larger screens if board alignment is critical */
+/* Media Query for larger screens */
 @media (min-width: 768px) {
     body {
-        /* flex-direction: row; /* Game and info side-by-side - game-container handles this */
         justify-content: center;
-        align-items: center; /* Center the whole game area including header */
-        padding: 20px; /* Restore some padding */
+        align-items: center; /* Center the whole game area (header + game-container) */
+        padding: 20px;
     }
+
+    :root { /* Redefine --board-size for desktop */
+        --board-size: 450px;
+        /* --tile-size will automatically update based on this new --board-size if it's defined globally using it.
+           Let's check global :root for --tile-size definition.
+           Global is: --tile-size: calc(var(--board-size) / 15);
+           So this redefinition of --board-size is enough. Tiles will become 30px.
+        */
+    }
+
     #game-header-scores {
-         max-width: calc(450px + 350px + 20px); /* board max-width + info-container max-width + gap */
-         /* Or more simply, align with the overall game structure if the body is the main flex container */
-         /* If body stacks header and game-container, then header max-width should match board or game-container */
-         max-width: 450px; /* Align with the board if body is column */
-         /* Re-evaluating: body is already display:flex, flex-direction:column by default.
-            The media query changes body to align-items: flex-start, not center for the whole page.
-            It also changes game-container to row.
-            So, the header should probably align with the board's width primarily.
-         */
+         /* max-width is already var(--board-size) which is now 450px here */
+         /* So, no change needed here if it correctly uses var(--board-size) or is already 450px */
     }
-    /* The #info-container has its own max-width.
-       If the header is outside game-container, it needs its own width management.
-       If body is column, header width 100% and max-width like board makes sense.
-    */
+
+    #game-container {
+        flex-direction: row; /* Board and info container side-by-side */
+        align-items: flex-start;
+        gap: 20px;
+        /* width: auto; /* Let it size by content: board (450px) + info (max 350px) + gap */
+    }
+
+    #board-container {
+        /* width: var(--board-size); is already set globally. Now --board-size is 450px here. */
+        /* height: var(--board-size); is already set globally. */
+        /* max-width: 450px; is already set globally and matches. */
+        /* max-height: 450px; is already set globally and matches. */
+        flex-shrink: 0; /* Prevent board from shrinking if space is unexpectedly tight */
+    }
+
+    #info-container {
+        min-width: 280px;
+        max-width: 350px;
+        flex-shrink: 0; /* Prevent info panel from being squeezed */
+    }
 }
