@@ -151,7 +151,6 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.currentTurnMoves = [];
     this.gameHistory = [];
     this.isGameOver = false;
-    this.creatorId = null;
     this.getCurrentPlayer = function() { return this.players[this.currentPlayerIndex]; };
     this.getOpponentPlayer = function() { return this.players[(this.currentPlayerIndex + 1) % 2]; };
 }
@@ -863,12 +862,13 @@ async function handleCommitPlay() {
 
     let turnURL;
     // Pass relevant settings for URL generation, especially for the first turn
-    const relevantSettings = (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) ? currentGame.settings : null;
-    if (currentGame.turnNumber === 1 && currentGame.creatorId === BROWSER_PLAYER_ID) {
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, currentGame.creatorId, relevantSettings);
+    const relevantSettings = (currentGame.turnNumber === 1 && localPlayerId === 'player1') ? currentGame.settings : null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        // Pass seed for P1's first turn URL. Settings are passed if relevant.
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, currentGame.randomSeed, relevantSettings);
     } else {
-        // For subsequent turns, dictionary settings are not needed in the URL as they are part of the game state loaded from localStorage
-        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, null, null, null);
+        // For subsequent turns, dictionary settings and seed are not needed in the URL.
+        turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, null, null);
     }
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -1082,8 +1082,8 @@ function handlePassTurn() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // For a pass, exchangeData is an empty string.
-    // No turnData for word play.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, null, "");
+    // No turnData for word play. Seed and settings are not needed for pass turns.
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, "");
 
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -1171,7 +1171,8 @@ function handleExchangeTiles() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, null, indicesToExchange.join(','));
+    // Seed and settings are not needed for exchange turns.
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, indicesToExchange.join(','));
 
 
     const turnUrlInput = document.getElementById('turn-url');
@@ -1187,17 +1188,17 @@ function handleExchangeTiles() {
 }
 
 
-function generateTurnURL(gameId, turnNumber, turnData, seed = null, creator = null, settings = null, exchangeData = null) {
+function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = null, exchangeData = null) {
     const baseURL = window.location.origin + window.location.pathname;
     const params = new URLSearchParams();
     params.append('gid', gameId);
     params.append('tn', turnNumber);
 
     if (seed !== null) params.append('seed', seed);
-    if (creator !== null) params.append('creator', creator);
 
-    // Add dictionary settings to URL only for the very first turn URL (game creation)
-    if (settings && turnNumber === 1 && creator) { // Check turnNumber and creator to identify initial share
+    // Add dictionary settings to URL only for the very first turn URL (game creation by player1)
+    // localPlayerId is a global variable.
+    if (settings && turnNumber === 1 && localPlayerId === 'player1') {
         if (settings.dictionaryType && settings.dictionaryType !== 'permissive') {
             params.append('dt', settings.dictionaryType);
             if (settings.dictionaryType === 'custom' && settings.dictionaryUrl) {
@@ -1225,9 +1226,8 @@ function initializeNewGame() {
     const gameId = `game-${Date.now()}`;
     const randomSeed = Math.floor(Math.random() * 1000000);
     currentGame = new GameState(gameId, randomSeed, {});
-    currentGame.creatorId = BROWSER_PLAYER_ID;
     localPlayerId = 'player1';
-    console.log("New local game initialized by this browser:", currentGame);
+    console.log("New local game initialized by this browser (as Player 1):", currentGame);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
     const turnUrlInput = document.getElementById('turn-url');
@@ -1278,10 +1278,9 @@ function startGameWithSettings() {
     };
 
     currentGame = new GameState(gameId, randomSeed, gameSettings);
-    currentGame.creatorId = BROWSER_PLAYER_ID; // This browser is P1
-    localPlayerId = 'player1';
+    localPlayerId = 'player1'; // This browser is P1
 
-    console.log("New game started with settings:", gameSettings, currentGame);
+    console.log("New game started with settings (as Player 1):", gameSettings, currentGame);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 
@@ -1296,24 +1295,6 @@ function startGameWithSettings() {
 
 // --- LocalStorage Functions ---
 const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
-
-/**
- * Generates or retrieves a unique identifier for this browser instance.
- * This helps in determining Player 1 vs Player 2 in a shared game context.
- * @param {Storage} storage - The storage object (localStorage or mock).
- * @returns {string} A unique browser/player identifier.
- */
-function getPlayerIdentifier(storage = localStorage) {
-    let browserId = storage.getItem("crosswordBrowserId");
-    if (!browserId) {
-        browserId = `browser-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        storage.setItem("crosswordBrowserId", browserId);
-        console.log("New browser identifier created:", browserId);
-    }
-    return browserId;
-}
-
-const BROWSER_PLAYER_ID = getPlayerIdentifier(); // Uses actual localStorage for the app
 
 function saveGameStateToLocalStorage(gameState, storage = localStorage) {
     if (!gameState || !gameState.gameId) {
@@ -1347,10 +1328,10 @@ function saveGameStateToLocalStorage(gameState, storage = localStorage) {
                     assignedLetter: square.tile.assignedLetter, id: square.tile.id
                 } : null
             }))),
-            creatorId: gameState.creatorId || null
+            savedLocalPlayerId: localPlayerId // Save the current localPlayerId for this game
         };
         storage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
-        console.log(`Game ${gameState.gameId} saved to ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
+        console.log(`Game ${gameState.gameId} (for ${localPlayerId}) saved to ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
     } catch (error) {
         console.error("Error saving game state:", error);
     }
@@ -1374,7 +1355,10 @@ function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
         rehydratedGame.currentPlayerIndex = storedData.currentPlayerIndex;
         rehydratedGame.isGameOver = storedData.isGameOver;
         rehydratedGame.gameHistory = storedData.gameHistory || [];
-        rehydratedGame.creatorId = storedData.creatorId;
+        // Load and set localPlayerId if available, otherwise default to 'player1'
+        // This global localPlayerId will be used by loadGameFromURLOrStorage
+        localPlayerId = storedData.savedLocalPlayerId || 'player1';
+
 
         if (storedData.players && storedData.players.length === rehydratedGame.players.length) {
             storedData.players.forEach((playerData, index) => {
@@ -1575,15 +1559,20 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
     const urlGameId = params.get('gid');
     const urlTurnNumberStr = params.get('tn');
     const urlSeed = params.get('seed');
-    const urlCreator = params.get('creator');
     const urlDictType = params.get('dt');
     const urlDictUrl = params.get('du');
 
     if (urlGameId) {
         console.log(`URL contains gameId: ${urlGameId}`);
-        currentGame = loadGameStateFromLocalStorage(urlGameId);
+        currentGame = loadGameStateFromLocalStorage(urlGameId); // This might set localPlayerId if found in storage
         if (currentGame) {
-            if (currentGame.creatorId === BROWSER_PLAYER_ID) localPlayerId = 'player1'; else localPlayerId = 'player2';
+            // localPlayerId should be set by loadGameStateFromLocalStorage if it was saved.
+            // If not (e.g. older save format), it might default or need prompting.
+            // For now, we assume loadGameStateFromLocalStorage handles setting localPlayerId.
+            // If it's still null/undefined here, a default or prompt would be needed.
+            // Let's assume loadGameStateFromLocalStorage has set it or it defaults to 'player1' if not found.
+            // localPlayerId = localPlayerId || 'player1'; // Fallback if not set by loader
+
             console.log(`Game ${urlGameId} loaded. This browser: ${localPlayerId}. LS Turn: ${currentGame.turnNumber}. URL Turn: ${urlTurnNumberStr}`);
             if (urlTurnNumberStr) {
                 const urlTurnNumber = parseInt(urlTurnNumberStr);
@@ -1625,7 +1614,6 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                 }
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
                 localPlayerId = 'player2'; // This client is Player 2
-                currentGame.creatorId = urlCreator || null; // Store creator from URL
 
                 // If P1's first move is also in this URL (tn=1 and word data or ex data)
                 if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('w') || params.get('ex') !== null)) {
