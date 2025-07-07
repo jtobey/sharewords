@@ -275,21 +275,21 @@ function renderRacks(gameState, localPlayerId) {
 function updateGameStatus(gameState) {
     if (!gameState) return;
 
-    // Update player names and scores
+    // Update player names and scores in the header
     const player1 = gameState.players[0];
     const player2 = gameState.players[1];
 
-    const p1NameDisplay = document.getElementById('player1-name-display');
-    const p1ScoreDisplay = document.getElementById('player1-score');
-    const p2NameDisplay = document.getElementById('player2-name-display');
-    const p2ScoreDisplay = document.getElementById('player2-score');
+    const headerP1Name = document.getElementById('header-player1-name');
+    const headerP1Score = document.getElementById('header-player1-score');
+    const headerP2Name = document.getElementById('header-player2-name');
+    const headerP2Score = document.getElementById('header-player2-score');
 
-    if (p1NameDisplay) p1NameDisplay.textContent = player1.name;
-    if (p1ScoreDisplay) p1ScoreDisplay.textContent = player1.score;
-    if (p2NameDisplay) p2NameDisplay.textContent = player2.name;
-    if (p2ScoreDisplay) p2ScoreDisplay.textContent = player2.score;
+    if (headerP1Name) headerP1Name.textContent = player1.name;
+    if (headerP1Score) headerP1Score.textContent = player1.score;
+    if (headerP2Name) headerP2Name.textContent = player2.name;
+    if (headerP2Score) headerP2Score.textContent = player2.score;
 
-    // Update turn player and tiles in bag
+    // Update turn player and tiles in bag (these elements remain in the info panel)
     document.getElementById('turn-player').textContent = gameState.getCurrentPlayer().name;
     document.getElementById('tiles-in-bag').textContent = gameState.bag.length;
 }

@@ -7,19 +7,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="game-header-scores">
+        <div id="header-player1-info" class="header-player-info">
+            <span id="header-player1-name">Player 1</span>: <span id="header-player1-score">0</span>
+        </div>
+        <div id="header-player2-info" class="header-player-info">
+            <span id="header-player2-name">Player 2</span>: <span id="header-player2-score">0</span>
+        </div>
+    </div>
     <div id="game-container">
         <div id="board-container">
             <!-- Game board will be rendered here by JavaScript -->
         </div>
         <div id="info-container">
-            <div id="player1-score-display" class="player-score-area">
-                <h2 id="player1-name-display">Player 1</h2>
-                <p>Score: <span id="player1-score">0</span></p>
-            </div>
-            <div id="player2-score-display" class="player-score-area">
-                <h2 id="player2-name-display">Player 2</h2>
-                <p>Score: <span id="player2-score">0</span></p>
-            </div>
+            {/* Player score displays removed from here */}
             <div id="local-player-rack-area">
                 <h3 id="local-player-rack-title">Your Rack</h3> <!-- Title for the rack area -->
                 <div class="rack" id="local-player-rack">
