@@ -69,7 +69,7 @@ function Square(row, col, bonus = BONUS_TYPES.NONE) {
     this.tile = null;
     this.bonusUsed = false;
 }
-function Board(size = BOARD_SIZE, layout = null) {
+function Board(size = BOARD_SIZE, customLayoutStringArray = null) {
     this.size = size;
     this.grid = [];
     for (let r = 0; r < size; r++) {
@@ -78,7 +78,34 @@ function Board(size = BOARD_SIZE, layout = null) {
             this.grid[r][c] = new Square(r, c, BONUS_TYPES.NONE);
         }
     }
-    if (!layout) {
+
+    let customLayoutSuccessfullyApplied = false;
+    if (customLayoutStringArray &&
+        Array.isArray(customLayoutStringArray) &&
+        customLayoutStringArray.length === this.size &&
+        customLayoutStringArray.every(row => typeof row === 'string' && row.length === this.size)) {
+
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                const layoutChar = customLayoutStringArray[r][c];
+                switch (layoutChar) {
+                    case 'T': this.grid[r][c].bonus = BONUS_TYPES.TW; break;
+                    case 'D': this.grid[r][c].bonus = BONUS_TYPES.DW; break;
+                    case 't': this.grid[r][c].bonus = BONUS_TYPES.TL; break;
+                    case 'd': this.grid[r][c].bonus = BONUS_TYPES.DL; break;
+                    default: this.grid[r][c].bonus = BONUS_TYPES.NONE; break;
+                }
+            }
+        }
+        customLayoutSuccessfullyApplied = true;
+        console.log("Custom board layout successfully applied by Board constructor.");
+    } else if (customLayoutStringArray) {
+        // This else-if catches cases where customLayoutStringArray is truthy but malformed.
+        console.warn("Custom board layout was provided to Board constructor but was malformed. Falling back to default layout.");
+    }
+
+    if (!customLayoutSuccessfullyApplied) {
+        console.log("Applying default board layout in Board constructor.");
         const tw_coords = [[0,0], [0,7], [0,14], [7,0], [7,14], [14,0], [14,7], [14,14]];
         tw_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.TW; });
         const dw_coords = [[1,1], [2,2], [3,3], [4,4], [1,13], [2,12], [3,11], [4,10], [13,1], [12,2], [11,3], [10,4], [13,13], [12,12], [11,11], [10,10]];
@@ -159,7 +186,7 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.bag = [];
     this._initializeBag(); this._shuffleBag();
     this.players.forEach(player => { this.drawTiles(player, this.settings.rackSize); });
-    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout || this.settings.defaultBoardLayout);
+    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout);
     this.turnNumber = 0;
     this.currentTurnMoves = [];
     this.gameHistory = [];
@@ -1458,6 +1485,11 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
         if (settings.sevenTileBonus !== undefined && settings.sevenTileBonus !== 50) { // Default is 50
             params.append('sb', settings.sevenTileBonus);
         }
+        if (effectiveSettings.customBoardLayout && Array.isArray(effectiveSettings.customBoardLayout)) {
+            // Join the array of row strings into a single comma-separated string for the URL parameter.
+            const cblString = effectiveSettings.customBoardLayout.join(',');
+            params.append('cbl', cblString);
+        }
     }
 
     if (exchangeData !== null) { // Check if exchangeData is provided (not null)
@@ -1592,6 +1624,29 @@ function startGameWithSettings() {
             alert("Invalid Seven Tile Bonus. It must be a non-negative number.");
             return;
         }
+    }
+
+    // Parse Custom Board Layout
+    const boardLayoutStr = document.getElementById('custom-board-layout').value.trim();
+    if (boardLayoutStr) {
+        const layoutRows = boardLayoutStr.split('\n').map(row => row.trim());
+        if (layoutRows.length !== 15) {
+            alert("Custom Board Layout must have exactly 15 rows.");
+            return;
+        }
+        if (layoutRows.some(row => row.length !== 15)) {
+            alert("Each row in Custom Board Layout must have exactly 15 characters.");
+            return;
+        }
+        const validChars = ['T', 'D', 't', 'd', '.'];
+        const invalidCharFound = layoutRows.some(row =>
+            row.split('').some(char => !validChars.includes(char))
+        );
+        if (invalidCharFound) {
+            alert("Invalid character in Custom Board Layout. Only T, D, t, d, . (period) are allowed.");
+            return;
+        }
+        gameSettings.customBoardLayout = layoutRows; // Assign to gameSettings
     }
 
     // If all settings are parsed and validated successfully:
@@ -1997,6 +2052,32 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                         newGameSettings.sevenTileBonus = parsedSB;
                     } else {
                         console.error("Invalid seven tile bonus in URL:", urlSevenBonus);
+                    }
+                }
+
+                const urlCustomBoardLayout = params.get('cbl');
+                if (urlCustomBoardLayout) {
+                    try {
+                        // Split the comma-separated string back into an array of row strings.
+                        const layoutRows = urlCustomBoardLayout.split(',');
+                        // Basic validation: check for 15 rows. More detailed validation (15 chars per row, valid chars)
+                        // will be handled by the Board constructor or could be added here for robustness.
+                        // For now, trust that the sender (P1) sent a valid format as per earlier validation.
+                        if (layoutRows.length === BOARD_SIZE) { // BOARD_SIZE is 15
+                            // Further check if all rows have BOARD_SIZE characters
+                            if (layoutRows.every(row => typeof row === 'string' && row.length === BOARD_SIZE)) {
+                                newGameSettings.customBoardLayout = layoutRows;
+                                console.log("Custom board layout successfully parsed from URL.");
+                            } else {
+                                console.warn("Custom board layout ('cbl') from URL has rows with incorrect length. Default layout will be used.");
+                            }
+                        } else {
+                            console.warn("Custom board layout ('cbl') from URL does not have the correct number of rows (expected 15). Default layout will be used.");
+                        }
+                    } catch (e) {
+                        console.error("Error parsing custom board layout ('cbl') from URL:", e);
+                        // In case of error, customBoardLayout remains undefined in newGameSettings,
+                        // leading to default layout.
                     }
                 }
 

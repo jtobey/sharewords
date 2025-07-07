@@ -76,6 +76,13 @@
                     <label for="custom-seven-tile-bonus">Seven-Tile Bonus ("Bingo"):</label><br>
                     <input type="number" id="custom-seven-tile-bonus" min="0" placeholder="Default: 50"><br>
                     <small>Default: 50 points.</small><br><br>
+
+                    <label for="custom-board-layout">Custom Board Layout (15x15 grid):</label><br>
+                    <textarea id="custom-board-layout" rows="8" cols="40" placeholder="Example: 15 lines, each 15 chars. T=TW, D=DW, t=TL, d=DL, .=Normal. E.g.,
+T..d...d..T
+.D..t...t..D.
+(and 13 more lines)"></textarea><br>
+                    <small>Enter 15 lines, each 15 characters. Valid characters: T, D, t, d, . (period for normal). Leave blank for default layout.</small><br><br>
                 </div>
                 <button id="start-game-btn" style="margin-top:10px;">Start New Game with These Settings</button>
             </div> <!-- End of custom-settings-section -->
