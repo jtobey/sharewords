@@ -39,7 +39,22 @@
     </div>
     <div id="new-game-modal" style="display:none;">
         <h2>New Game Settings</h2>
-        <!-- Add settings inputs here later -->
+        <div id="dictionary-settings">
+            <h3>Dictionary Options</h3>
+            <label>
+                <input type="radio" name="dictionaryType" value="permissive" checked> Permissive (Default)
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="dictionaryType" value="freeapi"> Free Dictionary API
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="dictionaryType" value="custom"> Custom URL
+            </label>
+            <br>
+            <input type="text" id="custom-dictionary-url" placeholder="Enter dictionary URL prefix" style="display:none; margin-top: 5px;">
+        </div>
         <button id="start-game-btn">Start Game</button>
         <button id="cancel-new-game-btn">Cancel</button>
     </div>
