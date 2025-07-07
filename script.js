@@ -457,8 +457,8 @@ function handleTouchEnd(event) {
             } else {
                  console.log("Touch Drop on Board: Square occupied by a different tile. Returning tile.");
             }
-        } else if (rackElement && rackElement.id === `${currentGame.getCurrentPlayer().id}-rack`) {
-            // Ensure it's the current player's rack
+        } else if (rackElement && rackElement.id === 'local-player-rack') { // Corrected ID check
+            // Ensure it's the current player's rack (implicitly, as only local player's rack has this ID and is interactive)
             console.log(`Touch Drop on Rack: tile ${touchDraggedTileId}`);
             touchDraggedElement.remove();
 
@@ -587,10 +587,35 @@ function handleDropOnBoard(event) {
 function handleDropOnRack(event) {
     event.preventDefault(); if (!draggedTileId) return;
     const player = currentGame.getCurrentPlayer();
-    const rackElement = document.getElementById(`${player.id}-rack`);
-    if (!rackElement || !rackElement.contains(event.target)) return;
+    const targetRackElement = document.getElementById('local-player-rack'); // Corrected ID
+
+    // Check if the drop event's target is the rack itself or a child of the rack (for mouse DND),
+    // or if the identified rack element exists (for touch DND, event.target is the rack directly from elementFromPoint).
+    // The `handleTouchEnd` already ensures that `rackElement` passed to `handleDropOnRack` (via mock event) is the correct one.
+    // So, for touch, event.target will be 'local-player-rack'. For mouse, it could be a tile within it, or the rack.
+    if (!targetRackElement || (event.target !== targetRackElement && !targetRackElement.contains(event.target))) {
+        // This condition primarily guards mouse DND if the drop somehow misses the intended rack element
+        // but is still within something that calls handleDropOnRack (less likely with current setup).
+        // For touch, handleTouchEnd should ensure the target is correct.
+        console.warn("Drop on rack: event target is not the local player's rack or its child.", event.target, targetRackElement);
+        fullRender(currentGame, localPlayerId); // Re-render to be safe
+        draggedTileId = null; // Clear draggedTileId for mouse DND if it was a faulty drop
+        return;
+    }
+
     const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
-    if (moveIndex === -1) { console.log("Tile dragged to rack was not from board this turn."); return; }
+
+    if (moveIndex === -1) {
+        // Tile was not on the board this turn (e.g., dragged from rack and dropped back on rack).
+        // No game state change, but ensure UI is correct.
+        console.log("Tile dragged to rack was not from board this turn, or was dragged from rack to rack.", draggedTileId);
+        fullRender(currentGame, localPlayerId);
+        // For mouse DND, draggedTileId is reset by handleDragEnd.
+        // For touch DND, touchDraggedTileId is reset by handleTouchEnd.
+        // If this is a mouse drag from rack to rack, draggedTileId should be cleared by handleDragEnd.
+        return;
+    }
+    // Tile was on the board this turn.
     const move = currentGame.currentTurnMoves[moveIndex]; const tile = move.tileRef;
     currentGame.board.grid[move.to.row][move.to.col].tile = null;
     player.rack.push(tile);
