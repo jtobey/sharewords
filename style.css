@@ -463,3 +463,9 @@ body {
     /* width: 300px; already there, might need to be more flexible if settings make it too tall */
     /* Consider max-height and overflow-y: auto for info-container if it can get too long */
 }
+
+.selected-for-exchange {
+    border: 2px solid #007bff !important; /* A distinct blue border, !important to override other borders */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* A subtle glow effect */
+    /* background-color: #cfe2ff; */ /* Example: a light blue background - commented out for now */
+}
