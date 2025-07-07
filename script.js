@@ -1023,6 +1023,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     // Ensure modal elements are defined in the outer scope (DOMContentLoaded)
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
+    const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
 
     if (!postMoveModalElement || !modalPointsEarnedSpan) {
         console.error("Post-move modal elements not found for showPostMoveModal.");
@@ -1030,6 +1031,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     }
     modalPointsEarnedSpan.textContent = pointsEarned;
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for copy button
+    if (modalCopyCheckbox) modalCopyCheckbox.checked = true;
     postMoveModalElement.removeAttribute('hidden');
 }
 
@@ -1908,7 +1910,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get modal elements
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
-    const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn');
+    // const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn'); // Removed
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
     loadGameFromURLOrStorage();
@@ -1972,39 +1974,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for modal copy button
     // Ensure modalCopyUrlBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
-    if (modalCopyUrlBtn && postMoveModalElement) {
-        modalCopyUrlBtn.addEventListener('click', () => {
-            const urlToCopy = postMoveModalElement.dataset.turnUrl;
-            if (urlToCopy) {
-                navigator.clipboard.writeText(urlToCopy)
-                    .then(() => {
-                        const originalButtonText = modalCopyUrlBtn.textContent;
-                        modalCopyUrlBtn.textContent = 'Copied!';
-                        modalCopyUrlBtn.disabled = true;
-                        setTimeout(() => {
-                            modalCopyUrlBtn.textContent = originalButtonText;
-                            modalCopyUrlBtn.disabled = false;
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy modal URL: ', err);
-                        alert("Failed to copy URL from modal. Please copy it manually from the input field if available.");
-                    });
-            } else {
-                const originalButtonText = modalCopyUrlBtn.textContent;
-                modalCopyUrlBtn.textContent = 'No URL!';
-                setTimeout(() => {
-                    modalCopyUrlBtn.textContent = originalButtonText;
-                }, 1500);
-            }
-        });
-    }
+    // if (modalCopyUrlBtn && postMoveModalElement) { // Removed
+    //     modalCopyUrlBtn.addEventListener('click', () => { // Removed
+    //         const urlToCopy = postMoveModalElement.dataset.turnUrl; // Removed
+    //         if (urlToCopy) { // Removed
+    //             navigator.clipboard.writeText(urlToCopy) // Removed
+    //                 .then(() => { // Removed
+    //                     const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //                     modalCopyUrlBtn.textContent = 'Copied!'; // Removed
+    //                     modalCopyUrlBtn.disabled = true; // Removed
+    //                     setTimeout(() => { // Removed
+    //                         modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //                         modalCopyUrlBtn.disabled = false; // Removed
+    //                     }, 2000); // Removed
+    //                 }) // Removed
+    //                 .catch(err => { // Removed
+    //                     console.error('Failed to copy modal URL: ', err); // Removed
+    //                     alert("Failed to copy URL from modal. Please copy it manually from the input field if available."); // Removed
+    //                 }); // Removed
+    //         } else { // Removed
+    //             const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //             modalCopyUrlBtn.textContent = 'No URL!'; // Removed
+    //             setTimeout(() => { // Removed
+    //                 modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //             }, 1500); // Removed
+    //         } // Removed
+    //     }); // Removed
+    // } // Removed
 
     // Event listener for modal close button
     // Ensure modalCloseBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
     if (modalCloseBtn && postMoveModalElement) {
         modalCloseBtn.addEventListener('click', () => {
+            const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
+            if (modalCopyCheckbox && modalCopyCheckbox.checked) {
+                const urlToCopy = postMoveModalElement.dataset.turnUrl;
+                if (urlToCopy) {
+                    navigator.clipboard.writeText(urlToCopy)
+                        .then(() => {
+                            console.log('Turn URL copied to clipboard via close button.');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy URL via close button: ', err);
+                            alert("Failed to copy URL. Please copy it manually.");
+                        });
+                } else {
+                    console.warn('No Turn URL found in modal dataset to copy.');
+                }
+            }
             postMoveModalElement.setAttribute('hidden', 'true');
         });
     }
+
+    document.addEventListener('keydown', (event) => {
+        const postMoveModalElement = document.getElementById('post-move-modal');
+        if (postMoveModalElement && !postMoveModalElement.hasAttribute('hidden')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const modalCloseBtn = document.getElementById('modal-close-btn');
+                if (modalCloseBtn) {
+                    modalCloseBtn.click();
+                }
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                postMoveModalElement.setAttribute('hidden', 'true');
+            }
+        }
+    });
 });
