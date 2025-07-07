@@ -59,15 +59,15 @@
 
                 <div id="custom-game-settings-inputs">
                     <h3>Custom Game Rules (Optional)</h3>
-                    <p><small>Leave fields blank to use default Scrabble rules.</small></p>
+                    <p><small>Leave fields blank to use default game rules.</small></p>
 
                     <label for="custom-tile-distribution">Tile Distribution (JSON format):</label><br>
                     <textarea id="custom-tile-distribution" rows="5" cols="40" placeholder='Example: {"A": 9, "B": 2, ...}'></textarea><br>
-                    <small>Default: Standard Scrabble distribution.</small><br><br>
+                    <small>Default: Standard distribution.</small><br><br>
 
                     <label for="custom-tile-values">Tile Values (JSON format):</label><br>
                     <textarea id="custom-tile-values" rows="5" cols="40" placeholder='Example: {"A": 1, "B": 3, "_": 0, ...}'></textarea><br>
-                    <small>Default: Standard Scrabble values. Use "_" for blank tile value.</small><br><br>
+                    <small>Default: Default values. Use "_" for blank tile value.</small><br><br>
 
                     <label for="custom-blank-tile-count">Number of Blank Tiles:</label><br>
                     <input type="number" id="custom-blank-tile-count" min="0" placeholder="Default: 2"><br>
@@ -88,7 +88,7 @@
     <script src="script.js"></script>
   <div id="post-move-modal" hidden>
     <p>Points Earned: <span id="modal-points-earned">0</span></p>
-    <button id="modal-copy-url-btn">Copy Turn URL</button>
+    <div><input type="checkbox" id="modal-copy-url-checkbox" checked> <label for="modal-copy-url-checkbox">Copy Turn URL</label></div>
     <button id="modal-close-btn">Close</button>
   </div>
 </body>

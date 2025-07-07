@@ -1036,6 +1036,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     // Ensure modal elements are defined in the outer scope (DOMContentLoaded)
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
+    const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
 
     if (!postMoveModalElement || !modalPointsEarnedSpan) {
         console.error("Post-move modal elements not found for showPostMoveModal.");
@@ -1043,6 +1044,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     }
     modalPointsEarnedSpan.textContent = pointsEarned;
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for copy button
+    if (modalCopyCheckbox) modalCopyCheckbox.checked = true;
     postMoveModalElement.removeAttribute('hidden');
 }
 
@@ -1268,8 +1270,13 @@ function handlePassTurn() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // For a pass, exchangeData is an empty string.
-    // No turnData for word play. Seed and settings are not needed for pass turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, "");
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
 
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -1382,8 +1389,14 @@ function handleExchangeTiles() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
-    // Seed and settings are not needed for exchange turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, indicesToExchange.join(','));
+    // Seed and settings are not needed for exchange turns unless P1's first turn.
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
 
 
     const turnUrlInput = document.getElementById('turn-url');
@@ -1405,15 +1418,31 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
     params.append('gid', gameId);
     params.append('tn', turnNumber);
 
-    if (seed !== null) params.append('seed', seed);
+    let effectiveSeed = seed;
+    let effectiveSettings = settings;
+
+    if (turnNumber === 1 && localPlayerId === 'player1') {
+        effectiveSeed = currentGame.randomSeed; // Always use currentGame.randomSeed for P1, T1
+        // If settings are explicitly passed by caller for P1,T1, use them.
+        // Otherwise (if null was passed), default to currentGame.settings for P1,T1.
+        // The modifications to handlePassTurn/handleExchangeTiles will ensure currentGame.settings is passed.
+        if (effectiveSettings === null) {
+            effectiveSettings = currentGame.settings;
+        }
+    }
+
+    if (effectiveSeed !== null) { // This condition now correctly uses currentGame.randomSeed for P1,T1
+        params.append('seed', effectiveSeed);
+    }
 
     // Add dictionary settings to URL only for the very first turn URL (game creation by player1)
-    // localPlayerId is a global variable.
-    if (settings && turnNumber === 1 && localPlayerId === 'player1') {
-        if (settings.dictionaryType && settings.dictionaryType !== 'permissive') {
-            params.append('dt', settings.dictionaryType);
-            if (settings.dictionaryType === 'custom' && settings.dictionaryUrl) {
-                params.append('du', settings.dictionaryUrl);
+    if (effectiveSettings && turnNumber === 1 && localPlayerId === 'player1') {
+        // This block now correctly uses effectiveSettings, which would be currentGame.settings for P1,T1
+        // if either null or currentGame.settings was passed by the caller.
+        if (effectiveSettings.dictionaryType && effectiveSettings.dictionaryType !== 'permissive') {
+            params.append('dt', effectiveSettings.dictionaryType);
+            if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrl) {
+                params.append('du', effectiveSettings.dictionaryUrl);
             }
         }
         // Add custom game rule settings if they differ from defaults
@@ -2018,7 +2047,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get modal elements
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
-    const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn');
+    // const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn'); // Removed
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
     loadGameFromURLOrStorage();
@@ -2081,39 +2110,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for modal copy button
     // Ensure modalCopyUrlBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
-    if (modalCopyUrlBtn && postMoveModalElement) {
-        modalCopyUrlBtn.addEventListener('click', () => {
-            const urlToCopy = postMoveModalElement.dataset.turnUrl;
-            if (urlToCopy) {
-                navigator.clipboard.writeText(urlToCopy)
-                    .then(() => {
-                        const originalButtonText = modalCopyUrlBtn.textContent;
-                        modalCopyUrlBtn.textContent = 'Copied!';
-                        modalCopyUrlBtn.disabled = true;
-                        setTimeout(() => {
-                            modalCopyUrlBtn.textContent = originalButtonText;
-                            modalCopyUrlBtn.disabled = false;
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy modal URL: ', err);
-                        alert("Failed to copy URL from modal. Please copy it manually from the input field if available.");
-                    });
-            } else {
-                const originalButtonText = modalCopyUrlBtn.textContent;
-                modalCopyUrlBtn.textContent = 'No URL!';
-                setTimeout(() => {
-                    modalCopyUrlBtn.textContent = originalButtonText;
-                }, 1500);
-            }
-        });
-    }
+    // if (modalCopyUrlBtn && postMoveModalElement) { // Removed
+    //     modalCopyUrlBtn.addEventListener('click', () => { // Removed
+    //         const urlToCopy = postMoveModalElement.dataset.turnUrl; // Removed
+    //         if (urlToCopy) { // Removed
+    //             navigator.clipboard.writeText(urlToCopy) // Removed
+    //                 .then(() => { // Removed
+    //                     const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //                     modalCopyUrlBtn.textContent = 'Copied!'; // Removed
+    //                     modalCopyUrlBtn.disabled = true; // Removed
+    //                     setTimeout(() => { // Removed
+    //                         modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //                         modalCopyUrlBtn.disabled = false; // Removed
+    //                     }, 2000); // Removed
+    //                 }) // Removed
+    //                 .catch(err => { // Removed
+    //                     console.error('Failed to copy modal URL: ', err); // Removed
+    //                     alert("Failed to copy URL from modal. Please copy it manually from the input field if available."); // Removed
+    //                 }); // Removed
+    //         } else { // Removed
+    //             const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //             modalCopyUrlBtn.textContent = 'No URL!'; // Removed
+    //             setTimeout(() => { // Removed
+    //                 modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //             }, 1500); // Removed
+    //         } // Removed
+    //     }); // Removed
+    // } // Removed
 
     // Event listener for modal close button
     // Ensure modalCloseBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
     if (modalCloseBtn && postMoveModalElement) {
         modalCloseBtn.addEventListener('click', () => {
+            const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
+            if (modalCopyCheckbox && modalCopyCheckbox.checked) {
+                const urlToCopy = postMoveModalElement.dataset.turnUrl;
+                if (urlToCopy) {
+                    navigator.clipboard.writeText(urlToCopy)
+                        .then(() => {
+                            console.log('Turn URL copied to clipboard via close button.');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy URL via close button: ', err);
+                            alert("Failed to copy URL. Please copy it manually.");
+                        });
+                } else {
+                    console.warn('No Turn URL found in modal dataset to copy.');
+                }
+            }
             postMoveModalElement.setAttribute('hidden', 'true');
         });
     }
+
+    document.addEventListener('keydown', (event) => {
+        const postMoveModalElement = document.getElementById('post-move-modal');
+        if (postMoveModalElement && !postMoveModalElement.hasAttribute('hidden')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const modalCloseBtn = document.getElementById('modal-close-btn');
+                if (modalCloseBtn) {
+                    modalCloseBtn.click();
+                }
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                postMoveModalElement.setAttribute('hidden', 'true');
+            }
+        }
+    });
 });
