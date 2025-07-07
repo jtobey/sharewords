@@ -69,7 +69,7 @@ function Square(row, col, bonus = BONUS_TYPES.NONE) {
     this.tile = null;
     this.bonusUsed = false;
 }
-function Board(size = BOARD_SIZE, layout = null) {
+function Board(size = BOARD_SIZE, customLayoutStringArray = null) {
     this.size = size;
     this.grid = [];
     for (let r = 0; r < size; r++) {
@@ -78,7 +78,34 @@ function Board(size = BOARD_SIZE, layout = null) {
             this.grid[r][c] = new Square(r, c, BONUS_TYPES.NONE);
         }
     }
-    if (!layout) {
+
+    let customLayoutSuccessfullyApplied = false;
+    if (customLayoutStringArray &&
+        Array.isArray(customLayoutStringArray) &&
+        customLayoutStringArray.length === this.size &&
+        customLayoutStringArray.every(row => typeof row === 'string' && row.length === this.size)) {
+
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                const layoutChar = customLayoutStringArray[r][c];
+                switch (layoutChar) {
+                    case 'T': this.grid[r][c].bonus = BONUS_TYPES.TW; break;
+                    case 'D': this.grid[r][c].bonus = BONUS_TYPES.DW; break;
+                    case 't': this.grid[r][c].bonus = BONUS_TYPES.TL; break;
+                    case 'd': this.grid[r][c].bonus = BONUS_TYPES.DL; break;
+                    default: this.grid[r][c].bonus = BONUS_TYPES.NONE; break;
+                }
+            }
+        }
+        customLayoutSuccessfullyApplied = true;
+        console.log("Custom board layout successfully applied by Board constructor.");
+    } else if (customLayoutStringArray) {
+        // This else-if catches cases where customLayoutStringArray is truthy but malformed.
+        console.warn("Custom board layout was provided to Board constructor but was malformed. Falling back to default layout.");
+    }
+
+    if (!customLayoutSuccessfullyApplied) {
+        console.log("Applying default board layout in Board constructor.");
         const tw_coords = [[0,0], [0,7], [0,14], [7,0], [7,14], [14,0], [14,7], [14,14]];
         tw_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.TW; });
         const dw_coords = [[1,1], [2,2], [3,3], [4,4], [1,13], [2,12], [3,11], [4,10], [13,1], [12,2], [11,3], [10,4], [13,13], [12,12], [11,11], [10,10]];
@@ -159,7 +186,7 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.bag = [];
     this._initializeBag(); this._shuffleBag();
     this.players.forEach(player => { this.drawTiles(player, this.settings.rackSize); });
-    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout || this.settings.defaultBoardLayout);
+    this.board = new Board(this.settings.boardSize, this.settings.customBoardLayout);
     this.turnNumber = 0;
     this.currentTurnMoves = [];
     this.gameHistory = [];
@@ -170,6 +197,8 @@ function GameState(gameId, randomSeed, settings = {}) {
 
 let currentGame = null;
 let localPlayerId = "player1";
+let isExchangeModeActive = false;
+let selectedTilesForExchange = [];
 
 // --- UI Rendering Functions ---
 function renderBoard(gameState) {
@@ -234,6 +263,37 @@ function renderTileInRack(tile, isDraggable = false) {
         // Add touch listeners for rack tiles
         tileDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
     }
+
+    if (isExchangeModeActive && currentGame && currentGame.getCurrentPlayer().id === localPlayerId) {
+        // Add click listener for selecting tiles for exchange
+        tileDiv.addEventListener('click', () => {
+            const tileId = tileDiv.dataset.tileId;
+            const player = currentGame.getCurrentPlayer();
+            const tileInRack = player.rack.find(t => t.id === tileId);
+
+            if (!tileInRack) return; // Should not happen if rack is rendered correctly
+
+            const indexInSelection = selectedTilesForExchange.findIndex(selectedTile => selectedTile.id === tileInRack.id);
+
+            if (indexInSelection > -1) {
+                // Tile is already selected, so deselect it
+                selectedTilesForExchange.splice(indexInSelection, 1);
+                tileDiv.classList.remove('selected-for-exchange');
+            } else {
+                // Tile is not selected, so select it
+                selectedTilesForExchange.push(tileInRack);
+                tileDiv.classList.add('selected-for-exchange');
+            }
+            console.log("Selected for exchange:", selectedTilesForExchange.map(t => t.letter || 'blank'));
+            updateControlButtonsVisibility(); // Update button states
+        });
+
+        // Add class if tile is already selected (e.g. after a re-render)
+        if (selectedTilesForExchange.some(selectedTile => selectedTile.id === tile.id)) {
+            tileDiv.classList.add('selected-for-exchange');
+        }
+    }
+
     const letterSpan = document.createElement('span');
     letterSpan.classList.add('tile-letter');
     letterSpan.textContent = tile.isBlank ? '?' : tile.letter.toUpperCase();
@@ -265,8 +325,8 @@ function renderRacks(gameState, localPlayerId) {
 
     // Render tiles for the local player
     localPlayer.rack.forEach(tile => {
-        // Tiles in the local player's rack are always draggable by them.
-        const isDraggable = (localPlayer.id === localPlayerId);
+        // Tiles in the local player's rack are draggable by them only if not in exchange mode.
+        const isDraggable = (localPlayer.id === localPlayerId && !isExchangeModeActive);
         localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
 }
@@ -770,6 +830,7 @@ function handleRecallTiles() {
     currentGame.currentTurnMoves = []; // Clear the array of uncommitted moves
     console.log("All uncommitted tiles recalled. Rack:", localPlayerInstance.rack.map(t => t.id));
     fullRender(currentGame, localPlayerId); // Refresh the display
+    updateControlButtonsVisibility();
 }
 
 // --- Game Validation and Action Handlers ---
@@ -1028,6 +1089,7 @@ async function handleCommitPlay() {
     showPostMoveModal(scoreResult.score, turnURL); // MODIFIED LINE
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
+    updateControlButtonsVisibility();
 }
 
 
@@ -1036,6 +1098,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     // Ensure modal elements are defined in the outer scope (DOMContentLoaded)
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
+    const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
 
     if (!postMoveModalElement || !modalPointsEarnedSpan) {
         console.error("Post-move modal elements not found for showPostMoveModal.");
@@ -1043,6 +1106,7 @@ function showPostMoveModal(pointsEarned, turnURL) {
     }
     modalPointsEarnedSpan.textContent = pointsEarned;
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for copy button
+    if (modalCopyCheckbox) modalCopyCheckbox.checked = true;
     postMoveModalElement.removeAttribute('hidden');
 }
 
@@ -1268,8 +1332,13 @@ function handlePassTurn() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // For a pass, exchangeData is an empty string.
-    // No turnData for word play. Seed and settings are not needed for pass turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, "");
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
 
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
@@ -1278,9 +1347,10 @@ function handlePassTurn() {
         console.log("Pass Turn URL:", turnURL);
     }
 
-    alert("Turn passed! It's now " + currentGame.getCurrentPlayer().name + "'s turn.");
+    showPostMoveModal(0, turnURL);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
+    updateControlButtonsVisibility();
 }
 
 function handleExchangeTiles() {
@@ -1382,8 +1452,14 @@ function handleExchangeTiles() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // exchangeData is the string of original indices provided by the user (before sorting for splice)
-    // Seed and settings are not needed for exchange turns.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, null, null, indicesToExchange.join(','));
+    // Seed and settings are not needed for exchange turns unless P1's first turn.
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') {
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, indicesToExchange.join(','));
 
 
     const turnUrlInput = document.getElementById('turn-url');
@@ -1393,11 +1469,182 @@ function handleExchangeTiles() {
         console.log("Exchange Turn URL:", turnURL);
     }
 
-    alert(`Exchanged ${tilesSetAsideForExchange.length} tile(s). It's now ${currentGame.getCurrentPlayer().name}'s turn.`);
+    showPostMoveModal(0, turnURL);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+}
+// Updated handleExchangeTiles function for Step 1
+function handleExchangeTiles() {
+    if (!currentGame || currentGame.getCurrentPlayer().id !== localPlayerId) {
+        alert("It's not your turn or no game active!");
+        return;
+    }
+
+    // Recall any uncommitted tiles before attempting to enter exchange mode
+    if (currentGame.currentTurnMoves && currentGame.currentTurnMoves.length > 0) {
+        const recallConfirmed = confirm("You have pending moves. Exchanging tiles will recall your current moves. Are you sure?");
+        if (recallConfirmed) {
+            handleRecallTiles(); // Use the existing recall function
+        } else {
+            return; // User cancelled the exchange initiation
+        }
+    }
+
+    isExchangeModeActive = true;
+    selectedTilesForExchange = [];
+    updateControlButtonsVisibility(); // This function will be fully implemented in a later step
+    fullRender(currentGame, localPlayerId); // Re-render rack to potentially add selection listeners (in later step)
+
+    const player = currentGame.getCurrentPlayer();
+    const rackSize = player.rack.length;
+
+    if (rackSize === 0) {
+        alert("Your rack is empty. No tiles to exchange.");
+        isExchangeModeActive = false; // Reset mode if no tiles to exchange
+        updateControlButtonsVisibility(); // Update buttons accordingly
+        // No need to fullRender again here as the state hasn't changed visually for the rack
+        return;
+    }
+
+    console.log("Exchange mode activated. Select tiles to exchange.");
+    // The original logic for prompt, processing indices, drawing tiles,
+    // and ending the turn is removed. This will be handled by a new
+    // "Confirm Exchange" button and its handler.
+}
+
+function handleConfirmExchange() {
+    if (!isExchangeModeActive) {
+        console.log("handleConfirmExchange called when exchange mode is not active. Doing nothing.");
+        return;
+    }
+
+    if (selectedTilesForExchange.length === 0) {
+        alert("Please select at least one tile to exchange.");
+        return;
+    }
+
+    const player = currentGame.getCurrentPlayer();
+    if (currentGame.bag.length < selectedTilesForExchange.length) {
+        alert(`Not enough tiles in the bag (${currentGame.bag.length}) to exchange ${selectedTilesForExchange.length} tile(s).`);
+        return;
+    }
+
+    console.log(`Confirming exchange for ${player.name}. Tiles: ${selectedTilesForExchange.map(t => t.letter || 'blank').join(',')}`);
+
+    // Get the indices of the selected tiles from the player's current rack.
+    // These indices are relative to the rack state *before* any splicing for this exchange.
+    const currentRackIndicesForURL = selectedTilesForExchange.map(selectedTile => {
+        return player.rack.findIndex(rackTile => rackTile.id === selectedTile.id);
+    }).filter(index => index !== -1);
+
+    // For splicing, we need to sort these valid indices in descending order.
+    const indicesToSplice = [...currentRackIndicesForURL].sort((a, b) => b - a);
+
+    if (indicesToSplice.length !== selectedTilesForExchange.length) {
+        alert("Error: Some selected tiles could not be found in the rack for exchange. Please try again.");
+        // Reset selection and mode as a precaution, then re-render.
+        selectedTilesForExchange = [];
+        isExchangeModeActive = false;
+        updateControlButtonsVisibility();
+        fullRender(currentGame, localPlayerId);
+        return;
+    }
+
+    const tilesSetAsideForExchange = [];
+    for (const index of indicesToSplice) {
+        tilesSetAsideForExchange.push(player.rack.splice(index, 1)[0]);
+    }
+
+    currentGame.drawTiles(player, tilesSetAsideForExchange.length);
+    tilesSetAsideForExchange.forEach(tile => {
+        if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile before returning to bag
+        currentGame.bag.push(tile);
+    });
+    currentGame._shuffleBag();
+
+    currentGame.turnNumber++;
+    currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
+
+    const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
+    let urlSeed = null;
+    let urlSettings = null;
+    if (currentGame.turnNumber === 1 && localPlayerId === 'player1') { // Check if it's P1 making their *first overall game turn*
+        urlSeed = currentGame.randomSeed;
+        urlSettings = currentGame.settings;
+    }
+    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, urlExchangeIndicesString);
+
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        turnUrlInput.placeholder = "Share this URL with the other player.";
+        console.log("Exchange Turn URL:", turnURL);
+    }
+
+    // Cleanup
+    selectedTilesForExchange = [];
+    isExchangeModeActive = false;
+    updateControlButtonsVisibility();
+    showPostMoveModal(0, turnURL); // Show modal with 0 points for exchange
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
 }
 
+function handleCancelExchange() {
+    if (!isExchangeModeActive) {
+        console.log("handleCancelExchange called when exchange mode is not active. Doing nothing.");
+        return;
+    }
+
+    console.log("Exchange cancelled by user.");
+
+    // Reset state
+    isExchangeModeActive = false;
+    selectedTilesForExchange = []; // Clear any selected tiles
+
+    updateControlButtonsVisibility(); // Update button visibility
+
+    // Re-render the game. This is important because:
+    // 1. isExchangeModeActive is now false, so renderRacks will make tiles draggable again (if it's the user's turn).
+    // 2. renderTileInRack will not add click listeners for selection.
+    // 3. renderTileInRack will not add the 'selected-for-exchange' class as selectedTilesForExchange is empty.
+    fullRender(currentGame, localPlayerId);
+}
+
+function updateControlButtonsVisibility() {
+    const playWordBtn = document.getElementById('play-word-btn');
+    const exchangeTilesBtn = document.getElementById('exchange-tiles-btn');
+    const passTurnBtn = document.getElementById('pass-turn-btn');
+    const recallTilesBtn = document.getElementById('recall-tiles-btn');
+    const confirmExchangeBtn = document.getElementById('confirm-exchange-btn');
+    const cancelExchangeBtn = document.getElementById('cancel-exchange-btn');
+
+    if (isExchangeModeActive) {
+        if (playWordBtn) playWordBtn.style.display = 'none';
+        if (exchangeTilesBtn) exchangeTilesBtn.style.display = 'none';
+        if (passTurnBtn) passTurnBtn.style.display = 'none';
+        if (recallTilesBtn) recallTilesBtn.style.display = 'none';
+
+        if (confirmExchangeBtn) confirmExchangeBtn.style.display = 'inline-block';
+        if (cancelExchangeBtn) cancelExchangeBtn.style.display = 'inline-block';
+
+        if (confirmExchangeBtn) {
+            confirmExchangeBtn.disabled = selectedTilesForExchange.length === 0;
+        }
+    } else {
+        // Normal play mode
+        if (playWordBtn) playWordBtn.style.display = 'inline-block';
+        if (exchangeTilesBtn) exchangeTilesBtn.style.display = 'inline-block';
+        if (passTurnBtn) passTurnBtn.style.display = 'inline-block';
+        if (recallTilesBtn) recallTilesBtn.style.display = 'inline-block';
+
+        if (confirmExchangeBtn) confirmExchangeBtn.style.display = 'none';
+        if (cancelExchangeBtn) cancelExchangeBtn.style.display = 'none';
+
+        // Ensure confirm button is not disabled when hidden (or set to a default state)
+        if (confirmExchangeBtn) confirmExchangeBtn.disabled = false;
+    }
+}
 
 function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = null, exchangeData = null) {
     const baseURL = window.location.origin + window.location.pathname;
@@ -1405,15 +1652,31 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
     params.append('gid', gameId);
     params.append('tn', turnNumber);
 
-    if (seed !== null) params.append('seed', seed);
+    let effectiveSeed = seed;
+    let effectiveSettings = settings;
+
+    if (turnNumber === 1 && localPlayerId === 'player1') {
+        effectiveSeed = currentGame.randomSeed; // Always use currentGame.randomSeed for P1, T1
+        // If settings are explicitly passed by caller for P1,T1, use them.
+        // Otherwise (if null was passed), default to currentGame.settings for P1,T1.
+        // The modifications to handlePassTurn/handleExchangeTiles will ensure currentGame.settings is passed.
+        if (effectiveSettings === null) {
+            effectiveSettings = currentGame.settings;
+        }
+    }
+
+    if (effectiveSeed !== null) { // This condition now correctly uses currentGame.randomSeed for P1,T1
+        params.append('seed', effectiveSeed);
+    }
 
     // Add dictionary settings to URL only for the very first turn URL (game creation by player1)
-    // localPlayerId is a global variable.
-    if (settings && turnNumber === 1 && localPlayerId === 'player1') {
-        if (settings.dictionaryType && settings.dictionaryType !== 'permissive') {
-            params.append('dt', settings.dictionaryType);
-            if (settings.dictionaryType === 'custom' && settings.dictionaryUrl) {
-                params.append('du', settings.dictionaryUrl);
+    if (effectiveSettings && turnNumber === 1 && localPlayerId === 'player1') {
+        // This block now correctly uses effectiveSettings, which would be currentGame.settings for P1,T1
+        // if either null or currentGame.settings was passed by the caller.
+        if (effectiveSettings.dictionaryType && effectiveSettings.dictionaryType !== 'permissive') {
+            params.append('dt', effectiveSettings.dictionaryType);
+            if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrl) {
+                params.append('du', effectiveSettings.dictionaryUrl);
             }
         }
         // Add custom game rule settings if they differ from defaults
@@ -1428,6 +1691,11 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
         }
         if (settings.sevenTileBonus !== undefined && settings.sevenTileBonus !== 50) { // Default is 50
             params.append('sb', settings.sevenTileBonus);
+        }
+        if (effectiveSettings.customBoardLayout && Array.isArray(effectiveSettings.customBoardLayout)) {
+            // Join the array of row strings into a single comma-separated string for the URL parameter.
+            const cblString = effectiveSettings.customBoardLayout.join(',');
+            params.append('cbl', cblString);
         }
     }
 
@@ -1459,6 +1727,7 @@ function initializeNewGame() {
         turnUrlInput.value = "";
         turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
+    updateControlButtonsVisibility();
     // Do not generate URL here, it will be done after first move by P1
     // or when P2 loads the game.
 }
@@ -1565,6 +1834,29 @@ function startGameWithSettings() {
         }
     }
 
+    // Parse Custom Board Layout
+    const boardLayoutStr = document.getElementById('custom-board-layout').value.trim();
+    if (boardLayoutStr) {
+        const layoutRows = boardLayoutStr.split('\n').map(row => row.trim());
+        if (layoutRows.length !== 15) {
+            alert("Custom Board Layout must have exactly 15 rows.");
+            return;
+        }
+        if (layoutRows.some(row => row.length !== 15)) {
+            alert("Each row in Custom Board Layout must have exactly 15 characters.");
+            return;
+        }
+        const validChars = ['T', 'D', 't', 'd', '.'];
+        const invalidCharFound = layoutRows.some(row =>
+            row.split('').some(char => !validChars.includes(char))
+        );
+        if (invalidCharFound) {
+            alert("Invalid character in Custom Board Layout. Only T, D, t, d, . (period) are allowed.");
+            return;
+        }
+        gameSettings.customBoardLayout = layoutRows; // Assign to gameSettings
+    }
+
     // If all settings are parsed and validated successfully:
     const settingsSection = document.getElementById('custom-settings-section');
     if (settingsSection) {
@@ -1587,6 +1879,7 @@ function startGameWithSettings() {
         turnUrlInput.value = ""; // Clear any old URL
         turnUrlInput.placeholder = "Make your first move to generate a shareable URL.";
     }
+    updateControlButtonsVisibility();
     // The initial shareable URL will be generated after P1's first move.
 }
 
@@ -1971,6 +2264,32 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                     }
                 }
 
+                const urlCustomBoardLayout = params.get('cbl');
+                if (urlCustomBoardLayout) {
+                    try {
+                        // Split the comma-separated string back into an array of row strings.
+                        const layoutRows = urlCustomBoardLayout.split(',');
+                        // Basic validation: check for 15 rows. More detailed validation (15 chars per row, valid chars)
+                        // will be handled by the Board constructor or could be added here for robustness.
+                        // For now, trust that the sender (P1) sent a valid format as per earlier validation.
+                        if (layoutRows.length === BOARD_SIZE) { // BOARD_SIZE is 15
+                            // Further check if all rows have BOARD_SIZE characters
+                            if (layoutRows.every(row => typeof row === 'string' && row.length === BOARD_SIZE)) {
+                                newGameSettings.customBoardLayout = layoutRows;
+                                console.log("Custom board layout successfully parsed from URL.");
+                            } else {
+                                console.warn("Custom board layout ('cbl') from URL has rows with incorrect length. Default layout will be used.");
+                            }
+                        } else {
+                            console.warn("Custom board layout ('cbl') from URL does not have the correct number of rows (expected 15). Default layout will be used.");
+                        }
+                    } catch (e) {
+                        console.error("Error parsing custom board layout ('cbl') from URL:", e);
+                        // In case of error, customBoardLayout remains undefined in newGameSettings,
+                        // leading to default layout.
+                    }
+                }
+
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
                 localPlayerId = 'player2'; // This client is Player 2
 
@@ -2005,11 +2324,13 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
         console.log("No game parameters in URL. Initializing a new local test game.");
         initializeNewGame(); return;
     }
-    if (currentGame) fullRender(currentGame, localPlayerId);
-    else {
+    if (currentGame) {
+        fullRender(currentGame, localPlayerId);
+    } else {
         console.log("No game active. Displaying new game prompt.");
         document.getElementById('board-container').innerHTML = '<p>Start a new game or load one via URL.</p>';
     }
+    updateControlButtonsVisibility(); // Call regardless of game state to set initial button visibility
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2018,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get modal elements
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
-    const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn');
+    // const modalCopyUrlBtn = document.getElementById('modal-copy-url-btn'); // Removed
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
     loadGameFromURLOrStorage();
@@ -2026,6 +2347,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
     document.getElementById('pass-turn-btn').addEventListener('click', handlePassTurn);
     document.getElementById('recall-tiles-btn').addEventListener('click', handleRecallTiles);
+    // Assuming a button with ID 'confirm-exchange-btn' will be added to the HTML
+    document.getElementById('confirm-exchange-btn').addEventListener('click', handleConfirmExchange);
+    // Assuming a button with ID 'cancel-exchange-btn' will be added to the HTML
+    document.getElementById('cancel-exchange-btn').addEventListener('click', handleCancelExchange);
+
 
     // New Game Settings Section Logic
     const newGameBtn = document.getElementById('new-game-btn');
@@ -2081,39 +2407,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for modal copy button
     // Ensure modalCopyUrlBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
-    if (modalCopyUrlBtn && postMoveModalElement) {
-        modalCopyUrlBtn.addEventListener('click', () => {
-            const urlToCopy = postMoveModalElement.dataset.turnUrl;
-            if (urlToCopy) {
-                navigator.clipboard.writeText(urlToCopy)
-                    .then(() => {
-                        const originalButtonText = modalCopyUrlBtn.textContent;
-                        modalCopyUrlBtn.textContent = 'Copied!';
-                        modalCopyUrlBtn.disabled = true;
-                        setTimeout(() => {
-                            modalCopyUrlBtn.textContent = originalButtonText;
-                            modalCopyUrlBtn.disabled = false;
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy modal URL: ', err);
-                        alert("Failed to copy URL from modal. Please copy it manually from the input field if available.");
-                    });
-            } else {
-                const originalButtonText = modalCopyUrlBtn.textContent;
-                modalCopyUrlBtn.textContent = 'No URL!';
-                setTimeout(() => {
-                    modalCopyUrlBtn.textContent = originalButtonText;
-                }, 1500);
-            }
-        });
-    }
+    // if (modalCopyUrlBtn && postMoveModalElement) { // Removed
+    //     modalCopyUrlBtn.addEventListener('click', () => { // Removed
+    //         const urlToCopy = postMoveModalElement.dataset.turnUrl; // Removed
+    //         if (urlToCopy) { // Removed
+    //             navigator.clipboard.writeText(urlToCopy) // Removed
+    //                 .then(() => { // Removed
+    //                     const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //                     modalCopyUrlBtn.textContent = 'Copied!'; // Removed
+    //                     modalCopyUrlBtn.disabled = true; // Removed
+    //                     setTimeout(() => { // Removed
+    //                         modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //                         modalCopyUrlBtn.disabled = false; // Removed
+    //                     }, 2000); // Removed
+    //                 }) // Removed
+    //                 .catch(err => { // Removed
+    //                     console.error('Failed to copy modal URL: ', err); // Removed
+    //                     alert("Failed to copy URL from modal. Please copy it manually from the input field if available."); // Removed
+    //                 }); // Removed
+    //         } else { // Removed
+    //             const originalButtonText = modalCopyUrlBtn.textContent; // Removed
+    //             modalCopyUrlBtn.textContent = 'No URL!'; // Removed
+    //             setTimeout(() => { // Removed
+    //                 modalCopyUrlBtn.textContent = originalButtonText; // Removed
+    //             }, 1500); // Removed
+    //         } // Removed
+    //     }); // Removed
+    // } // Removed
 
     // Event listener for modal close button
     // Ensure modalCloseBtn and postMoveModalElement are the ones defined at the start of DOMContentLoaded
     if (modalCloseBtn && postMoveModalElement) {
         modalCloseBtn.addEventListener('click', () => {
+            const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
+            if (modalCopyCheckbox && modalCopyCheckbox.checked) {
+                const urlToCopy = postMoveModalElement.dataset.turnUrl;
+                if (urlToCopy) {
+                    navigator.clipboard.writeText(urlToCopy)
+                        .then(() => {
+                            console.log('Turn URL copied to clipboard via close button.');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy URL via close button: ', err);
+                            alert("Failed to copy URL. Please copy it manually.");
+                        });
+                } else {
+                    console.warn('No Turn URL found in modal dataset to copy.');
+                }
+            }
             postMoveModalElement.setAttribute('hidden', 'true');
         });
     }
+
+    document.addEventListener('keydown', (event) => {
+        const postMoveModalElement = document.getElementById('post-move-modal');
+        if (postMoveModalElement && !postMoveModalElement.hasAttribute('hidden')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const modalCloseBtn = document.getElementById('modal-close-btn');
+                if (modalCloseBtn) {
+                    modalCloseBtn.click();
+                }
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                postMoveModalElement.setAttribute('hidden', 'true');
+            }
+        }
+    });
 });
