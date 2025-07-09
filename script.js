@@ -168,15 +168,23 @@ function GameState(gameId, randomSeed, settings = {}) {
         this.bag = [];
         const distribution = this.settings.letterDistribution;
         const values = this.settings.tileValues;
+
+        // Ensure values is treated as an object, even if not provided in settings
+        const effectiveValues = (typeof values === 'object' && values !== null) ? values : DEFAULT_TILE_VALUES;
+
         for (const letter in distribution) {
             if (distribution.hasOwnProperty(letter)) {
                 for (let i = 0; i < distribution[letter]; i++) {
-                    this.bag.push(new Tile(letter, values[letter] || 0));
+                    // Use the effectiveValues; default to 0 if letter not in values
+                    this.bag.push(new Tile(letter, effectiveValues[letter] !== undefined ? effectiveValues[letter] : 0));
                 }
             }
         }
+
+        // For blank tiles, check if a custom value for blanks ('_') is defined in tileValues
+        const blankValue = (effectiveValues['_'] !== undefined) ? effectiveValues['_'] : 0;
         for (let i = 0; i < this.settings.blankTileCount; i++) {
-            this.bag.push(new Tile('', 0, true));
+            this.bag.push(new Tile('', blankValue, true));
         }
     };
     this._shuffleBag = function() {
@@ -372,15 +380,24 @@ function updateGameStatus(gameState) {
     if (headerP2Score) headerP2Score.textContent = player2.score;
 
     // Update turn player and tiles in bag (these elements remain in the info panel)
-    document.getElementById('turn-player').textContent = gameState.getCurrentPlayer().name;
-    document.getElementById('tiles-in-bag').textContent = gameState.bag.length;
+    const turnPlayerEl = document.getElementById('turn-player');
+    if (turnPlayerEl) turnPlayerEl.textContent = gameState.getCurrentPlayer().name;
+    const tilesInBagEl = document.getElementById('tiles-in-bag');
+    if (tilesInBagEl) tilesInBagEl.textContent = gameState.bag.length;
 }
 
 function fullRender(gameState, localPlayerId) {
+    const boardContainer = document.getElementById('board-container');
     if (!gameState) {
-        document.getElementById('board-container').innerHTML = '<p>No game active. Start a new game or load one via URL.</p>';
+        if (boardContainer) {
+            boardContainer.innerHTML = '<p>No game active. Start a new game or load one via URL.</p>';
+        } else {
+            console.warn("fullRender: board-container not found, cannot display no-game message.");
+        }
         return;
     }
+    // renderBoard, renderRacks, and updateGameStatus already have their own internal checks
+    // for the existence of their primary DOM elements.
     renderBoard(gameState); renderRacks(gameState, localPlayerId); updateGameStatus(gameState);
 }
 
