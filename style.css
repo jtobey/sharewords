@@ -486,3 +486,15 @@ body {
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* A subtle glow effect */
     /* background-color: #cfe2ff; */ /* Example: a light blue background - commented out for now */
 }
+
+.bonus-label {
+    /* Centering is handled by the parent .square's flex properties.
+       This rule styles the text content of the label. */
+    font-size: calc(var(--tile-font-size) * 0.7); /* Smaller than tile letters */
+    color: #dda; /* Text color for the bonus label */
+    line-height: 1; /* Adjust for better vertical centering if needed */
+    font-weight: normal; /* Bonus labels are typically not as prominent as tile letters */
+    text-align: center; /* Ensures text is centered within the label element */
+    /* The .square (parent) handles background color.
+       No specific width, height, or position needed due to parent flex. */
+}
