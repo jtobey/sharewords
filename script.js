@@ -468,6 +468,27 @@ function renderBoard(gameState) {
                     squareDiv.addEventListener('touchstart', handleTouchStart, { passive: false }); // Touch support
                     squareDiv.dataset.tileId = tile.id; // Store tile ID for drag identification
                 }
+            } else {
+                // No tile on the square, check for bonus types to display label
+                if (squareData.bonus !== BONUS_TYPES.NONE) {
+                    const bonusLabel = document.createElement('div');
+                    bonusLabel.classList.add('bonus-label');
+                    switch (squareData.bonus) {
+                        case BONUS_TYPES.DL:
+                            bonusLabel.textContent = '2L';
+                            break;
+                        case BONUS_TYPES.TL:
+                            bonusLabel.textContent = '3L';
+                            break;
+                        case BONUS_TYPES.DW:
+                            bonusLabel.textContent = '2W';
+                            break;
+                        case BONUS_TYPES.TW:
+                            bonusLabel.textContent = '3W';
+                            break;
+                    }
+                    squareDiv.appendChild(bonusLabel);
+                }
             }
 
             // Add drop zone listeners to all squares
