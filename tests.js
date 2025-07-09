@@ -271,6 +271,86 @@ function testLocalStorageWithCustomSettings() {
     window.localPlayerId = originalLocalPlayerId;
 }
 
+// --- Test for Center Square Rule on Empty Board (Post-Initial Turns) ---
+function testCenterSquareRuleOnEmptyBoard() {
+    console.log("\n--- Running Center Square Rule on Empty Board Test ---");
+    clearMockAlerts();
+
+    // 1. Setup game
+    // Use default settings for simplicity, not testing custom settings here.
+    let game = new GameState('test-center-empty', 555, {});
+    game.turnNumber = 2; // Simulate a few turns have passed
+
+    // Ensure board is empty (it should be by default after GameState init)
+    let boardIsEmpty = true;
+    for (let r = 0; r < game.board.size; r++) {
+        for (let c = 0; c < game.board.size; c++) {
+            if (game.board.grid[r][c].tile) {
+                boardIsEmpty = false;
+                break;
+            }
+        }
+        if (!boardIsEmpty) break;
+    }
+    assertEqual(boardIsEmpty, true, "Test Setup: Board is initially empty for the test scenario.");
+
+    const centerRow = Math.floor(game.board.size / 2);
+    const centerCol = Math.floor(game.board.size / 2);
+
+    // 2. Attempt to place a word NOT covering the center square
+    let movesOffCenter = [
+        { tileRef: new Tile('A', 1), to: { row: 0, col: 0 } },
+        { tileRef: new Tile('B', 3), to: { row: 0, col: 1 } }
+    ];
+    // Ensure these moves are not on center if center is not 0,0
+    if (centerRow === 0 && centerCol === 0) {
+        // Adjust if center happens to be 0,0 (e.g. very small board, though default is 15x15)
+        movesOffCenter = [
+            { tileRef: new Tile('A', 1), to: { row: 1, col: 0 } },
+            { tileRef: new Tile('B', 3), to: { row: 1, col: 1 } }
+        ];
+    }
+
+    let validationResultOffCenter = validatePlacement(movesOffCenter, game.turnNumber, game.board);
+    assertEqual(validationResultOffCenter.isValid, false, "Center Rule (Empty Board > T0): Placing off-center is invalid.");
+    assertEqual(validationResultOffCenter.message, "Invalid placement: The first word on an empty board must cover the center square.", "Center Rule (Empty Board > T0): Correct message for off-center placement.");
+
+    // 3. Attempt to place a word covering the center square
+    let movesOnCenter = [
+        { tileRef: new Tile('C', 3), to: { row: centerRow, col: centerCol } },
+        { tileRef: new Tile('A', 1), to: { row: centerRow, col: centerCol + 1 } }
+    ];
+    // If centerCol + 1 is out of bounds, adjust (though unlikely for default board size)
+    if (centerCol + 1 >= game.board.size) {
+         movesOnCenter = [
+            { tileRef: new Tile('C', 3), to: { row: centerRow, col: centerCol -1 } },
+            { tileRef: new Tile('A', 1), to: { row: centerRow, col: centerCol } }
+        ];
+    }
+
+    let validationResultOnCenter = validatePlacement(movesOnCenter, game.turnNumber, game.board);
+    assertEqual(validationResultOnCenter.isValid, true, "Center Rule (Empty Board > T0): Placing on-center is valid.");
+    assertEqual(validationResultOnCenter.message, "", "Center Rule (Empty Board > T0): No error message for on-center placement.");
+
+
+    // 4. Test scenario: Board has tiles, turn > 0 (standard connection rule applies)
+    game.turnNumber = 3;
+    // Place a tile on the board (not center) to simulate existing tiles
+    const existingTile = new Tile('X', 8);
+    game.board.grid[0][0].tile = existingTile;
+
+    let movesNotConnecting = [
+        { tileRef: new Tile('Y', 4), to: { row: 5, col: 5 } },
+        { tileRef: new Tile('Z', 10), to: { row: 5, col: 6 } }
+    ];
+    let validationResultNotConnecting = validatePlacement(movesNotConnecting, game.turnNumber, game.board);
+    assertEqual(validationResultNotConnecting.isValid, false, "Connection Rule: Placing unconnected on non-empty board is invalid.");
+    assertEqual(validationResultNotConnecting.message, "Invalid placement: New words must connect to existing tiles.", "Connection Rule: Correct message for unconnected placement.");
+
+    // Clean up the tile for subsequent tests if any
+    game.board.grid[0][0].tile = null;
+}
+
 function runAllTests() {
     // Test suite setup
     const originalGame = window.currentGame;
@@ -283,6 +363,7 @@ function runAllTests() {
     testURLHandlingWithCustomSettings();
     testStartGameWithSettingsModal();
     testLocalStorageWithCustomSettings();
+    testCenterSquareRuleOnEmptyBoard();
 
     printTestSummary();
 
