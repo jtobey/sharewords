@@ -32,21 +32,21 @@ const BONUS_TYPES = {
 // Default board layout using string array representation
 // T = Triple Word, D = Double Word, t = Triple Letter, d = Double Letter, . = Normal
 const DEFAULT_BOARD_LAYOUT_STRINGS = [
-    "T..d...T...d..T",
-    ".D..t.t.t..D.",
-    "..D..d.d..D..",
-    "d..D...d...D..d",
-    "....D.....D....",
-    ".t..d...d..t.",
-    "..d..d.d..d..",
-    "T..d... ...d..T",
-    "..d..d.d..d..",
-    ".t..d...d..t.",
-    "....D.....D....",
-    "d..D...d...D..d",
-    "..D..d.d..D..",
-    ".D..t.t.t..D.",
-    "T..d...T...d..T"
+    "D..d..T......T.",
+    ".D...D...t.t..T",
+    "..D.....t...t..",
+    "d..D...t.....t.",
+    "....D.t...D....",
+    ".D...d.d.....t.",
+    "T...d...d...t..",
+    "...d.t...d.t...",
+    "..d...t...t...T",
+    ".d.....t.t...D.",
+    "....D...d.D....",
+    ".d.....d...D..d",
+    "..d...d.....D..",
+    "T..d.d...D...D.",
+    ".T......T..d..D"
 ];
 
 // Default Tile Values and Distribution (can be overridden by game settings)
