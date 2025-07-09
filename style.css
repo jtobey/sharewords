@@ -42,7 +42,7 @@ body {
 .square {
     width: var(--tile-size);
     height: var(--tile-size);
-    border: 1px solid #ccc;
+    border: 1px solid #999;
     box-sizing: border-box;
     display: flex;
     justify-content: center;
@@ -50,7 +50,7 @@ body {
     font-size: var(--tile-font-size);
     font-weight: bold;
     text-transform: uppercase;
-    background-color: #fff;
+    background-color: #dda;
     user-select: none;
     position: relative;
 }
@@ -91,11 +91,11 @@ body {
 }
 
 
-.square.dl { background-color: #add8e6; }
-.square.tl { background-color: #4169e1; color: white; }
-.square.dw { background-color: #ffcccb; }
-.square.tw { background-color: #ff4500; color: white; }
-.square.center { background-color: #ffd700; }
+.square.dl { background-color: #c99; }
+.square.tl { background-color: #bbb; }
+.square.dw { background-color: #ff3; }
+.square.tw { background-color: #f90; }
+.square.center { background-color: #6f9; }
 
 .tile-on-board {
     background-color: #f5deb3;
