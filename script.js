@@ -2491,6 +2491,12 @@ function serializeGameStateForURL(gameState) {
             // localPlayerId is not part of the shared game state for the URL,
             // it's specific to the client's perspective.
         };
+        console.log('[DEBUG] Before serialization:');
+        gameState.players.forEach(p => {
+            console.log(`  Player ${p.id} (${p.name}) rack size: ${p.rack.length}`);
+            // Optional: Log actual tile letters to see content
+            // console.log(`    Tiles: ${p.rack.map(t => t.letter || '_').join(', ')}`);
+        });
         const jsonString = JSON.stringify(serializableState);
         return encodeURIComponent(jsonString);
     } catch (error) {
@@ -2547,6 +2553,9 @@ function deserializeGameStateFromURL(gameStateString) {
                     tile.assignedLetter = tileData.assignedLetter;
                     return tile;
                 });
+                console.log(`[DEBUG] During deserialization - Player ${gamePlayer.id} (${gamePlayer.name}) rack rehydrated. Parsed data length: ${playerData.rack.length}, Actual rehydrated length: ${gamePlayer.rack.length}`);
+                // Optional: Log actual tile letters
+                // console.log(`    Tiles: ${gamePlayer.rack.map(t => t.letter || '_').join(', ')}`);
             });
         } else {
             console.warn("deserializeGameStateFromURL: Player data in string mismatches constructor/settings. Player states might be inconsistent.");
@@ -2593,6 +2602,11 @@ function deserializeGameStateFromURL(gameStateString) {
             }
         }
         console.log(`Game ${rehydratedGame.gameId} deserialized and rehydrated from URL string.`);
+
+        console.log('[DEBUG] After full deserialization of GameState:');
+        rehydratedGame.players.forEach(p => {
+            console.log(`  Player ${p.id} (${p.name}) final rack size in rehydratedGame: ${p.rack.length}`);
+        });
         return rehydratedGame;
 
     } catch (error) {
