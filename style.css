@@ -98,8 +98,13 @@ body {
 .square.center { background-color: #6f9; }
 
 .tile-on-board {
-    background-color: #f5deb3;
+    /* background-color: #f5deb3; /* Moved to .square.tile-on-board for specificity */
     border: 1px solid #8b4513;
+}
+
+/* Ensure tile background overrides bonus square background */
+.square.tile-on-board {
+    background-color: #f5deb3; /* Wheat */
 }
 
 #info-container {
