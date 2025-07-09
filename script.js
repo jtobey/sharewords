@@ -212,7 +212,9 @@ function GameState(gameId, randomSeed, settings = {}) {
         }
         return drawnTiles;
     };
-    this.players = [new Player("player1", "Player 1"), new Player("player2", "Player 2")];
+    const p1InitialName = (settings.playerNames && settings.playerNames.player1) ? settings.playerNames.player1 : "Player 1";
+    const p2InitialName = (settings.playerNames && settings.playerNames.player2) ? settings.playerNames.player2 : "Player 2";
+    this.players = [new Player("player1", p1InitialName), new Player("player2", p2InitialName)];
     this.currentPlayerIndex = 0;
     this.bag = [];
     this._initializeBag(); this._shuffleBag();
@@ -1737,6 +1739,16 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
             const cblString = effectiveSettings.customBoardLayout.join(',');
             params.append('cbl', cblString);
         }
+
+        // Add player names if custom and P1, Turn 1
+        if (effectiveSettings.playerNames) {
+            if (effectiveSettings.playerNames.player1 && effectiveSettings.playerNames.player1 !== "Player 1") {
+                params.append('p1n', effectiveSettings.playerNames.player1);
+            }
+            if (effectiveSettings.playerNames.player2 && effectiveSettings.playerNames.player2 !== "Player 2") {
+                params.append('p2n', effectiveSettings.playerNames.player2);
+            }
+        }
     }
 
     if (exchangeData !== null) { // Check if exchangeData is provided (not null)
@@ -1905,6 +1917,15 @@ function startGameWithSettings() {
 
     const gameId = `game-${Date.now()}`;
     const randomSeed = Math.floor(Math.random() * 1000000);
+
+    // Get player names from input fields
+    const player1NameInput = document.getElementById('player1-name-input').value.trim();
+    const player2NameInput = document.getElementById('player2-name-input').value.trim();
+
+    const p1Name = player1NameInput || "Player 1";
+    const p2Name = player2NameInput || "Player 2";
+
+    gameSettings.playerNames = { player1: p1Name, player2: p2Name };
 
     // gameSettings object is now populated with custom values if provided and valid
     currentGame = new GameState(gameId, randomSeed, gameSettings);
@@ -2329,6 +2350,18 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                         // leading to default layout.
                     }
                 }
+
+        const urlP1Name = params.get('p1n');
+        const urlP2Name = params.get('p2n');
+        if (urlP1Name || urlP2Name) {
+            newGameSettings.playerNames = {};
+            if (urlP1Name) {
+                newGameSettings.playerNames.player1 = urlP1Name;
+            }
+            if (urlP2Name) {
+                newGameSettings.playerNames.player2 = urlP2Name;
+            }
+        }
 
                 currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
                 localPlayerId = 'player2'; // This client is Player 2
