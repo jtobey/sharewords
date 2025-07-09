@@ -29,6 +29,26 @@ const BONUS_TYPES = {
     TW: 'tw'  // Triple Word
 };
 
+// Default board layout using string array representation
+// T = Triple Word, D = Double Word, t = Triple Letter, d = Double Letter, . = Normal
+const DEFAULT_BOARD_LAYOUT_STRINGS = [
+    "D..d..T......T.",
+    ".D...D...t.t..T",
+    "..D.....t...t..",
+    "d..D...t.....t.",
+    "....D.t...D....",
+    ".D...d.d.....t.",
+    "T...d...d...t..",
+    "...d.t...d.t...",
+    "..d...t...t...T",
+    ".d.....t.t...D.",
+    "....D...d.D....",
+    ".d.....d...D..d",
+    "..d...d.....D..",
+    "T..d.d...D...D.",
+    ".T......T..d..D"
+];
+
 // Default Tile Values and Distribution (can be overridden by game settings)
 const DEFAULT_TILE_VALUES = {
     'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
@@ -79,42 +99,45 @@ function Board(size = BOARD_SIZE, customLayoutStringArray = null) {
         }
     }
 
-    let customLayoutSuccessfullyApplied = false;
-    if (customLayoutStringArray &&
-        Array.isArray(customLayoutStringArray) &&
-        customLayoutStringArray.length === this.size &&
-        customLayoutStringArray.every(row => typeof row === 'string' && row.length === this.size)) {
+    let layoutToApply = DEFAULT_BOARD_LAYOUT_STRINGS; // Start with the default
+    let layoutSourceName = "default";
 
-        for (let r = 0; r < this.size; r++) {
-            for (let c = 0; c < this.size; c++) {
-                const layoutChar = customLayoutStringArray[r][c];
+    if (customLayoutStringArray) {
+        if (Array.isArray(customLayoutStringArray) &&
+            customLayoutStringArray.length === this.size &&
+            customLayoutStringArray.every(row => typeof row === 'string' && row.length === this.size)) {
+
+            layoutToApply = customLayoutStringArray;
+            layoutSourceName = "custom";
+            console.log("Custom board layout provided and appears valid. Applying custom layout.");
+        } else {
+            // This catches cases where customLayoutStringArray is truthy but malformed.
+            console.warn("Custom board layout was provided to Board constructor but was malformed. Falling back to default layout.");
+            // layoutToApply remains DEFAULT_BOARD_LAYOUT_STRINGS
+        }
+    }
+
+    console.log(`Board constructor: Applying ${layoutSourceName} board layout.`);
+    for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+            // Ensure layoutToApply has the row, though validation should catch this for custom.
+            // For default, we assume it's correctly structured.
+            if (layoutToApply[r] && layoutToApply[r][c]) {
+                const layoutChar = layoutToApply[r][c];
                 switch (layoutChar) {
                     case 'T': this.grid[r][c].bonus = BONUS_TYPES.TW; break;
                     case 'D': this.grid[r][c].bonus = BONUS_TYPES.DW; break;
                     case 't': this.grid[r][c].bonus = BONUS_TYPES.TL; break;
                     case 'd': this.grid[r][c].bonus = BONUS_TYPES.DL; break;
+                    // '.' or any other character will result in BONUS_TYPES.NONE (already default)
                     default: this.grid[r][c].bonus = BONUS_TYPES.NONE; break;
                 }
             }
         }
-        customLayoutSuccessfullyApplied = true;
-        console.log("Custom board layout successfully applied by Board constructor.");
-    } else if (customLayoutStringArray) {
-        // This else-if catches cases where customLayoutStringArray is truthy but malformed.
-        console.warn("Custom board layout was provided to Board constructor but was malformed. Falling back to default layout.");
     }
 
-    if (!customLayoutSuccessfullyApplied) {
-        console.log("Applying default board layout in Board constructor.");
-        const tw_coords = [[0,0], [0,7], [0,14], [7,0], [7,14], [14,0], [14,7], [14,14]];
-        tw_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.TW; });
-        const dw_coords = [[1,1], [2,2], [3,3], [4,4], [1,13], [2,12], [3,11], [4,10], [13,1], [12,2], [11,3], [10,4], [13,13], [12,12], [11,11], [10,10]];
-        dw_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.DW; });
-        const tl_coords = [[1,5], [1,9], [5,1], [5,5], [5,9], [5,13], [9,1], [9,5], [9,9], [9,13], [13,5], [13,9]];
-        tl_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.TL; });
-        const dl_coords = [[0,3], [0,11], [2,6], [2,8], [3,0], [3,7], [3,14], [6,2], [6,6], [6,8], [6,12], [7,3], [7,11], [8,2], [8,6], [8,8], [8,12], [11,0], [11,7], [11,14], [12,6], [12,8], [14,3], [14,11]];
-        dl_coords.forEach(([r,c]) => { if(this.grid[r] && this.grid[r][c]) this.grid[r][c].bonus = BONUS_TYPES.DL; });
-    }
+    // The old logic for default layout (tw_coords, dw_coords, etc.) is now removed.
+
     this.getCenterSquare = function() {
         return this.grid[Math.floor(this.size / 2)][Math.floor(this.size / 2)];
     }
