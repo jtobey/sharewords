@@ -1,18 +1,11 @@
 // tests.js - Start of the test additions
 
 // --- Test Setup & Mocks ---
-const TEST_DEFAULT_TILE_VALUES = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
-    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10
-};
-const TEST_DEFAULT_LETTER_DISTRIBUTION = {
-    'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
-    'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
-    'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1
-};
-const TEST_DEFAULT_BLANK_COUNT = 2;
-const TEST_DEFAULT_SEVEN_TILE_BONUS = 50;
+// Note: TEST_DEFAULT_TILE_VALUES and TEST_DEFAULT_LETTER_DISTRIBUTION are removed.
+// We will use DEFAULT_TILE_VALUES and DEFAULT_LETTER_DISTRIBUTION from script.js directly.
+// These are the actual default values used by the GameState constructor if not overridden.
+const ACTUAL_DEFAULT_BLANK_COUNT = 2;
+const ACTUAL_DEFAULT_SEVEN_TILE_BONUS = 50;
 
 let assertions = 0;
 let failures = 0;
@@ -131,10 +124,10 @@ function testURLHandlingWithCustomSettings() {
         sevenTileBonus: 75
     };
     const defaultSettingsCopy = JSON.parse(JSON.stringify({ // Deep copy for safety
-        letterDistribution: TEST_DEFAULT_LETTER_DISTRIBUTION,
-        tileValues: TEST_DEFAULT_TILE_VALUES,
-        blankTileCount: TEST_DEFAULT_BLANK_COUNT,
-        sevenTileBonus: TEST_DEFAULT_SEVEN_TILE_BONUS
+        letterDistribution: DEFAULT_LETTER_DISTRIBUTION, // Using global from script.js
+        tileValues: DEFAULT_TILE_VALUES,             // Using global from script.js
+        blankTileCount: ACTUAL_DEFAULT_BLANK_COUNT,
+        sevenTileBonus: ACTUAL_DEFAULT_SEVEN_TILE_BONUS
     }));
 
     const gameWithCustom = new GameState('gid-custom', 1, customSettings);
@@ -215,7 +208,7 @@ function testStartGameWithSettingsModal() {
     assertEqual(mockAlertMessages.length > 0 && mockAlertMessages[0].includes("Error parsing Tile Distribution JSON"), true, "startGameWithSettings: Alert for invalid distribution JSON");
 
     clearMockAlerts(); window.currentGame = null;
-    distInput.value = ""; blankInput.value = "-5";
+    distInput.value = ""; blankInput.value = "-5";  valInput.value = ""; bonusInput.value = ""; // Ensure other fields are clear for this test
     startGameWithSettings();
     assertEqual(window.currentGame, null, "startGameWithSettings: Game not started with invalid blank count");
     assertEqual(mockAlertMessages.length > 0 && mockAlertMessages[0].includes("Invalid Blank Tile Count"), true, "startGameWithSettings: Alert for invalid blank count");
@@ -223,10 +216,10 @@ function testStartGameWithSettingsModal() {
     clearMockAlerts(); window.currentGame = null;
     distInput.value = ""; valInput.value = ""; blankInput.value = ""; bonusInput.value = "";
     startGameWithSettings();
-    assertDeepEqual(currentGame.settings.letterDistribution, TEST_DEFAULT_LETTER_DISTRIBUTION, "startGameWithSettings: Default distribution for empty input");
-    assertDeepEqual(currentGame.settings.tileValues, TEST_DEFAULT_TILE_VALUES, "startGameWithSettings: Default values for empty input");
-    assertEqual(currentGame.settings.blankTileCount, TEST_DEFAULT_BLANK_COUNT, "startGameWithSettings: Default blank count for empty input");
-    assertEqual(currentGame.settings.sevenTileBonus, TEST_DEFAULT_SEVEN_TILE_BONUS, "startGameWithSettings: Default bonus for empty input");
+    assertDeepEqual(currentGame.settings.letterDistribution, DEFAULT_LETTER_DISTRIBUTION, "startGameWithSettings: Default distribution for empty input"); // Uses script.js DEFAULT
+    assertDeepEqual(currentGame.settings.tileValues, DEFAULT_TILE_VALUES, "startGameWithSettings: Default values for empty input"); // Uses script.js DEFAULT
+    assertEqual(currentGame.settings.blankTileCount, ACTUAL_DEFAULT_BLANK_COUNT, "startGameWithSettings: Default blank count for empty input");
+    assertEqual(currentGame.settings.sevenTileBonus, ACTUAL_DEFAULT_SEVEN_TILE_BONUS, "startGameWithSettings: Default bonus for empty input");
     assertEqual(mockAlertMessages.length, 0, "startGameWithSettings: No alerts for empty inputs (defaults)");
 
     document.body.removeChild(modalContainer);
