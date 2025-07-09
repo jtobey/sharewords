@@ -2429,9 +2429,225 @@ function saveGameStateToLocalStorage(gameState, storage = localStorage) {
         };
         storage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
         console.log(`Game ${gameState.gameId} (for local player ${localPlayerId}) saved to ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
+        updateCopyGameLink(gameState); // Update the copy game link
     } catch (error) {
         console.error("Error saving game state to LocalStorage:", error);
         // Consider alerting the user or providing feedback if saving fails.
+    }
+}
+
+/**
+ * Creates a URL-safe JSON string representation of the game state.
+ * This is similar to `saveGameStateToLocalStorage` but prepares the data for a URL.
+ * @param {GameState} gameState - The game state object to serialize.
+ * @returns {string} A URL-safe, JSON-stringified representation of the game state.
+ */
+function serializeGameStateForURL(gameState) {
+    if (!gameState || !gameState.gameId) {
+        console.error("serializeGameStateForURL: Cannot serialize game state - invalid gameState or gameId missing.");
+        return ""; // Return empty string or handle error as appropriate
+    }
+    try {
+        const serializableState = {
+            gameId: gameState.gameId,
+            randomSeed: gameState.randomSeed,
+            settings: gameState.settings, // Assumed to be serializable
+            turnNumber: gameState.turnNumber,
+            currentPlayerIndex: gameState.currentPlayerIndex,
+            isGameOver: gameState.isGameOver,
+            gameHistory: gameState.gameHistory, // Assumed serializable
+            players: gameState.players.map(player => ({
+                id: player.id,
+                name: player.name,
+                score: player.score,
+                rack: player.rack.map(tile => ({
+                    id: tile.id,
+                    letter: tile.letter,
+                    value: tile.value,
+                    isBlank: tile.isBlank,
+                    assignedLetter: tile.assignedLetter
+                }))
+            })),
+            bag: gameState.bag.map(tile => ({
+                id: tile.id,
+                letter: tile.letter,
+                value: tile.value,
+                isBlank: tile.isBlank,
+                assignedLetter: tile.assignedLetter // Though typically null for bag tiles
+            })),
+            boardGrid: gameState.board.grid.map(row => row.map(square => ({
+                // row: square.row, // Not strictly needed if reconstructing based on array position
+                // col: square.col, // Not strictly needed
+                bonus: square.bonus,
+                bonusUsed: square.bonusUsed,
+                tile: square.tile ? {
+                    id: square.tile.id,
+                    letter: square.tile.letter,
+                    value: square.tile.value,
+                    isBlank: square.tile.isBlank,
+                    assignedLetter: square.tile.assignedLetter
+                } : null
+            })))
+            // localPlayerId is not part of the shared game state for the URL,
+            // it's specific to the client's perspective.
+        };
+        // console.log('[DEBUG] Before serialization:');
+        // gameState.players.forEach(p => {
+        //     console.log(`  Player ${p.id} (${p.name}) rack size: ${p.rack.length}`);
+        // });
+        const jsonString = JSON.stringify(serializableState);
+        return encodeURIComponent(jsonString);
+    } catch (error) {
+        console.error("Error serializing game state for URL:", error);
+        return ""; // Return empty string or handle error as appropriate
+    }
+}
+
+/**
+ * Deserializes a game state from a URL-safe JSON string.
+ * Reconstructs a full GameState object from the parsed data.
+ * @param {string} gameStateString - The URL-safe JSON string to deserialize.
+ * @returns {?GameState} The rehydrated GameState object, or null if deserialization fails.
+ */
+function deserializeGameStateFromURL(gameStateString) {
+    if (!gameStateString) {
+        console.error("deserializeGameStateFromURL: Input string is empty or null.");
+        return null;
+    }
+    try {
+        const decodedString = decodeURIComponent(gameStateString);
+        const parsedData = JSON.parse(decodedString);
+
+        if (!parsedData || !parsedData.gameId || parsedData.randomSeed === undefined) {
+            console.error("deserializeGameStateFromURL: Parsed data is invalid or missing essential fields (gameId, randomSeed).");
+            return null;
+        }
+
+        // Create a new GameState instance using gameId, randomSeed, and settings from parsed data.
+        // The GameState constructor initializes the board, players (with default names/IDs), and bag based on settings.
+        // We will then overwrite these with the specific state from parsedData.
+        const rehydratedGame = new GameState(parsedData.gameId, parsedData.randomSeed, parsedData.settings || {});
+
+        // Restore scalar properties
+        rehydratedGame.turnNumber = parsedData.turnNumber;
+        rehydratedGame.currentPlayerIndex = parsedData.currentPlayerIndex;
+        rehydratedGame.isGameOver = parsedData.isGameOver;
+        rehydratedGame.gameHistory = parsedData.gameHistory || [];
+
+        // Rehydrate players (id, name, score, rack)
+        // GameState constructor already creates player objects based on settings.playerNames.
+        // We need to align these with player data from the string, especially for scores and racks.
+        if (parsedData.players && parsedData.players.length === rehydratedGame.players.length) {
+            parsedData.players.forEach((playerData, index) => {
+                const gamePlayer = rehydratedGame.players[index];
+                // It's crucial that player IDs match if they are significant beyond "player1", "player2".
+                // For now, we assume the order is consistent or IDs from constructor are sufficient.
+                // gamePlayer.id = playerData.id; // Might be needed if IDs are more dynamic
+                gamePlayer.name = playerData.name || gamePlayer.name; // Update name if provided, else keep from constructor
+                gamePlayer.score = playerData.score;
+                gamePlayer.rack = playerData.rack.map(tileData => {
+                    const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+                    tile.id = tileData.id; // Restore original tile ID
+                    tile.assignedLetter = tileData.assignedLetter;
+                    return tile;
+                });
+                // console.log(`[DEBUG] During deserialization - Player ${gamePlayer.id} (${gamePlayer.name}) rack rehydrated. Parsed data length: ${playerData.rack.length}, Actual rehydrated length: ${gamePlayer.rack.length}`);
+            });
+        } else {
+            console.warn("deserializeGameStateFromURL: Player data in string mismatches constructor/settings. Player states might be inconsistent.");
+        }
+
+        // Rehydrate the tile bag
+        // The GameState constructor initializes its own bag. We replace it with the one from the string.
+        rehydratedGame.bag = parsedData.bag.map(tileData => {
+            const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+            tile.id = tileData.id; // Restore original tile ID
+            tile.assignedLetter = tileData.assignedLetter; // Usually null for bag tiles
+            return tile;
+        });
+        // Note: The PRNG state is implicitly reset by creating a new GameState with the seed.
+        // Shuffling of the rehydrated bag is not done here, assuming the order in the string is the desired state.
+        // If the bag was shuffled before serialization, its order is preserved.
+
+        // Rehydrate the board grid
+        // The Board object itself is already created by the GameState constructor with a default or custom layout.
+        // We need to update square properties (bonusUsed, tile).
+        if (parsedData.boardGrid && rehydratedGame.board && rehydratedGame.board.grid) {
+            for (let r = 0; r < parsedData.boardGrid.length; r++) {
+                if (rehydratedGame.board.grid[r]) {
+                    for (let c = 0; c < parsedData.boardGrid[r].length; c++) {
+                        if (rehydratedGame.board.grid[r][c]) {
+                            const savedSquareData = parsedData.boardGrid[r][c];
+                            const boardSquare = rehydratedGame.board.grid[r][c];
+
+                            // Bonus type is set by Board constructor. Only bonusUsed and tile need updating.
+                            boardSquare.bonusUsed = savedSquareData.bonusUsed;
+
+                            if (savedSquareData.tile) {
+                                const tileData = savedSquareData.tile;
+                                const tile = new Tile(tileData.letter, tileData.value, tileData.isBlank);
+                                tile.id = tileData.id; // Restore original tile ID
+                                tile.assignedLetter = tileData.assignedLetter;
+                                boardSquare.tile = tile;
+                            } else {
+                                boardSquare.tile = null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        console.log(`Game ${rehydratedGame.gameId} deserialized and rehydrated from URL string.`);
+
+        // console.log('[DEBUG] After full deserialization of GameState:');
+        // rehydratedGame.players.forEach(p => {
+        //     console.log(`  Player ${p.id} (${p.name}) final rack size in rehydratedGame: ${p.rack.length}`);
+        // });
+        return rehydratedGame;
+
+    } catch (error) {
+        console.error("Error deserializing game state from URL string:", error);
+        return null;
+    }
+}
+
+/**
+ * Updates the "Copy Game" link with a URL containing the full serialized game state.
+ * @param {?GameState} gameState - The current game state object.
+ */
+function updateCopyGameLink(gameState) {
+    const copyLink = document.getElementById('copy-game-link');
+    if (!copyLink) {
+        // This can happen if the HTML isn't fully loaded or the element is missing.
+        // It's not a critical error during initial load phases, so a softer log might be okay.
+        console.log("updateCopyGameLink: 'copy-game-link' element not yet available.");
+        return;
+    }
+
+    if (!gameState) {
+        copyLink.href = "#"; // Set to a non-functional link
+        copyLink.style.display = 'none'; // Hide the link if no game state
+        console.log("updateCopyGameLink: No active game state, link hidden/disabled.");
+        return;
+    }
+
+    try {
+        const serializedState = serializeGameStateForURL(gameState);
+        if (!serializedState) {
+            copyLink.href = "#";
+            copyLink.style.display = 'none'; // Hide if serialization fails
+            console.warn("updateCopyGameLink: Failed to serialize game state for URL. Link hidden/disabled.");
+            return;
+        }
+        const baseURL = window.location.origin + window.location.pathname;
+        const fullURL = `${baseURL}?gs=${serializedState}`; // "gs" for "gameState"
+        copyLink.href = fullURL;
+        copyLink.style.display = 'inline'; // Ensure link is visible
+        console.log("updateCopyGameLink: Link updated.");
+    } catch (error) {
+        console.error("Error updating copy game link:", error);
+        copyLink.href = "#";
+        copyLink.style.display = 'none'; // Hide on error
     }
 }
 
@@ -2704,6 +2920,38 @@ function applyTurnDataFromURL(gameState, params) {
         }
 
         // Score the turn based on the board state and the newly placed tiles identified from URL.
+
+        if (newlyPlacedTilesData.length > 0) {
+            // console.log(`[DEBUG] applyTurnDataFromURL: Opponent ${playerWhoseTurnItWas.name} (id: ${playerWhoseTurnItWas.id}) reportedly played ${newlyPlacedTilesData.length} tiles. Their rack size before removal: ${playerWhoseTurnItWas.rack.length}`);
+            const rackToModify = [...playerWhoseTurnItWas.rack]; // Operate on a copy
+
+            for (const playedTileInfo of newlyPlacedTilesData) {
+                // playedTileInfo.tileRef is the Tile object *as placed on the board*.
+                // It was created based on the URL, not taken directly from the opponent's rack model on this client.
+                // We need to find a matching tile in 'rackToModify'.
+                let tileToRemoveIndex = -1;
+                if (playedTileInfo.tileRef.isBlank) {
+                    // If the played tile was a blank, find any blank tile in the rack.
+                    tileToRemoveIndex = rackToModify.findIndex(rackTile => rackTile.isBlank);
+                } else {
+                    // If it was a lettered tile, find that letter in the rack.
+                    tileToRemoveIndex = rackToModify.findIndex(rackTile => !rackTile.isBlank && rackTile.letter === playedTileInfo.tileRef.letter);
+                }
+
+                if (tileToRemoveIndex !== -1) {
+                    rackToModify.splice(tileToRemoveIndex, 1); // Remove one instance of the found tile
+                } else {
+                    // This is a significant issue if it occurs, indicating a desync
+                    // or that the opponent's move (word from URL) is inconsistent with their rack state
+                    // as represented on this client.
+                    console.error(`[CRITICAL DESYNC] applyTurnDataFromURL: Cannot find tile to remove from ${playerWhoseTurnItWas.name}'s rack. Played tile data: ${playedTileInfo.tileRef.isBlank ? `Blank (assigned ${playedTileInfo.tileRef.assignedLetter})` : playedTileInfo.tileRef.letter}. Current rack: ${playerWhoseTurnItWas.rack.map(t => t.isBlank ? `_(ID:${t.id.slice(-3)})` : `${t.letter}(ID:${t.id.slice(-3)})`).join(', ')}`);
+                    // Consider how to handle this error. For now, log it. The game might proceed with inconsistent state.
+                }
+            }
+            playerWhoseTurnItWas.rack = rackToModify; // Update the actual rack in the gameState
+            // console.log(`[DEBUG] applyTurnDataFromURL: Opponent ${playerWhoseTurnItWas.name}'s rack size after attempted removal: ${playerWhoseTurnItWas.rack.length}`);
+        }
+
         const allWordsFormedByOpponent = identifyAllPlayedWords(newlyPlacedTilesData, gameState.board, wordDirection);
 
         if (allWordsFormedByOpponent.length === 0 && newlyPlacedTilesData.length > 0) {
@@ -2771,94 +3019,131 @@ function applyTurnDataFromURL(gameState, params) {
  */
 function loadGameFromURLOrStorage(searchStringOverride = null) {
     const searchSource = searchStringOverride !== null ? searchStringOverride : window.location.search;
-    const params = new URLSearchParams(searchSource);
+    let params = new URLSearchParams(searchSource); // Use let as it might be reassigned
 
+    const fullGameStateString = params.get('gs');
+
+    if (fullGameStateString) {
+        console.log("loadGameFromURLOrStorage: Found 'gs' parameter, attempting to load full game state.");
+        const deserializedGame = deserializeGameStateFromURL(fullGameStateString);
+
+        if (deserializedGame) {
+            const gameIdFromURL = deserializedGame.gameId;
+            // Temporarily load to check existence without setting global currentGame or localPlayerId yet.
+            // Create a temporary GameState to load into, to avoid altering global state prematurely.
+            const existingLocalGame = loadGameStateFromLocalStorage(gameIdFromURL);
+
+            if (existingLocalGame) {
+                const confirmOverwrite = confirm(
+                    `A game with ID "${gameIdFromURL}" already exists locally (Turn: ${existingLocalGame.turnNumber}, Current Player: ${existingLocalGame.players[existingLocalGame.currentPlayerIndex].name}).\n\n` +
+                    `Do you want to overwrite it with the game state from the URL (Turn: ${deserializedGame.turnNumber}, Current Player: ${deserializedGame.players[deserializedGame.currentPlayerIndex].name})?`
+                );
+
+                if (confirmOverwrite) {
+                    currentGame = deserializedGame;
+                    // Set localPlayerId based on the current player in the loaded state.
+                    // This assumes the user opening the link is the one whose turn it is.
+                    localPlayerId = currentGame.players[currentGame.currentPlayerIndex].id;
+                    saveGameStateToLocalStorage(currentGame); // Saves and calls updateCopyGameLink
+                    console.log(`Game ${gameIdFromURL} overwritten with state from URL.`);
+                } else {
+                    currentGame = existingLocalGame; // Restore global currentGame to the local one
+                    // localPlayerId would have been set by the loadGameStateFromLocalStorage call that populated existingLocalGame
+                    alert("Kept the existing local game. The game state from the URL was not loaded.");
+                    // No need to save, just ensure UI reflects the kept game
+                }
+            } else { // No local game with the same ID, so load the one from URL
+                currentGame = deserializedGame;
+                localPlayerId = currentGame.players[currentGame.currentPlayerIndex].id;
+                saveGameStateToLocalStorage(currentGame); // Saves and calls updateCopyGameLink
+                console.log(`New game ${gameIdFromURL} loaded from URL state.`);
+            }
+            fullRender(currentGame, localPlayerId);
+            updateControlButtonsVisibility();
+            // updateCopyGameLink(currentGame); // Already called by saveGameStateToLocalStorage
+            return; // Processing of 'gs' parameter is complete.
+        } else {
+            alert("Error: Could not load game state from the provided URL's 'gs' parameter. The data may be corrupted or invalid. Trying to load based on other URL parameters or local storage...");
+            // Remove 'gs' and try again with other params or default loading
+            params.delete('gs'); // Modify params for the next stage of loading
+            // Fall through to the next block (else if (urlGameId))
+        }
+    }
+
+    // --- Existing logic for turn URLs (gid, tn, etc.) or default loading ---
+    // This block is now effectively an "else if" for the `fullGameStateString` block,
+    // or will be the primary path if `gs` was not present or was invalid and removed.
     const urlGameId = params.get('gid');
     const urlTurnNumberStr = params.get('tn');
-    const urlSeed = params.get('seed'); // For initializing a new game if P2 loads P1's first URL
+    const urlSeed = params.get('seed');
 
-    // --- Game Loading/Joining Logic ---
-    if (urlGameId) { // A game ID is present in the URL
-        console.log(`loadGameFromURLOrStorage: URL contains gameId: ${urlGameId}.`);
-        currentGame = loadGameStateFromLocalStorage(urlGameId); // Attempt to load existing game
+    if (urlGameId) {
+        console.log(`loadGameFromURLOrStorage: Processing 'gid' parameter: ${urlGameId}.`);
+        // If currentGame is already set (e.g. from a failed 'gs' load that kept local), respect it.
+        // Otherwise, attempt to load from local storage.
+        if (!currentGame) {
+            currentGame = loadGameStateFromLocalStorage(urlGameId);
+        }
 
-        if (currentGame) { // Game found in LocalStorage
-            // `localPlayerId` is restored by `loadGameStateFromLocalStorage`
-            console.log(`Game ${urlGameId} loaded from LocalStorage. This browser is ${localPlayerId}. LS Turn: ${currentGame.turnNumber}.`);
-
-            if (urlTurnNumberStr) { // URL also specifies a turn number
+        if (currentGame) {
+            console.log(`Game ${urlGameId} loaded or kept from LocalStorage. This browser is ${localPlayerId}. LS Turn: ${currentGame.turnNumber}.`);
+            if (urlTurnNumberStr) {
                 const urlTurnNumber = parseInt(urlTurnNumberStr);
-                if (urlTurnNumber === currentGame.turnNumber + 1) { // URL represents the next turn
+                if (urlTurnNumber === currentGame.turnNumber + 1) {
                     console.log(`Attempting to apply turn ${urlTurnNumber} from URL to local game.`);
                     if (applyTurnDataFromURL(currentGame, params)) {
-                        // If applyTurnDataFromURL succeeded, update turn number and current player locally
                         currentGame.turnNumber = urlTurnNumber;
                         currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
-                        saveGameStateToLocalStorage(currentGame); // Save updated state
+                        saveGameStateToLocalStorage(currentGame);
                         console.log(`Successfully applied opponent's move from URL for turn ${urlTurnNumber}. New current player: ${currentGame.getCurrentPlayer().name}.`);
                     } else {
-                        // applyTurnDataFromURL returned false, indicating an issue with applying the move data.
-                        // This could be due to an error in the URL data or a desync.
                         alert("Failed to apply turn data from URL. The game state might be out of sync. Please check console for errors.");
-                        // Game remains at its current state before attempting to apply URL turn.
                     }
                 } else if (urlTurnNumber <= currentGame.turnNumber) {
                     console.log(`URL turn ${urlTurnNumber} is not newer than local game turn ${currentGame.turnNumber}. No action taken from URL turn data.`);
-                } else { // urlTurnNumber > currentGame.turnNumber + 1
+                } else {
                     alert(`Out of sync: URL specifies turn ${urlTurnNumber}, but local game is at turn ${currentGame.turnNumber}. Load appropriate URL.`);
-                    // Game state remains as loaded from LocalStorage.
                 }
             }
-            // If no urlTurnNumberStr, game is just loaded from storage, no URL turn to apply.
-        } else { // Game not found in LocalStorage, but URL has gameId. This implies joining a new game.
-            if (urlSeed) { // Seed is required to initialize a new game instance for P2
-                console.log(`New game ${urlGameId} initiated from URL by Player 2 (seed: ${urlSeed}).`);
-                const newGameSettings = {}; // Populate with settings from URL if P1 included them
-
-                // Parse all possible game settings from URL (typically sent by P1 on first turn URL)
-                const urlDictType = params.get('dt');
-                if (urlDictType) newGameSettings.dictionaryType = urlDictType;
-                const urlDictUrl = params.get('du');
-                if (urlDictUrl) newGameSettings.dictionaryUrl = urlDictUrl;
-
+            updateCopyGameLink(currentGame);
+        } else { // Game not found in LocalStorage for this gid, implies joining a new game with turn URL
+            if (urlSeed) {
+                console.log(`New game ${urlGameId} initiated from turn URL by Player 2 (seed: ${urlSeed}).`);
+                const newGameSettingsFromTurnUrl = {}; // Populate with settings from turn URL if P1 included them
+                const urlDictTypeTurn = params.get('dt');
+                if (urlDictTypeTurn) newGameSettingsFromTurnUrl.dictionaryType = urlDictTypeTurn;
+                const urlDictUrlTurn = params.get('du');
+                if (urlDictUrlTurn) newGameSettingsFromTurnUrl.dictionaryUrl = urlDictUrlTurn;
                 try {
-                    const urlLetterDist = params.get('ld');
-                    if (urlLetterDist) newGameSettings.letterDistribution = JSON.parse(urlLetterDist);
-                    const urlTileVals = params.get('tv');
-                    if (urlTileVals) newGameSettings.tileValues = JSON.parse(urlTileVals);
-                } catch (e) { console.error("Error parsing JSON settings from URL (distribution/values):", e); }
+                    const urlLetterDistTurn = params.get('ld');
+                    if (urlLetterDistTurn) newGameSettingsFromTurnUrl.letterDistribution = JSON.parse(urlLetterDistTurn);
+                    const urlTileValsTurn = params.get('tv');
+                    if (urlTileValsTurn) newGameSettingsFromTurnUrl.tileValues = JSON.parse(urlTileValsTurn);
+                } catch (e) { console.error("Error parsing JSON settings from turn URL (distribution/values):", e); }
+                const urlBlankCountTurn = params.get('bc');
+                if (urlBlankCountTurn !== null) newGameSettingsFromTurnUrl.blankTileCount = parseInt(urlBlankCountTurn);
+                const urlSevenBonusTurn = params.get('sb');
+                if (urlSevenBonusTurn !== null) newGameSettingsFromTurnUrl.sevenTileBonus = parseInt(urlSevenBonusTurn);
+                const urlCblTurn = params.get('cbl');
+                if (urlCblTurn) newGameSettingsFromTurnUrl.customBoardLayout = urlCblTurn.split(',');
+                const p1nTurn = params.get('p1n'); const p2nTurn = params.get('p2n');
+                if (p1nTurn || p2nTurn) newGameSettingsFromTurnUrl.playerNames = { player1: p1nTurn || "Player 1", player2: p2nTurn || "Player 2" };
 
-                const urlBlankCount = params.get('bc');
-                if (urlBlankCount !== null) newGameSettings.blankTileCount = parseInt(urlBlankCount);
-                const urlSevenBonus = params.get('sb');
-                if (urlSevenBonus !== null) newGameSettings.sevenTileBonus = parseInt(urlSevenBonus);
+                currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettingsFromTurnUrl);
+                localPlayerId = 'player2';
 
-                const urlCbl = params.get('cbl');
-                if (urlCbl) newGameSettings.customBoardLayout = urlCbl.split(',');
-
-                const p1n = params.get('p1n'); const p2n = params.get('p2n');
-                if (p1n || p2n) newGameSettings.playerNames = { player1: p1n || "Player 1", player2: p2n || "Player 2" };
-
-                currentGame = new GameState(urlGameId, parseInt(urlSeed), newGameSettings);
-                localPlayerId = 'player2'; // This browser is Player 2
-
-                // If P1's first move is also in this URL (tn=1 and action data)
                 if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('wh') || params.has('wv') || params.get('ex') !== null)) {
-                    console.log("Applying Player 1's first move from setup URL.");
+                    console.log("Applying Player 1's first move from turn URL during P2 setup.");
                     if(applyTurnDataFromURL(currentGame, params)) {
-                        currentGame.turnNumber = 1; // Mark P1's turn as done
-                        currentGame.currentPlayerIndex = 1; // It's now P2's turn
+                        currentGame.turnNumber = 1;
+                        currentGame.currentPlayerIndex = 1;
                     } else {
-                        console.error("Failed to apply P1's first move data when P2 created game from URL.");
-                        // Game is created, but P1's move wasn't applied. Might lead to desync.
+                        console.error("Failed to apply P1's first move data when P2 created game from turn URL.");
                     }
                 }
-                // If tn=0 or no turn data, it's just game setup, P1 hasn't moved yet.
-                // currentPlayerIndex remains 0 (P1's turn), turnNumber remains 0. (Handled by GameState constructor)
-                saveGameStateToLocalStorage(currentGame); // Save this new game state for P2
+                saveGameStateToLocalStorage(currentGame);
             } else {
-                 // No game in LocalStorage, and URL (with gameId) lacks a seed to start a new game.
-                 alert(`Game ${urlGameId} not found locally, and URL is missing data to start it as a new participant (e.g., missing seed). Please get the initial game URL from Player 1.`);
+                 alert(`Game ${urlGameId} (from turn URL) not found locally, and URL is missing data (seed) to start it. Please get the initial game URL from Player 1.`);
                  document.getElementById('board-container').innerHTML = `<p>Error: Game ${urlGameId} could not be loaded or started. Ensure you have the correct initial URL from Player 1 if joining a new game.</p>`;
                  return; // Stop further processing
             }
@@ -2867,13 +3152,15 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
         // Check if there's a "last played" game ID in a separate local storage item (optional feature, not implemented here)
         // For now, if no gameId in URL, initialize a brand new local game for testing/solo play.
         console.log("No gameId in URL. Initializing a new local game.");
-        initializeNewGame(); // This sets `currentGame` and `localPlayerId`
+        initializeNewGame(); // This sets `currentGame` and `localPlayerId`, and calls save (which calls updateCopyGameLink)
+        // updateCopyGameLink(currentGame); // Called via initializeNewGame -> saveGameStateToLocalStorage
         // No need to return here, the rest of the function will handle rendering if currentGame is set.
     }
 
     // --- Final Rendering and UI Update ---
     if (currentGame) {
         fullRender(currentGame, localPlayerId); // Render the game board, racks, status
+        // updateCopyGameLink(currentGame); // Already called within the blocks above or via saveGameStateToLocalStorage
     } else {
         // This case should ideally be handled by initializeNewGame or specific error messages above.
         // If still no currentGame, display a generic "no game" message.
@@ -2882,6 +3169,7 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
         if (boardContainer) {
             boardContainer.innerHTML = '<p>Start a new game or load one via a shared URL.</p>';
         }
+        updateCopyGameLink(null); // Ensure link is hidden if no game
     }
     updateControlButtonsVisibility(); // Ensure button states are correct based on game state
 }
@@ -2901,6 +3189,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load game from URL parameters or LocalStorage
     loadGameFromURLOrStorage();
+
+    // "Copy Game" link functionality
+    const copyGameLink = document.getElementById('copy-game-link');
+    if (copyGameLink) {
+        copyGameLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            // Alert message improved for clarity
+            alert("To share the full game state:\n\n" +
+                  "1. Right-click (or long-press on mobile) this 'Copy Game' link.\n" +
+                  "2. Choose 'Copy Link Address' (or a similar option) to copy the URL.\n" +
+                  "3. Share this URL with the other player.\n\n" +
+                  "This URL contains the entire game, allowing the other player to resume from this exact point.");
+        });
+    }
 
     // Attach event listeners to game control buttons
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);

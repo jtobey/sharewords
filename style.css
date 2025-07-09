@@ -498,3 +498,19 @@ body {
     /* The .square (parent) handles background color.
        No specific width, height, or position needed due to parent flex. */
 }
+
+#copy-game-container {
+    margin-top: 15px; /* Add some space above the container */
+    padding: 5px 0; /* Match other info-container sections */
+    text-align: center; /* Center the link within its container */
+}
+
+#copy-game-link {
+    font-size: 0.8em;
+    color: #555;
+    text-decoration: none; /* Optional: removing underline */
+}
+
+#copy-game-link:hover {
+    text-decoration: underline; /* Underline on hover for better affordance */
+}
