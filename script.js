@@ -285,7 +285,7 @@ function renderBoard(gameState) {
         }
     }
 }
-function renderTileInRack(tile, isDraggable = false) {
+function renderTileInRack(tile, isDraggable = false, isPlaceholder = false) {
     const tileDiv = document.createElement('div');
     tileDiv.classList.add('tile-in-rack');
     tileDiv.dataset.tileId = tile.id;
@@ -334,10 +334,15 @@ function renderTileInRack(tile, isDraggable = false) {
     valueSpan.classList.add('tile-value');
     valueSpan.textContent = tile.value;
     tileDiv.appendChild(letterSpan); tileDiv.appendChild(valueSpan);
+
+    // Add class if tile is the one being dragged in preview and is a placeholder
+    if (isPlaceholder) {
+        tileDiv.classList.add('tile-preview-placeholder');
+    }
     return tileDiv;
 }
 
-function renderRacks(gameState, localPlayerId) {
+function renderRacks(gameState, localPlayerId, rackToRender = null, draggedTileIdInPreview = null) {
     if (!gameState || !gameState.players) return;
 
     const localPlayer = gameState.players.find(p => p.id === localPlayerId);
@@ -350,17 +355,28 @@ function renderRacks(gameState, localPlayerId) {
 
     localRackElement.innerHTML = ''; // Clear existing tiles
 
+    // Determine which rack data to use
+    const displayRack = rackToRender || localPlayer.rack;
+
     // Add DND listeners for the local player's rack.
-    // Local player can always drop onto their own rack.
+    // These listeners are added here to ensure they are fresh if DOM is manipulated,
+    // especially if this function could be called in contexts other than fullRender.
+    localRackElement.removeEventListener('dragover', handleDragOver); // Prevent duplicates
     localRackElement.addEventListener('dragover', handleDragOver);
+    localRackElement.removeEventListener('drop', handleDropOnRack);   // Prevent duplicates
     localRackElement.addEventListener('drop', handleDropOnRack);
-    // Touch DND listeners are added to individual tiles.
+    // Touch DND listeners are added to individual tiles within renderTileInRack.
 
     // Render tiles for the local player
-    localPlayer.rack.forEach(tile => {
-        // Tiles in the local player's rack are draggable by them only if not in exchange mode.
-        const isDraggable = (localPlayer.id === localPlayerId && !isExchangeModeActive);
-        localRackElement.appendChild(renderTileInRack(tile, isDraggable));
+    displayRack.forEach(tile => {
+        const isCurrentlyDraggedTileInPreview = rackToRender && tile.id === draggedTileIdInPreview;
+        // A tile is draggable if it's the player's turn, not exchange mode, AND
+        // (it's not a preview OR if it is a preview, it's not the tile being dragged)
+        const isDraggable = (localPlayer.id === localPlayerId && !isExchangeModeActive && !isCurrentlyDraggedTileInPreview);
+        // The placeholder class is applied if this tile in the displayRack is the one being dragged during a preview.
+        const isPlaceholder = isCurrentlyDraggedTileInPreview;
+
+        localRackElement.appendChild(renderTileInRack(tile, isDraggable, isPlaceholder));
     });
 }
 
@@ -405,6 +421,9 @@ function fullRender(gameState, localPlayerId) {
 
 // --- Drag and Drop Handlers ---
 let draggedTileId = null; // For mouse DND
+let initialRackStateDuringDrag = null; // To store rack state at drag start
+let isPreviewRackActive = false; // To track if rack preview is active
+let finalPreviewRackOrder = null; // To store the rack order from the last preview
 
 // --- Touch Drag and Drop Handlers ---
 let touchDraggedElement = null; // The element being dragged
@@ -476,6 +495,12 @@ function handleTouchStart(event) {
     touchDraggedElement.style.opacity = '0.7';
     touchDraggedElement.style.zIndex = '1001'; // Ensure it's on top
 
+    // Store initial rack state for touch events
+    if (localPlayerInstance && localPlayerInstance.rack) {
+        initialRackStateDuringDrag = [...localPlayerInstance.rack];
+        console.log('Initial rack state stored (touch):', initialRackStateDuringDrag.map(t => t.id));
+    }
+
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd);
     document.addEventListener('touchcancel', handleTouchEnd); // Handle abrupt cancels
@@ -489,27 +514,96 @@ function handleTouchMove(event) {
     touchDraggedElement.style.left = (touch.clientX - offsetX + (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft)) + 'px';
     touchDraggedElement.style.top = (touch.clientY - offsetY + (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop)) + 'px';
 
-    // Visual feedback for drop targets
-    document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
+    // Visual feedback for drop targets (squares)
+    document.querySelectorAll('.square.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
     const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (elementUnderTouch) {
-        const potentialDropTarget = elementUnderTouch.closest('.square, .rack');
-        if (potentialDropTarget) {
-            // Check if the square is empty or is the original square of the tile being moved
-            const isSquare = potentialDropTarget.classList.contains('square');
-            if (isSquare) {
-                const r = parseInt(potentialDropTarget.dataset.row);
-                const c = parseInt(potentialDropTarget.dataset.col);
-                const boardSquare = currentGame.board.grid[r][c];
-                // Allow drop on empty square, or on its own square if moving a tile already on board
-                const isOriginalSquare = boardSquare.tile && boardSquare.tile.id === touchDraggedTileId;
-                if (!boardSquare.tile || isOriginalSquare) {
-                    potentialDropTarget.classList.add('touch-drag-over');
-                }
-            } else { // It's a rack
-                potentialDropTarget.classList.add('touch-drag-over');
+    const localPlayer = currentGame.players.find(p => p.id === localPlayerId);
+
+    if (elementUnderTouch && localPlayer) {
+        const rackElement = document.getElementById('local-player-rack');
+        const squareElement = elementUnderTouch.closest('.square');
+        const targetIsRack = rackElement.contains(elementUnderTouch) || elementUnderTouch === rackElement;
+
+        if (targetIsRack && touchDraggedTileId && initialRackStateDuringDrag) {
+            const rackRect = rackElement.getBoundingClientRect();
+            const x = touch.clientX - rackRect.left;
+
+            let previewRack = [...initialRackStateDuringDrag];
+            const draggedTileIdx = previewRack.findIndex(t => t.id === touchDraggedTileId);
+            let draggedTileObject = null;
+
+            if (draggedTileIdx !== -1) {
+                draggedTileObject = previewRack.splice(draggedTileIdx, 1)[0];
+            } else { // Should ideally find it in initialRackStateDuringDrag if drag started from rack
+                console.warn("Touch preview: dragged tile not found in initialRackStateDuringDrag");
+                 if (isPreviewRackActive) {
+                    renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+                    isPreviewRackActive = false;
+                 }
+                return; // Cannot create preview
             }
+
+            if (!draggedTileObject) {
+                if (isPreviewRackActive) {
+                    renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+                    isPreviewRackActive = false;
+                }
+                return;
+            }
+
+            let targetIndex = 0;
+            const rackTilesElements = Array.from(rackElement.children);
+
+            if (rackTilesElements.length === 0 || x < rackTilesElements[0].offsetLeft + rackTilesElements[0].offsetWidth / 2) {
+                targetIndex = 0;
+            } else if (x > rackTilesElements[rackTilesElements.length - 1].offsetLeft + rackTilesElements[rackTilesElements.length - 1].offsetWidth / 2) {
+                targetIndex = previewRack.length;
+            } else {
+                for (let i = 0; i < rackTilesElements.length; i++) {
+                    const tileMidPoint = rackTilesElements[i].offsetLeft + rackTilesElements[i].offsetWidth / 2;
+                    if (x < tileMidPoint) {
+                        targetIndex = i;
+                        break;
+                    }
+                    if (i === rackTilesElements.length - 1) {
+                        targetIndex = i + 1;
+                    }
+                }
+            }
+            previewRack.splice(targetIndex, 0, draggedTileObject);
+            finalPreviewRackOrder = [...previewRack]; // Store for potential drop
+            renderRacks(currentGame, localPlayerId, previewRack, touchDraggedTileId);
+            isPreviewRackActive = true;
+            // Remove general rack drag over if specific tile preview is shown
+            rackElement.classList.remove('touch-drag-over');
+
+        } else if (squareElement) {
+            // Logic for highlighting board squares (touch-drag-over)
+            const r = parseInt(squareElement.dataset.row);
+            const c = parseInt(squareElement.dataset.col);
+            const boardSquare = currentGame.board.grid[r][c];
+            const isOriginalSquare = boardSquare.tile && boardSquare.tile.id === touchDraggedTileId;
+            if (!boardSquare.tile || isOriginalSquare) {
+                squareElement.classList.add('touch-drag-over');
+            }
+            // If we were showing rack preview but moved to a square, clear rack preview
+            if (isPreviewRackActive) {
+                renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag || localPlayer.rack);
+                isPreviewRackActive = false;
+            }
+        } else { // Not over a square or the rack
+            if (isPreviewRackActive) {
+                renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag || localPlayer.rack);
+                isPreviewRackActive = false;
+            }
+            // If not over a valid square, ensure no square has touch-drag-over
+            // This is already handled by clearing at the start of function for squares.
+            // For the rack itself, if it had touch-drag-over, clear it.
+            rackElement.classList.remove('touch-drag-over');
         }
+    } else if (isPreviewRackActive) { // No element under touch or no local player, but preview was active
+         renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag || (localPlayer ? localPlayer.rack : []));
+         isPreviewRackActive = false;
     }
 }
 
@@ -607,9 +701,16 @@ function handleTouchEnd(event) {
 
             originalParentNode.insertBefore(touchDraggedElement, originalNextSibling);
         }
-        // If the drop failed, a fullRender might be needed to ensure consistency,
-        // especially if the tile was from the board. The drop handlers usually call fullRender.
-        // If we got here, it means no drop handler was called.
+        // If the drop failed, a fullRender might be needed to ensure consistency.
+        if (initialRackStateDuringDrag && currentGame) { // Check if drag started from rack
+            const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+            if (localPlayerInstance) {
+                console.log("Invalid touch drop/cancelled touch from rack. Reverting rack to initial state.");
+                localPlayerInstance.rack = [...initialRackStateDuringDrag];
+            }
+        }
+        // The originalParentNode.insertBefore logic handles visual return for elements not fully processed by drop handlers.
+        // fullRender will ensure the data state is accurately portrayed.
         fullRender(currentGame, localPlayerId);
     }
 
@@ -619,6 +720,14 @@ function handleTouchEnd(event) {
     originalParentNode = null;
     originalNextSibling = null;
     draggedElementOriginalStyles = null;
+    initialRackStateDuringDrag = null; // Reset rack state for touch events
+    if (isPreviewRackActive) { // Ensure rack preview is cleared
+        const localPlayer = currentGame.players.find(p => p.id === localPlayerId);
+        if(localPlayer) renderRacks(currentGame, localPlayerId, localPlayer.rack); // Render actual final state
+        isPreviewRackActive = false;
+    }
+    finalPreviewRackOrder = null; // Reset preview order
+    console.log('Touch End, initialRackStateDuringDrag reset, isPreviewRackActive reset, finalPreviewRackOrder reset.');
 }
 
 // Add a simple CSS class for visual feedback on touch drag over
@@ -627,6 +736,11 @@ styleSheet.innerText = `
     .touch-drag-over { background-color: #cccccc !important; outline: 1px dashed #333; }
     /* Style for the tile being dragged by touch */
     .tile-touch-dragging {
+    }
+    /* Style for the placeholder of a tile being dragged over the rack */
+    .tile-preview-placeholder {
+        opacity: 0.3;
+        border: 1px dashed #000;
         /* opacity: 0.7; */ /* Already set by JS */
         /* transform: scale(1.1); */ /* Optional: make it slightly larger */
     }
@@ -668,12 +782,156 @@ function handleDragStart(event) {
     event.dataTransfer.effectAllowed = 'move';
     event.target.style.opacity = '0.5';
     console.log('Drag Start:', draggedTileId);
+
+    // Store initial rack state
+    if (localPlayerInstance && localPlayerInstance.rack) {
+        initialRackStateDuringDrag = [...localPlayerInstance.rack];
+        console.log('Initial rack state stored:', initialRackStateDuringDrag.map(t => t.id));
+    }
 }
 function handleDragEnd(event) {
     if(event.target && event.target.style) event.target.style.opacity = '1';
-    draggedTileId = null; console.log('Drag End');
+
+    // If draggedTileId is still set here, it means the drop was not on a valid target
+    // or was cancelled. If initialRackStateDuringDrag is also set, revert the rack.
+    if (draggedTileId && initialRackStateDuringDrag && currentGame) {
+        const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
+        if (localPlayerInstance) {
+            console.log("Invalid drop/cancelled drag from rack. Reverting rack to initial state.");
+            localPlayerInstance.rack = [...initialRackStateDuringDrag];
+            // fullRender will be called after resetting other global states.
+        }
+    }
+
+    if (isPreviewRackActive) {
+        const localPlayer = currentGame.players.find(p => p.id === localPlayerId);
+        // Render the actual final state of the rack if a preview was active.
+        // This handles cases where the rack might have been updated by a successful drop
+        // or reverted by the logic above.
+        if (localPlayer) {
+             renderRacks(currentGame, localPlayerId);
+        }
+        isPreviewRackActive = false;
+    }
+
+    draggedTileId = null;
+    initialRackStateDuringDrag = null;
+    finalPreviewRackOrder = null;
+    console.log('Drag End: All drag-related states reset.');
+    fullRender(currentGame, localPlayerId); // Ensure UI is consistent after all operations.
 }
-function handleDragOver(event) { event.preventDefault(); event.dataTransfer.dropEffect = 'move';}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+
+    if (!draggedTileId || !currentGame) {
+        if (isPreviewRackActive) {
+            const player = currentGame ? currentGame.players.find(p => p.id === localPlayerId) : null;
+            if (player && initialRackStateDuringDrag) {
+                renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+            } else if (player) { // Should not happen if initialRackStateDuringDrag is null and preview was active
+                renderRacks(currentGame, localPlayerId);
+            }
+            isPreviewRackActive = false;
+        }
+        return;
+    }
+
+    const localPlayer = currentGame.players.find(p => p.id === localPlayerId);
+    if (!localPlayer) return;
+
+    const rackElement = document.getElementById('local-player-rack');
+    const targetIsRack = rackElement.contains(event.target);
+
+    if (targetIsRack) {
+        if (!initialRackStateDuringDrag) { // Drag started from board
+            if (isPreviewRackActive) {
+                // If a preview was somehow active, revert to the player's actual current rack
+                renderRacks(currentGame, localPlayerId, localPlayer.rack);
+                isPreviewRackActive = false;
+            }
+            return; // No preview if drag started from board and not previously over rack
+        }
+
+        const rackRect = rackElement.getBoundingClientRect();
+        const x = event.clientX - rackRect.left; // x position within the rack
+
+        let previewRack = [...initialRackStateDuringDrag];
+        const draggedTileIndex = previewRack.findIndex(t => t.id === draggedTileId);
+        let draggedTileObject = null;
+
+        if (draggedTileIndex !== -1) {
+            draggedTileObject = previewRack.splice(draggedTileIndex, 1)[0];
+        } else {
+            // Tile is not in the initialRackState, meaning it's likely from the board
+            // or an error. For preview purposes, let's try to find it in the player's current rack
+            // or currentTurnMoves if it was on the board. This case should be rare if initialRackStateDuringDrag is set.
+            const currentBoardMove = currentGame.currentTurnMoves.find(m => m.tileId === draggedTileId);
+            if (currentBoardMove) {
+                draggedTileObject = currentBoardMove.tileRef;
+            } else {
+                 // Fallback: if the tile can't be found, we can't show its preview accurately.
+                 // For now, let's not proceed with preview if the tile object isn't found.
+                 console.warn("Dragged tile object not found for preview based on initialRackStateDuringDrag.");
+                 if (isPreviewRackActive) {
+                    renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+                    isPreviewRackActive = false;
+                 }
+                 return;
+            }
+        }
+
+        if (!draggedTileObject) { // Should be caught by the else above, but as a safeguard.
+            console.warn("Dragged tile object is null, cannot render preview.");
+            if (isPreviewRackActive) {
+                renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+                isPreviewRackActive = false;
+            }
+            return;
+        }
+
+
+        let targetIndex = 0;
+        const rackTiles = Array.from(rackElement.children); // Get current DOM tile elements in rack
+
+        if (rackTiles.length === 0 || x < rackTiles[0].offsetLeft + rackTiles[0].offsetWidth / 2) {
+            targetIndex = 0;
+        } else if (x > rackTiles[rackTiles.length - 1].offsetLeft + rackTiles[rackTiles.length - 1].offsetWidth / 2) {
+            targetIndex = previewRack.length; // Place at the end if after the center of the last tile
+        } else {
+            for (let i = 0; i < rackTiles.length; i++) {
+                const tileRect = rackTiles[i].getBoundingClientRect();
+                // Find midpoint relative to rack's left edge for comparison with x
+                const tileMidPoint = rackTiles[i].offsetLeft + tileRect.width / 2;
+                if (x < tileMidPoint) {
+                    targetIndex = i;
+                    break;
+                }
+                // If cursor is past the midpoint of the last tile shown (that isn't the dragged one)
+                // and we haven't set targetIndex yet, it means it should go after this tile.
+                if (i === rackTiles.length - 1) {
+                    targetIndex = i + 1;
+                }
+            }
+        }
+
+        // Insert the actual dragged tile object as a placeholder for rendering
+        previewRack.splice(targetIndex, 0, draggedTileObject);
+        finalPreviewRackOrder = [...previewRack]; // Store for potential drop
+
+        renderRacks(currentGame, localPlayerId, previewRack, draggedTileId); // Pass draggedTileId to highlight it
+        isPreviewRackActive = true;
+
+    } else { // Target is not the rack
+        if (isPreviewRackActive) {
+            // Revert to the initial state if mouse moves out
+            renderRacks(currentGame, localPlayerId, initialRackStateDuringDrag);
+            isPreviewRackActive = false;
+        }
+    }
+}
+
 function handleDropOnBoard(event) {
     event.preventDefault(); if (!draggedTileId) return;
     const targetSquareElement = event.target.closest('.square');
@@ -735,12 +993,21 @@ function handleDropOnBoard(event) {
         while (assigned.length !== 1 || !/^[A-Z]$/i.test(assigned)) {
             assigned = prompt("Enter a letter for the blank tile (A-Z):");
             if (assigned === null) { // User cancelled prompt
-                // Return tile to local player's rack
-                localPlayerInstance.rack.push(tile);
-                // Remove from currentTurnMoves if it was added
                 const newMoveIdx = currentGame.currentTurnMoves.findIndex(m => m.tileId === tile.id);
                 if (newMoveIdx !== -1) currentGame.currentTurnMoves.splice(newMoveIdx, 1);
-                draggedTileId = null; fullRender(currentGame, localPlayerId); return;
+
+                if (initialRackStateDuringDrag) { // Tile was originally from the rack
+                    console.log("Blank assignment cancelled, reverting rack to initial state.");
+                    localPlayerInstance.rack = [...initialRackStateDuringDrag];
+                } else { // Tile was not from rack (e.g. from bag via board-to-board drag)
+                    console.log("Blank assignment cancelled, returning tile to rack (append).");
+                    localPlayerInstance.rack.push(tile);
+                }
+                // Reset states associated with the drag operation that has now been cancelled.
+                draggedTileId = null;
+                // initialRackStateDuringDrag itself will be reset by handleDragEnd/handleTouchEnd
+                fullRender(currentGame, localPlayerId);
+                return;
             }
             assigned = assigned.toUpperCase();
         }
@@ -779,56 +1046,76 @@ function handleDropOnRack(event) {
         return;
     }
 
-    const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
+    // If drag started from rack and we have a valid preview order, use that.
+    if (initialRackStateDuringDrag && finalPreviewRackOrder && finalPreviewRackOrder.length > 0) {
+        console.log("Applying final preview rack order:", finalPreviewRackOrder.map(t => t.id));
+        localPlayerInstance.rack = [...finalPreviewRackOrder]; // Set the rack to the previewed order
+        // draggedTileId, initialRackStateDuringDrag are reset by their respective end handlers.
+    } else {
+        // This block handles:
+        // 1. Tiles dragged from the board to the rack.
+        // 2. Rack-to-rack drags IF the preview system somehow didn't set finalPreviewRackOrder (fallback/safety).
+        const moveIndex = currentGame.currentTurnMoves.findIndex(m => m.tileId === draggedTileId);
 
-    if (moveIndex === -1) {
-        // Tile was dragged from the local player's rack and dropped back on their rack (rearrangement).
-        const tileIndexInRack = playerRack.findIndex(t => t.id === draggedTileId);
-
-        if (tileIndexInRack !== -1) {
-            const tileToMove = playerRack.splice(tileIndexInRack, 1)[0]; // Remove from rack
-
-            let targetIndex = playerRack.length; // Default to appending
-
-            const targetTileElement = event.target.closest('.tile-in-rack');
-            if (targetTileElement && targetTileElement.dataset.tileId !== draggedTileId) {
-                const targetTileId = targetTileElement.dataset.tileId;
-                const targetTileActualIndex = playerRack.findIndex(t => t.id === targetTileId);
-                if (targetTileActualIndex !== -1) {
-                    targetIndex = targetTileActualIndex; // Insert before the target tile
+        if (moveIndex === -1) { // Tile was likely dragged from the rack (or preview failed)
+            const tileExistsInCurrentRack = playerRack.some(t => t.id === draggedTileId);
+            if (!tileExistsInCurrentRack) { // If tile isn't in current rack, it must have been part of initialRackStateDuringDrag
+                const tileFromInitial = initialRackStateDuringDrag ? initialRackStateDuringDrag.find(t=>t.id === draggedTileId) : null;
+                if (tileFromInitial) {
+                     // This case implies the tile was part of initial drag state but not successfully re-inserted by preview logic.
+                     // We need to manually re-insert it. This is a fallback.
+                     console.warn("handleDropOnRack: Manually re-inserting tile from initialRackStateDuringDrag as preview data was missing.");
+                     let targetIndex = playerRack.length; // Default to appending
+                     const targetTileElement = event.target.closest('.tile-in-rack');
+                     if (targetTileElement && targetTileElement.dataset.tileId !== draggedTileId) {
+                         const targetTileDomId = targetTileElement.dataset.tileId;
+                         const targetTileActualIndex = playerRack.findIndex(t => t.id === targetTileDomId);
+                         if (targetTileActualIndex !== -1) {
+                             targetIndex = targetTileActualIndex;
+                         }
+                     }
+                     playerRack.splice(targetIndex, 0, tileFromInitial); // Add tile to rack at new position
+                     console.log(`Tile ${draggedTileId} fallback-rearranged in local player's rack. New order:`, playerRack.map(t => t.id).join(', '));
+                } else {
+                     console.warn("Rearrange rack (fallback): Dragged tile ID not found anywhere.", draggedTileId);
+                }
+            } else { // Tile is already in current playerRack, this means it's a simple rearrangement without preview data.
+                 // This is the original logic for rack-to-rack without preview taking precedence.
+                const tileIndexInRack = playerRack.findIndex(t => t.id === draggedTileId);
+                if (tileIndexInRack !== -1) {
+                    const tileToMove = playerRack.splice(tileIndexInRack, 1)[0];
+                    let targetIndex = playerRack.length;
+                    const targetTileElement = event.target.closest('.tile-in-rack');
+                    if (targetTileElement && targetTileElement.dataset.tileId !== draggedTileId) {
+                        const targetTileDomId = targetTileElement.dataset.tileId;
+                        const targetTileActualIndex = playerRack.findIndex(t => t.id === targetTileDomId);
+                        if (targetTileActualIndex !== -1) {
+                            targetIndex = targetTileActualIndex;
+                        }
+                    }
+                    playerRack.splice(targetIndex, 0, tileToMove);
+                    console.log(`Tile ${draggedTileId} rearranged (manual/no-preview) in local player's rack. New order:`, playerRack.map(t => t.id).join(', '));
+                } else {
+                     console.warn("Rearrange rack (manual/no-preview): Dragged tile ID not found in local player's rack.", draggedTileId);
                 }
             }
-            playerRack.splice(targetIndex, 0, tileToMove); // Add tile to rack at new position
-            console.log(`Tile ${draggedTileId} rearranged in local player's rack. New order:`, playerRack.map(t => t.id).join(', '));
-        } else {
-            // This case should ideally not be reached if drag source validation is correct
-            console.warn("Rearrange rack: Dragged tile ID not found in local player's rack.", draggedTileId);
+        } else { // Tile was on the board (part of currentTurnMoves) and is being returned to the rack.
+            const move = currentGame.currentTurnMoves[moveIndex];
+            const tile = move.tileRef;
+            currentGame.board.grid[move.to.row][move.to.col].tile = null;
+            playerRack.push(tile);
+            if (tile.isBlank && move.from === 'rack') { // Should only reset if it was placed from rack *this turn*
+                tile.assignedLetter = null;
+            }
+            currentGame.currentTurnMoves.splice(moveIndex, 1);
+            console.log(`Tile ${tile.id} (${tile.letter || 'blank'}) returned to local player's rack. currentTurnMoves:`, currentGame.currentTurnMoves);
+            draggedTileId = null; // Clear for board-to-rack moves, as dragEnd might not cover touch scenarios correctly.
         }
-        // Resetting draggedTileId is handled by handleDragEnd or handleTouchEnd
-    } else {
-        // Tile was on the board (part of currentTurnMoves) and is being returned to the local player's rack.
-        const move = currentGame.currentTurnMoves[moveIndex];
-        const tile = move.tileRef;
-
-        // Clear the tile from its current board position
-        currentGame.board.grid[move.to.row][move.to.col].tile = null;
-        // Add tile back to the local player's rack
-        playerRack.push(tile);
-
-        // If it was a blank tile placed from rack this turn, reset its assigned letter
-        if (tile.isBlank && move.from === 'rack') {
-            tile.assignedLetter = null;
-        }
-        // Remove the move from currentTurnMoves
-        currentGame.currentTurnMoves.splice(moveIndex, 1);
-        console.log(`Tile ${tile.id} (${tile.letter}) returned to local player's rack. currentTurnMoves:`, currentGame.currentTurnMoves);
-        // Resetting draggedTileId is handled by handleDragEnd or handleTouchEnd, but for board-to-rack, we clear it.
-        draggedTileId = null;
     }
 
+    finalPreviewRackOrder = null; // Always reset after a drop operation.
+    // isPreviewRackActive is reset by handleDragEnd / handleTouchEnd.
     fullRender(currentGame, localPlayerId);
-    // Note: draggedTileId is set to null if it was a board-to-rack move.
-    // For rack-to-rack, it's cleared by the respective drag/touch end handlers.
 }
 
 function handleRecallTiles() {
