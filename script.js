@@ -1781,11 +1781,16 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
         params.append('ex', exchangeData); // exchangeData is either "" for pass or "0,1,2" for exchange
     } else if (turnData && turnData.word) {
         params.append('wl', `${turnData.start_row}.${turnData.start_col}`);
-        params.append('wd', turnData.direction);
+        // params.append('wd', turnData.direction); // Removed as per requirement
         if (turnData.blanks_info && turnData.blanks_info.length > 0) {
             params.append('bt', turnData.blanks_info.map(bi => `${bi.idx}:${bi.al}`).join(';'));
         }
-        params.append('w', turnData.word);
+        // params.append('w', turnData.word); // Removed as per requirement
+        if (turnData.direction === 'horizontal') {
+            params.append('wh', turnData.word);
+        } else if (turnData.direction === 'vertical') {
+            params.append('wv', turnData.word);
+        }
     }
     // Note: A turn can be a play, a pass, or an exchange, but not more than one.
     // So, if 'ex' is present, 'w', 'wl', 'wd', 'bt' should not be.
@@ -2135,10 +2140,22 @@ function applyTurnDataFromURL(gameState, params) {
         }
     }
 
-    const wordStrFromURL = params.get('w');
-    const wordLocation = params.get('wl');
-    const wordDirection = params.get('wd');
-    const blankTileData = params.get('bt');
+    let wordStrFromURL = null;
+    let wordDirection = null;
+    const wordLocation = params.get('wl'); // This remains the same
+    const blankTileData = params.get('bt'); // This remains the same
+
+    const whParam = params.get('wh');
+    const wvParam = params.get('wv');
+
+    if (whParam !== null) {
+        wordStrFromURL = whParam;
+        wordDirection = 'horizontal';
+    } else if (wvParam !== null) {
+        wordStrFromURL = wvParam;
+        wordDirection = 'vertical';
+    }
+    // If neither wh nor wv is found, wordStrFromURL and wordDirection will remain null.
 
     if (wordStrFromURL && wordLocation && wordDirection) {
         console.log(`Applying word-based turn data: ${wordStrFromURL} at ${wordLocation} ${wordDirection} for player ${playerWhoseTurnItWas.name}`);
