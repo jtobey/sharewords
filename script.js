@@ -917,16 +917,42 @@ function validatePlacement(moves, turnNumber, boardState) {
         }
     } else {
         let connects = false, boardHasTiles = false;
-        for(let r_idx=0;r_idx<boardState.size;r_idx++) for(let c_idx=0;c_idx<boardState.size;c_idx++) if(boardState.grid[r_idx][c_idx].tile && !sortedMoves.some(m=>m.to.row===r_idx&&m.to.col===c_idx)) {boardHasTiles=true;break;}
+        // Check if the board has any tiles already placed (excluding the current moves)
+        for(let r_idx=0; r_idx<boardState.size; r_idx++) {
+            for(let c_idx=0; c_idx<boardState.size; c_idx++) {
+                if(boardState.grid[r_idx][c_idx].tile && !sortedMoves.some(m=>m.to.row===r_idx && m.to.col===c_idx)) {
+                    boardHasTiles=true;
+                    break;
+                }
+            }
+            if (boardHasTiles) break;
+        }
+
         if(boardHasTiles){
+            // Board has tiles, so new moves must connect to them
             for(const move of sortedMoves){
                 const {row,col} = move.to;
+                // Check adjacent squares for existing tiles not part of the current move
                 [[row-1,col],[row+1,col],[row,col-1],[row,col+1]].forEach(([nr,nc])=>{
-                    if(nr>=0&&nr<boardState.size&&nc>=0&&nc<boardState.size && boardState.grid[nr][nc].tile && !sortedMoves.some(sm=>sm.to.row===nr&&sm.to.col===nc)) connects=true;
+                    if(nr>=0 && nr<boardState.size && nc>=0 && nc<boardState.size &&
+                       boardState.grid[nr][nc].tile &&
+                       !sortedMoves.some(sm=>sm.to.row===nr && sm.to.col===nc)) {
+                        connects=true;
+                    }
                 });
-                if(connects)break;
+                if(connects) break;
             }
-            if(!connects){validationResult.message="Invalid placement: New words must connect to existing tiles."; return validationResult;}
+            if(!connects){
+                validationResult.message="Invalid placement: New words must connect to existing tiles.";
+                return validationResult;
+            }
+        } else {
+            // Board is empty (even if turnNumber > 0), so enforce center square rule
+            const center = boardState.getCenterSquare();
+            if (!sortedMoves.some(m => m.to.row === center.row && m.to.col === center.col)) {
+                validationResult.message = "Invalid placement: The first word on an empty board must cover the center square.";
+                return validationResult;
+            }
         }
     }
     validationResult.isValid = true; return validationResult;
