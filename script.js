@@ -276,16 +276,11 @@ function GameState(gameId, randomSeed, settings = {}) {
 
     /**
      * Shuffles the tile bag using the game's PRNG.
-     * If PRNG is not available, falls back to Math.random (for robustness, though PRNG should always be set).
      * @private
      */
     this._shuffleBag = function() {
-        const prngFunc = this.prng || Math.random; // Fallback, though this.prng should be set
-        if (!this.prng) {
-            console.error("GameState: PRNG not initialized for shuffling, using Math.random as fallback.");
-        }
         for (let i = this.bag.length - 1; i > 0; i--) {
-            const j = Math.floor(prngFunc() * (i + 1));
+            const j = Math.floor(this.prng() * (i + 1));
             [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]]; // Fisher-Yates shuffle
         }
     };
@@ -486,13 +481,13 @@ function renderBoard(gameState) {
 }
 
 /**
- * Renders the racks for players, focusing on the local player's rack.
+ * Renders the local player's rack.
  * @param {GameState} gameState - The current game state.
  * @param {string} localPlayerId - The ID of the player using this browser instance.
  */
-function renderRacks(gameState, localPlayerId) {
+function renderRack(gameState, localPlayerId) {
     if (!gameState || !gameState.players) {
-        console.error("renderRacks: gameState or players array is missing.");
+        console.error("renderRack: gameState or players array is missing.");
         return;
     }
 
@@ -500,7 +495,7 @@ function renderRacks(gameState, localPlayerId) {
     const localRackElement = document.getElementById('local-player-rack');
 
     if (!localPlayer || !localRackElement) {
-        console.error("renderRacks: Could not find local player or their rack DOM element.");
+        console.error("renderRack: Could not find local player or their rack DOM element.");
         return;
     }
 
@@ -576,7 +571,7 @@ function fullRender(gameState, localPlayerId) {
     // Call individual render functions. These functions have their own internal checks
     // for the existence of their primary DOM elements.
     renderBoard(gameState);
-    renderRacks(gameState, localPlayerId);
+    renderRack(gameState, localPlayerId);
     updateGameStatus(gameState);
 }
 
@@ -1886,7 +1881,7 @@ function handleExchangeTiles() {
     selectedTilesForExchange = []; // Reset any previous selection
     updateControlButtonsVisibility(); // Show confirm/cancel buttons, hide others
     // Re-render is important here:
-    // - renderRacks will make tiles non-draggable.
+    // - renderRack will make tiles non-draggable.
     // - renderTileInRack will add click listeners for selection and apply .selected-for-exchange class.
     fullRender(currentGame, localPlayerId);
 
@@ -2976,5 +2971,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-[end of script.js]
