@@ -1,4 +1,3 @@
-"use strict";
 
 // Crossword Builder Game - Main Script
 // This script handles game logic, UI interaction, and state management.
@@ -1571,29 +1570,6 @@ async function handleCommitPlay() {
     updateControlButtonsVisibility(); // Update button states (e.g., disable Play Word until next turn)
 }
 
-
-// --- UI: Post-Move Modal ---
-/**
- * Shows a modal dialog after a move is committed (play, pass, or exchange).
- * Displays points earned (if any) and provides the turn URL.
- * @param {number} pointsEarned - The number of points earned in the last move.
- * @param {string} turnURL - The URL for the next player's turn.
- */
-function showPostMoveModal(pointsEarned, turnURL) {
-    // Ensure modal elements are defined in the outer scope (DOMContentLoaded)
-    const postMoveModalElement = document.getElementById('post-move-modal');
-    const modalPointsEarnedSpan = document.getElementById('modal-points-earned');
-    const modalCopyCheckbox = document.getElementById('modal-copy-url-checkbox');
-
-    if (!postMoveModalElement || !modalPointsEarnedSpan) {
-        console.error("Post-move modal elements not found for showPostMoveModal.");
-        return;
-    }
-    modalPointsEarnedSpan.textContent = pointsEarned;
-    postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for the copy button/action
-    if (modalCopyCheckbox) modalCopyCheckbox.checked = true; // Default to copying URL
-    postMoveModalElement.removeAttribute('hidden'); // Make the modal visible
-}
 
 // --- Scoring Logic ---
 
