@@ -2,9 +2,11 @@
 
 A serverless, web-based, two-player crossword-building game.
 
+This is not an officially supported Google product. This project is not eligible for the [Google Open Source Software Vulnerability Rewards Program](https://bughunters.google.com/open-source-security).
+
 ## Description
 
-This game is similar to Scrabble™ and Words with Friends™, but with its own unique board layout, letter distributions, and scoring rules. Players take turns forming words on a grid using tiles drawn from a bag. The game relies on the honor system to prevent each player from peeking at the bag contents or at their opponent's tiles.
+This game is similar to Scrabble™ and Words with Friends™, but with its own board layout, letter distributions, and scoring rules. Players take turns forming words on a grid using tiles drawn from a bag. The game relies on the honor system to prevent each player from peeking at the bag contents or at their opponent's tiles.
 
 ## Features
 
