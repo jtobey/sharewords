@@ -1,4 +1,3 @@
-
 // Crossword Builder Game - Main Script
 // This script handles game logic, UI interaction, and state management.
 console.log("Crossword Builder Game script loaded.");
@@ -1442,14 +1441,6 @@ async function handleCommitPlay() {
         } else {
             for (const wordTileArray of allWordsToValidate) {
                 const wordToValidateStr = wordTileArray.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join('');
-
-                // Skip validation for single-letter words if dictionary type is not permissive
-                // (most dictionaries don't list all single letters as words).
-                if (wordToValidateStr.length <= 1 && currentGame.settings.dictionaryType !== 'permissive') {
-                    console.log(`Skipping dictionary validation for single letter: "${wordToValidateStr}"`);
-                    continue;
-                }
-
                 let validationApiUrl = "";
                 let dictionaryNameForAlert = "";
 
