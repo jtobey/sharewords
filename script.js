@@ -3268,5 +3268,4 @@ function initializeGameAndEventListeners() {
     });
 }
 
-
-initializeGameAndEventListeners();
+export { initializeGameAndEventListeners };
