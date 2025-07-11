@@ -3148,12 +3148,11 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
     updateControlButtonsVisibility(); // Ensure button states are correct based on game state
 }
 
-
 /**
  * Main entry point: Sets up event listeners when the DOM is fully loaded.
  * Initializes or loads a game.
  */
-document.addEventListener('DOMContentLoaded', () => {
+function initializeGameAndEventListeners() {
     console.log("DOM fully loaded and parsed. Initializing game and event listeners.");
 
     // Modal elements (cache them for reuse)
@@ -3267,4 +3266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-});
+}
+
+
+document.addEventListener('DOMContentLoaded', initializeGameAndEventListeners);
