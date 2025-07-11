@@ -2068,7 +2068,6 @@ function saveGameStateToLocalStorage(gameState, storage = localStorage) {
             turnNumber: gameState.turnNumber,
             currentPlayerIndex: gameState.currentPlayerIndex,
             isGameOver: gameState.isGameOver,
-            gameHistory: gameState.gameHistory, // Assumed serializable
             players: gameState.players.map(player => ({ // Serialize each player
                 id: player.id,
                 name: player.name,
@@ -2131,7 +2130,6 @@ function serializeGameStateForURL(gameState) {
             turnNumber: gameState.turnNumber,
             currentPlayerIndex: gameState.currentPlayerIndex,
             isGameOver: gameState.isGameOver,
-            gameHistory: gameState.gameHistory, // Assumed serializable
             players: gameState.players.map(player => ({
                 id: player.id,
                 name: player.name,
@@ -2210,7 +2208,6 @@ function deserializeGameStateFromURL(gameStateString) {
         rehydratedGame.turnNumber = parsedData.turnNumber;
         rehydratedGame.currentPlayerIndex = parsedData.currentPlayerIndex;
         rehydratedGame.isGameOver = parsedData.isGameOver;
-        rehydratedGame.gameHistory = parsedData.gameHistory || [];
 
         // Rehydrate players (id, name, score, rack)
         // GameState constructor already creates player objects based on settings.playerNames.
@@ -2359,7 +2356,6 @@ function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
         rehydratedGame.turnNumber = storedData.turnNumber;
         rehydratedGame.currentPlayerIndex = storedData.currentPlayerIndex;
         rehydratedGame.isGameOver = storedData.isGameOver;
-        rehydratedGame.gameHistory = storedData.gameHistory || []; // Default to empty array if not present
 
         // Restore the localPlayerId for this browser instance for this game.
         // This is crucial for UI behavior and turn synchronization.

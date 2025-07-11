@@ -189,7 +189,6 @@ function Player(id, name) {
  * @property {number} turnNumber - The current turn number (0 for the start of the game).
  * @property {Array<object>} currentTurnMoves - Tiles placed on the board in the current turn but not yet committed.
  *                                              Each object: { tileId: string, tileRef: Tile, from: string ('rack'|'board'), to: {row: number, col: number} }
- * @property {Array<object>} gameHistory - Log of significant game events or states (future use).
  * @property {boolean} isGameOver - Flag indicating if the game has ended.
  */
 function GameState(gameId, randomSeed, settings = {}) {
@@ -284,7 +283,6 @@ function GameState(gameId, randomSeed, settings = {}) {
 
     this.turnNumber = 0;
     this.currentTurnMoves = []; // Stores { tileId, tileRef, from, to } for uncommitted moves
-    this.gameHistory = []; // For potential future use (e.g., undo, replay)
     this.isGameOver = false;
 
     /** Gets the current player object. @returns {Player} */
