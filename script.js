@@ -3269,4 +3269,4 @@ function initializeGameAndEventListeners() {
 }
 
 
-document.addEventListener('DOMContentLoaded', initializeGameAndEventListeners);
+initializeGameAndEventListeners();
