@@ -1,0 +1,14 @@
+{
+  "name": "sharewords",
+  "version": "1.0.0",
+  "description": "Crossword Building Game",
+  "main": "main.js",
+  "scripts": {
+    "test": "node run-tests.mjs"
+  },
+  "author": "",
+  "devDependencies": {
+    "chai": "^5.2.1",
+    "mocha": "^11.7.1"
+  }
+}

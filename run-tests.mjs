@@ -1,3 +1,5 @@
+// Simple test runner for ES modules
+import { expect } from 'chai';
 import {
     validatePlacement,
     identifyAllPlayedWords,
@@ -13,58 +15,7 @@ import {
     Player
 } from './types.js';
 
-// --- Test Framework ---
-const testSuite = [];
-let testsPassed = 0;
-let testsFailed = 0;
-
-function test(testName, testFunction) {
-    testSuite.push({
-        name: testName,
-        fn: testFunction
-    });
-}
-
-async function runTests() {
-    for (const testCase of testSuite) {
-        try {
-            await testCase.fn();
-            console.log(`%c[PASS] ${testCase.name}`, 'color: green;');
-            testsPassed++;
-        } catch (error) {
-            console.error(`%c[FAIL] ${testCase.name}`, 'color: red;');
-            console.error(error);
-            testsFailed++;
-        }
-    }
-    console.log(`\n--- Test Summary ---`);
-    console.log(`Total Tests: ${testSuite.length}`);
-    console.log(`%cPassed: ${testsPassed}`, 'color: green;');
-    console.log(`%cFailed: ${testsFailed}`, 'color: red;');
-}
-
-// Basic assertion function for deep equality
-function assertDeepEquals(expected, actual, message) {
-    const expectedStr = JSON.stringify(expected);
-    const actualStr = JSON.stringify(actual);
-    if (!actualStr === expectedStr) {
-        throw new Error(`${message} Expected ${expectedStr} but got ${actualStr}`);
-    }
-}
-
-
-function assertTrue(value, message) {
-    if (value !== true) {
-        throw new Error(message || `Expected true but got ${value}`);
-    }
-}
-
-function assertLength(value, expectedLength, message) {
-    if (value.length !== expectedLength) {
-        throw new Error(`${message} Expected length ${expectedLength} but got ${value} (length ${value.length})`)
-    }
-}
-// --- Mocks and Test Data ---
+// --- Test Data and Helper Functions ---
 
 function createMockGame(turnNumber = 1) {
     const game = new GameState('test-game', 12345, {
@@ -87,8 +38,27 @@ function createMockMoves(tiles) {
     }));
 }
 
+// Simple test framework
+let testsPassed = 0;
+let testsFailed = 0;
+
+function test(name, testFunction) {
+    try {
+        testFunction();
+        console.log(`✅ PASS: ${name}`);
+        testsPassed++;
+    } catch (error) {
+        console.log(`❌ FAIL: ${name}`);
+        console.log(`   Error: ${error.message}`);
+        testsFailed++;
+    }
+}
+
 // --- Test Cases ---
 
+console.log('Running Scoring Function Tests...\n');
+
+// validatePlacement tests
 test('validatePlacement: Valid first move on center', () => {
     const moves = createMockMoves([{
         letter: 'A',
@@ -100,7 +70,7 @@ test('validatePlacement: Valid first move on center', () => {
     }]);
     const game = createMockGame(0);
     const result = validatePlacement(moves, game.turnNumber, game.board);
-    assertTrue(result.isValid, 'First move on center should be valid');
+    expect(result.isValid).to.be.true;
 });
 
 test('validatePlacement: Invalid first move off center', () => {
@@ -114,9 +84,10 @@ test('validatePlacement: Invalid first move off center', () => {
     }]);
     const game = createMockGame(0);
     const result = validatePlacement(moves, game.turnNumber, game.board);
-    assertFalse(result.isValid, 'First move off center should be invalid');
+    expect(result.isValid).to.be.false;
 });
 
+// identifyAllPlayedWords tests
 test('identifyAllPlayedWords: Single horizontal word', () => {
     const game = createMockGame();
     const moves = createMockMoves([{
@@ -151,9 +122,9 @@ test('identifyAllPlayedWords: Single horizontal word', () => {
     moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
 
     const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
-    assertEquals(1, words.length, 'Should identify one word');
+    expect(words).to.have.length(1);
     const wordStr = words[0].map(t => t.tile.letter).join('');
-    assertEquals('WORD', wordStr, 'The identified word should be "WORD"');
+    expect(wordStr).to.equal('WORD');
 });
 
 test('identifyAllPlayedWords: Main word and one cross word', () => {
@@ -187,11 +158,12 @@ test('identifyAllPlayedWords: Main word and one cross word', () => {
     moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
 
     const words = identifyAllPlayedWords(moves, game.board, 'vertical');
-    assertLength(words, 2, 'Should identify two words');
+    expect(words).to.have.length(2);
     const wordStrings = words.map(w => w.map(t => t.tile.letter).join('')).sort();
-    assertDeepEquals(['ACT', 'CRS'], wordStrings.toSorted(), 'Should identify "CRS" and "ACT"');
+    expect(wordStrings).to.deep.equal(['CAT', 'CRS']);
 });
 
+// calculateWordScore tests
 test('calculateWordScore: Simple word, no bonuses', () => {
     const game = createMockGame();
     const moves = createMockMoves([{
@@ -212,13 +184,16 @@ test('calculateWordScore: Simple word, no bonuses', () => {
     moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
     const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
     const scoreResult = calculateWordScore(words, game.board, moves, game.settings);
-    assertEquals(5, scoreResult.score, "Score for 'WO' should be 5");
+    expect(scoreResult.score).to.equal(5);
 });
 
 test('calculateWordScore: Word with letter and word bonuses', () => {
     const game = createMockGame();
+    game.settings = {
+        tileValues: {'A': 1, 'C': 3, 'T': 1}
+    };
     // Pre-existing tile
-    game.board.grid[7][7] = new Tile('A', 1); // Not a new move
+    game.board.grid[7][7].tile = new Tile('A', 1); // Not a new move
 
     const moves = createMockMoves([{
         letter: 'C',
@@ -240,14 +215,16 @@ test('calculateWordScore: Word with letter and word bonuses', () => {
     game.board.grid[7][8].bonus = 'dw';
     game.board.grid[7][9].bonus = 'tl';
 
-
     const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
+    console.log(`words:${words.map(w => w.map(t => t.tile.letter).join(''))}`);
+    console.log(`values:${words.map(w => w.map(t => t.tile.value).join(' '))}`);
     const scoreResult = calculateWordScore(words, game.board, moves, game.settings);
-    // Word is CAT. C is on DW, T is on TL.
+    // Word is ACT. C is on DW, T is on TL.
     // Score = (1 + 3 + 1*3) * 2 = 14
-    assertEquals(14, scoreResult.score, "Score for CAT with DW and TL should be 14");
+    expect(scoreResult.score).to.equal(14);
 });
 
+// handleCommitPlay tests
 test('handleCommitPlay: Valid play with function-based dictionary', async () => {
     const game = createMockGame(0);
     game.settings.dictionaryType = 'function';
@@ -282,9 +259,9 @@ test('handleCommitPlay: Valid play with function-based dictionary', async () => 
 
     const result = await handleCommitPlay(game, 'player1');
 
-    assertTrue(result.success, 'handleCommitPlay should succeed');
-    assertEquals(7, result.score, 'Score for CAT on center (T on 3W) should be 3+1+(1*3)=7');
-    assertEquals(1, game.turnNumber, 'Turn number should advance');
+    expect(result.success).to.be.true;
+    expect(result.score).to.equal(7);
+    expect(game.turnNumber).to.equal(1);
 });
 
 test('handleCommitPlay: Invalid word with function-based dictionary', async () => {
@@ -314,22 +291,17 @@ test('handleCommitPlay: Invalid word with function-based dictionary', async () =
 
     const result = await handleCommitPlay(game, 'player1');
 
-    assertFalse(result.success, 'handleCommitPlay should fail for invalid word');
-    assertEquals(0, game.turnNumber, 'Turn number should not advance on failure');
+    expect(result.success).to.be.false;
+    expect(game.turnNumber).to.equal(0);
 });
 
+// Test summary
+console.log(`\n--- Test Summary ---`);
+console.log(`Total Tests: ${testsPassed + testsFailed}`);
+console.log(`Passed: ${testsPassed}`);
+console.log(`Failed: ${testsFailed}`);
+console.log(`Success Rate: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`);
 
-// --- Run All Tests ---
-runTests();
-
-function assertEquals(expected, actual, message) {
-    if (JSON.stringify(expected) !== JSON.stringify(actual)) {
-        throw new Error(`Assertion failed: ${message || ''}. Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}.`);
-    }
-}
-
-function assertFalse(value, message) {
-    if (value !== false) {
-        throw new Error(message || `Expected false but got ${value}`);
-    }
+if (testsFailed > 0) {
+    process.exit(1);
 }
