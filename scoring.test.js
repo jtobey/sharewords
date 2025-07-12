@@ -60,7 +60,12 @@ function assertTrue(value, message) {
 // --- Mocks and Test Data ---
 
 function createMockGame(turnNumber = 1) {
-    const game = new GameState('test-game', 12345);
+    const game = new GameState('test-game', 12345, {
+        playerNames: {
+            player1: "Player 1",
+            player2: "Player 2"
+        }
+    });
     game.turnNumber = turnNumber;
     game.players = [new Player('player1', 'Player 1'), new Player('player2', 'Player 2')];
     game.board = new Board();
@@ -240,7 +245,7 @@ test('handleCommitPlay: Valid play with function-based dictionary', async () => 
     const game = createMockGame(0);
     game.settings.dictionaryType = 'function';
     game.settings.dictionaryUrlOrFunction = (word) => {
-        return word === 'cat';
+        return word.toLowerCase() === 'cat';
     };
     game.currentTurnMoves = createMockMoves([{
         letter: 'C',
@@ -279,7 +284,7 @@ test('handleCommitPlay: Invalid word with function-based dictionary', async () =
     const game = createMockGame(0);
     game.settings.dictionaryType = 'function';
     game.settings.dictionaryUrlOrFunction = (word) => {
-        return word === 'valid';
+        return word.toLowerCase() === 'valid';
     };
     game.currentTurnMoves = createMockMoves([{
         letter: 'I',
@@ -313,5 +318,11 @@ runTests();
 function assertEquals(expected, actual, message) {
     if (JSON.stringify(expected) !== JSON.stringify(actual)) {
         throw new Error(`Assertion failed: ${message || ''}. Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}.`);
+    }
+}
+
+function assertFalse(value, message) {
+    if (value !== false) {
+        throw new Error(message || `Expected false but got ${value}`);
     }
 }
