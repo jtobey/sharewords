@@ -12,12 +12,10 @@ import {
     GameState
 } from './types.js';
 import {
-    validatePlacement,
-    identifyPlayedWord,
     identifyAllPlayedWords,
     calculateWordScore,
     handleCommitPlay as handleCommitPlayLogic,
-    generateTurnUrlParams as generateTurnUrlParamsLogic
+    generateTurnUrlParams
 } from './scoring.js';
 
 // Crossword Builder Game - Main Script
@@ -1192,27 +1190,6 @@ function updateAfterMove(turnUrlParams, pointsEarned) {
     showPostMoveModal(pointsEarned, turnURL);
     saveGameStateToLocalStorage(currentGame);
     fullRender(currentGame, localPlayerId);
-}
-
-/**
- * Generates params for a shareable URL representing the current game turn or setup.
- * Includes game ID, turn number, and data specific to the action (play, exchange, pass).
- * For the first turn by Player 1, it also includes the game seed and any custom settings.
- *
- * @param {GameState} game - The current game.
- * @param {string} playerId - The local player ID.
- * @param {?object} turnData - Data about a word play (word, location, blanks). Null for pass/exchange.
- *                             Expected structure: { word: string, start_row: number, start_col: number,
- *                                                 direction: string, blanks_info: Array<{idx: number, al: string}> }
- * @param {?number} [seed=null] - The game's random seed. Only included for P1's first turn URL.
- * @param {?object} [settings=null] - Custom game settings. Only included for P1's first turn URL.
- * @param {?string} [exchangeData=null] - Data about tile exchange.
- *                                       Empty string ("") for a pass, or comma-separated indices for exchanged tiles.
- *                                       Null if the turn is a word play.
- * @returns {URLSearchParams} The generated turn URL params.
- */
-function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
-    return generateTurnUrlParamsLogic(game, playerId, turnData, seed, settings, exchangeData);
 }
 
 /**

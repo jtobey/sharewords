@@ -16,7 +16,7 @@ import {
  *          Result object: `isValid` (boolean), `message` (string, error message if invalid),
  *          `direction` (string 'horizontal'|'vertical', the determined line direction of the play).
  */
-export function validatePlacement(moves, turnNumber, boardState) {
+function validatePlacement(moves, turnNumber, boardState) {
     const validationResult = { isValid: false, message: "", direction: null };
     if (!moves || moves.length === 0) {
         validationResult.message = "No tiles placed to validate.";
@@ -147,7 +147,7 @@ export function validatePlacement(moves, turnNumber, boardState) {
  *          An object with word details, or null if identification fails.
  *          `blanks_info`: array of objects, each {idx: index_in_word, al: assigned_letter}.
  */
-export function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
+function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
     if (!identifiedDirection || !committedMovesInput || committedMovesInput.length === 0) {
         console.warn("identifyPlayedWord: Missing direction or moves. Cannot identify word for URL.");
         return null;
