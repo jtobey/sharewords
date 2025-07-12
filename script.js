@@ -1255,19 +1255,9 @@ async function handleCommitPlay() {
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
     const seedForURL = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const settingsForURL = isFirstTurnByP1 ? currentGame.settings : null;
-    turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, wordDataForURL, seedForURL, settingsForURL);
+    const turnUrlParams = generateTurnUrlParams(currentGame.gameId, currentGame.turnNumber, wordDataForURL, seedForURL, settingsForURL);
 
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        turnUrlInput.placeholder = "Share this URL with the other player."; // Placeholder might be too late if value is set
-        console.log("Turn URL generated:", turnURL);
-    }
-
-    showPostMoveModal(scoreResult.score, turnURL); // Show modal with score and URL
-    saveGameStateToLocalStorage(currentGame); // Save game state
-    fullRender(currentGame, localPlayerId); // Full UI refresh
-    updateControlButtonsVisibility(); // Update button states (e.g., disable Play Word until next turn)
+    updateAfterMove(turnUrlParams, scoreResult.score);
 }
 
 
@@ -1514,19 +1504,9 @@ function handlePassTurn() {
     const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
     // The `null` for turnData indicates no word was played. The `""` for exchangeData signifies a pass.
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
+    const turnUrlParams = generateTurnUrlParams(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, "");
 
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        // turnUrlInput.placeholder = "Share this URL with the other player."; // Placeholder might be less useful if value always set
-        console.log("Pass Turn URL generated:", turnURL);
-    }
-
-    showPostMoveModal(0, turnURL); // Show modal (0 points for pass)
-    saveGameStateToLocalStorage(currentGame); // Save the new game state
-    fullRender(currentGame, localPlayerId); // Refresh the UI
-    updateControlButtonsVisibility(); // Update button states for the new turn
+    updateAfterMove(turnUrlParams, 0);
 }
 
 
@@ -1662,21 +1642,9 @@ function handleConfirmExchange() {
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
     const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
-    const turnURL = generateTurnURL(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, urlExchangeIndicesString);
+    const turnUrlParams = generateTurnUrlParams(currentGame.gameId, currentGame.turnNumber, null, urlSeed, urlSettings, urlExchangeIndicesString);
 
-    const turnUrlInput = document.getElementById('turn-url');
-    if (turnUrlInput) {
-        turnUrlInput.value = turnURL;
-        console.log("Exchange Turn URL generated:", turnURL);
-    }
-
-    // Cleanup and UI updates
-    selectedTilesForExchange = [];
-    isExchangeModeActive = false;
-    updateControlButtonsVisibility();
-    showPostMoveModal(0, turnURL); // 0 points for exchange
-    saveGameStateToLocalStorage(currentGame);
-    fullRender(currentGame, localPlayerId);
+    updateAfterMove(turnUrlParams, 0);
 }
 
 /**
@@ -1742,8 +1710,26 @@ function updateControlButtonsVisibility() {
     // Recall Tiles should be disabled if currentTurnMoves is empty.
 }
 
+function updateAfterMove(turnUrlParams, pointsEarned) {
+    const baseURL = window.location.origin + window.location.pathname;
+    const turnURL = `${baseURL}?${turnUrlParams.toString()}`;
+    const turnUrlInput = document.getElementById('turn-url');
+    if (turnUrlInput) {
+        turnUrlInput.value = turnURL;
+        console.log("Exchange Turn URL generated:", turnURL);
+    }
+
+    // Cleanup and UI updates
+    selectedTilesForExchange = [];
+    isExchangeModeActive = false;
+    updateControlButtonsVisibility();
+    showPostMoveModal(pointsEarned, turnURL);
+    saveGameStateToLocalStorage(currentGame);
+    fullRender(currentGame, localPlayerId);
+}
+
 /**
- * Generates a shareable URL representing the current game turn or setup.
+ * Generates params for a shareable URL representing the current game turn or setup.
  * Includes game ID, turn number, and data specific to the action (play, exchange, pass).
  * For the first turn by Player 1, it also includes the game seed and any custom settings.
  *
@@ -1757,10 +1743,9 @@ function updateControlButtonsVisibility() {
  * @param {?string} [exchangeData=null] - Data about tile exchange.
  *                                       Empty string ("") for a pass, or comma-separated indices for exchanged tiles.
  *                                       Null if the turn is a word play.
- * @returns {string} The generated turn URL.
+ * @returns {URLSearchParams} The generated turn URL params.
  */
-function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = null, exchangeData = null) {
-    const baseURL = window.location.origin + window.location.pathname;
+function generateTurnUrlParams(gameId, turnNumber, turnData, seed = null, settings = null, exchangeData = null) {
     const params = new URLSearchParams();
     params.append('gid', gameId); // Game ID
     params.append('tn', turnNumber); // Turn Number
@@ -1840,7 +1825,7 @@ function generateTurnURL(gameId, turnNumber, turnData, seed = null, settings = n
         // 'w' (full word string) was also removed.
     }
     // Note: A turn is exclusively a play, pass, or exchange. Parameters should reflect this.
-    return `${baseURL}?${params.toString()}`;
+    return params;
 }
 
 /**
