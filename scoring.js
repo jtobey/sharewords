@@ -319,24 +319,9 @@ export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
 
         // Add the cross-word if it's longer than one letter.
         if (crossWordCandidateTiles.length > 1) {
-            // Avoid duplicating the main word if it was identified as a cross-word (can happen if main word is short).
-            // A simple check is by content and start position/direction.
-            // However, a robust check for full duplication (same tiles, same positions) is better.
-            let isDuplicateOfMain = false;
-            if (allWords.length > 0 && allWords[0].length === crossWordCandidateTiles.length) {
-                isDuplicateOfMain = allWords[0].every((mainTilePos, idx) =>
-                    mainTilePos.r === crossWordCandidateTiles[idx].r && mainTilePos.c === crossWordCandidateTiles[idx].c
-                );
-            }
-            if (!isDuplicateOfMain) {
-                 allWords.push(crossWordCandidateTiles);
-            }
+            allWords.push(crossWordCandidateTiles);
         }
     }
-    // TODO: Ensure no duplicate words are added if multiple new tiles extend the same cross-word.
-    // Current logic might add the same cross-word multiple times if several new tiles fall into it.
-    // A final deduplication step on `allWords` based on content and start/end coordinates might be needed.
-    // For now, `calculateWordScore` might effectively handle this if bonuses are only counted once per square.
     return allWords;
 }
 
