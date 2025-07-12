@@ -234,7 +234,7 @@ function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
  *          its row (`r`), and column (`c`).
  *          Returns an empty array if no words are formed or if inputs are invalid.
  */
-export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
+function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
     if (!placedMoves || placedMoves.length === 0 || !board || !mainWordDirection) {
         console.warn("identifyAllPlayedWords: Invalid input (placedMoves, board, or mainWordDirection).");
         return [];
@@ -339,7 +339,7 @@ export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
  *          An object containing the total `score` for the turn and an array `usedBonusSquares`
  *          listing coordinates of bonus squares that were applied in this turn.
  */
-export function calculateWordScore(words, board, placedMoves, gameSettings) {
+function calculateWordScore(words, board, placedMoves, gameSettings) {
     let totalTurnScore = 0;
     const bonusSquaresActivatedThisTurn = []; // Tracks {r, c} of bonuses applied in this turn.
     const effectiveTileValues = gameSettings.tileValues || DEFAULT_TILE_VALUES;
@@ -641,3 +641,12 @@ function generateTurnUrlParams(game, playerId, turnData, seed = null, settings =
     }
     return params;
 }
+
+export {
+    validatePlacement,
+    identifyPlayedWord,
+    identifyAllPlayedWords,
+    calculateWordScore,
+    handleCommitPlay,
+    generateTurnUrlParams
+};
