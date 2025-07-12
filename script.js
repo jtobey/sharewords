@@ -35,7 +35,7 @@ Example structure for customGameSettings (passed to GameState constructor or set
   "blankTileCount": 2, // Optional, defaults to 2
   "sevenTileBonus": 50, // Optional, defaults to 50
   "dictionaryType": "permissive" | "freeapi" | "custom", // Optional, defaults to "permissive"
-  "dictionaryUrl": "https://api.example.com/dict?word=", // Optional, needed if dictionaryType is "custom"
+  "dictionaryUrlOrFunction": "https://api.example.com/dict?word=", // Optional, needed if dictionaryType is "custom"
   "customBoardLayout": ["T..d...", ".D..t...", ...], // Optional, array of 15 strings for board layout
   "playerNames": { "player1": "Alice", "player2": "Bob" } // Optional
 }
@@ -1269,7 +1269,7 @@ function startGameWithSettings() {
 
     const collectedGameSettings = {
         dictionaryType: selectedDictionaryType,
-        dictionaryUrl: customDictionaryUrl
+        dictionaryUrlOrFunction: customDictionaryUrl
         // Other game settings will be parsed and added below
     };
 
@@ -2141,7 +2141,7 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
                 const urlDictTypeTurn = params.get('dt');
                 if (urlDictTypeTurn) newGameSettingsFromTurnUrl.dictionaryType = urlDictTypeTurn;
                 const urlDictUrlTurn = params.get('du');
-                if (urlDictUrlTurn) newGameSettingsFromTurnUrl.dictionaryUrl = urlDictUrlTurn;
+                if (urlDictUrlTurn) newGameSettingsFromTurnUrl.dictionaryUrlOrFunction = urlDictUrlTurn;
                 try {
                     const urlLetterDistTurn = params.get('ld');
                     if (urlLetterDistTurn) newGameSettingsFromTurnUrl.letterDistribution = JSON.parse(urlLetterDistTurn);

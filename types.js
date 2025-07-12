@@ -202,7 +202,7 @@ function GameState(gameId, randomSeed, settings = {}) {
         blankTileCount: settings.blankTileCount !== undefined ? settings.blankTileCount : 2, // Default is 2
         sevenTileBonus: settings.sevenTileBonus !== undefined ? settings.sevenTileBonus : 50, // Default is 50
         dictionaryType: settings.dictionaryType || 'permissive',
-        dictionaryUrl: settings.dictionaryUrl || null,
+        dictionaryUrlOrFunction: settings.dictionaryUrlOrFunction || null,
         tileValues: settings.tileValues || { ...DEFAULT_TILE_VALUES },
         letterDistribution: settings.letterDistribution || { ...DEFAULT_LETTER_DISTRIBUTION },
         customBoardLayout: settings.customBoardLayout || null, // Will be used by Board constructor

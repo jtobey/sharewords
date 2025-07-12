@@ -466,18 +466,29 @@ export async function handleCommitPlay(game, localPlayerId) {
         } else {
             for (const wordTileArray of allWordsToValidate) {
                 const wordToValidateStr = wordTileArray.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join('');
+                let validationFunction = null;
                 let validationApiUrl = "";
                 let dictionaryNameForAlert = "";
 
                 if (game.settings.dictionaryType === 'freeapi') {
                     validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidateStr.toLowerCase()}`;
                     dictionaryNameForAlert = "Free Dictionary API";
-                } else if (game.settings.dictionaryType === 'custom' && game.settings.dictionaryUrl) {
-                    validationApiUrl = `${game.settings.dictionaryUrl}${wordToValidateStr.toLowerCase()}`;
+                } else if (game.settings.dictionaryType === 'custom' && game.settings.dictionaryUrlOrFunction) {
+                    validationApiUrl = `${game.settings.dictionaryUrlOrFunction}${wordToValidateStr.toLowerCase()}`;
                     dictionaryNameForAlert = "Custom Dictionary";
+                } else if (game.settings.dictionaryType === 'function' && typeof game.settings.dictionaryUrlOrFunction === 'function') {
+                    validationFunction = game.settings.dictionaryUrlOrFunction;
                 }
 
-                if (validationApiUrl) {
+                if (validationFunction) {
+                    if (!validationFunction(wordToValidateStr.toLowerCase())) {
+                        return {
+                            success: false,
+                            message: `Dictionary function returned false for word "${wordToValidateStr}". Play rejected.`
+                        };
+                    }
+                }
+                else if (validationApiUrl) {
                     console.log(`Validating word: "${wordToValidateStr}" using ${dictionaryNameForAlert} at URL: ${validationApiUrl}`);
                     try {
                         const response = await fetch(validationApiUrl);
@@ -600,8 +611,8 @@ export function generateTurnUrlParams(game, playerId, turnData, seed = null, set
     if (effectiveSettings && game.turnNumber === 1 && playerId === 'player1') {
         if (effectiveSettings.dictionaryType && effectiveSettings.dictionaryType !== 'permissive') {
             params.append('dt', effectiveSettings.dictionaryType);
-            if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrl) {
-                params.append('du', effectiveSettings.dictionaryUrl);
+            if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrlOrFunction) {
+                params.append('du', effectiveSettings.dictionaryUrlOrFunction);
             }
         }
         if (effectiveSettings.letterDistribution && JSON.stringify(effectiveSettings.letterDistribution) !== JSON.stringify(DEFAULT_LETTER_DISTRIBUTION)) {
