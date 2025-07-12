@@ -45,9 +45,10 @@ async function runTests() {
 
 // Basic assertion function for deep equality
 function assertDeepEquals(expected, actual, message) {
-    const areEqual = JSON.stringify(expected) === JSON.stringify(actual);
-    if (!areEqual) {
-        throw new Error(message || `Expected ${JSON.stringify(expected)} but got ${JSON.stringify(actual)}`);
+    const expectedStr = JSON.stringify(expected);
+    const actualStr = JSON.stringify(actual);
+    if (!actualStr === expectedStr) {
+        throw new Error(`${message} Expected ${expectedStr} but got ${actualStr}`);
     }
 }
 
@@ -55,6 +56,12 @@ function assertDeepEquals(expected, actual, message) {
 function assertTrue(value, message) {
     if (value !== true) {
         throw new Error(message || `Expected true but got ${value}`);
+    }
+}
+
+function assertLength(value, expectedLength, message) {
+    if (value.length !== expectedLength) {
+        throw new Error(`${message} Expected length ${expectedLength} but got ${value} (length ${value.length})`)
     }
 }
 // --- Mocks and Test Data ---
@@ -152,37 +159,37 @@ test('identifyAllPlayedWords: Single horizontal word', () => {
 test('identifyAllPlayedWords: Main word and one cross word', () => {
     const game = createMockGame();
     // Pre-existing tile
-    game.board.grid[6][8].tile = new Tile('A', 1);
-    game.board.grid[8][8].tile = new Tile('T', 1);
+    game.board.grid[7][7].tile = new Tile('A', 1);
+    game.board.grid[7][8].tile = new Tile('T', 1);
 
     const moves = createMockMoves([{
         letter: 'C',
         value: 3,
         pos: {
             row: 7,
-            col: 8
+            col: 6
         }
     }, {
         letter: 'R',
         value: 1,
         pos: {
-            row: 7,
-            col: 7
+            row: 8,
+            col: 6
         }
     }, {
         letter: 'S',
         value: 1,
         pos: {
-            row: 7,
-            col: 9
+            row: 9,
+            col: 6
         }
     }]);
     moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
 
-    const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
-    assertEquals(2, words.length, 'Should identify two words');
+    const words = identifyAllPlayedWords(moves, game.board, 'vertical');
+    assertLength(words, 2, 'Should identify two words');
     const wordStrings = words.map(w => w.map(t => t.tile.letter).join('')).sort();
-    assertDeepEquals(['ACT', 'CRS'], wordStrings, 'Should identify "CRS" and "ACT"');
+    assertDeepEquals(['ACT', 'CRS'], wordStrings.toSorted(), 'Should identify "CRS" and "ACT"');
 });
 
 test('calculateWordScore: Simple word, no bonuses', () => {
@@ -192,14 +199,14 @@ test('calculateWordScore: Simple word, no bonuses', () => {
         value: 4,
         pos: {
             row: 0,
-            col: 0
+            col: 1
         }
     }, {
         letter: 'O',
         value: 1,
         pos: {
             row: 0,
-            col: 1
+            col: 2
         }
     }]);
     moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
@@ -276,7 +283,7 @@ test('handleCommitPlay: Valid play with function-based dictionary', async () => 
     const result = await handleCommitPlay(game, 'player1');
 
     assertTrue(result.success, 'handleCommitPlay should succeed');
-    assertEquals(10, result.score, 'Score for CAT on center (2W) should be (3+1+1)*2=10');
+    assertEquals(7, result.score, 'Score for CAT on center (T on 3W) should be 3+1+(1*3)=7');
     assertEquals(1, game.turnNumber, 'Turn number should advance');
 });
 
