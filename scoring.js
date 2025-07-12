@@ -416,15 +416,6 @@ export function calculateWordScore(words, board, placedMoves, gameSettings) {
  * - Generates and displays turn URL.
  * - Saves game state.
  */
-export {
-    validatePlacement,
-    identifyPlayedWord,
-    identifyAllPlayedWords,
-    calculateWordScore,
-    handleCommitPlay,
-    generateTurnUrlParams
-};
-
 async function handleCommitPlay(game, localPlayerId) {
     if (!game || game.getCurrentPlayer().id !== localPlayerId) {
         return {
@@ -583,7 +574,7 @@ async function handleCommitPlay(game, localPlayerId) {
  *                                       Null if the turn is a word play.
  * @returns {URLSearchParams} The generated turn URL params.
  */
-export function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
+function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
     const params = new URLSearchParams();
     params.append('gid', game.gameId);
     params.append('tn', game.turnNumber);

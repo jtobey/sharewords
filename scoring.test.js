@@ -2,7 +2,9 @@ import {
     validatePlacement,
     identifyAllPlayedWords,
     calculateWordScore,
-    handleCommitPlay
+    handleCommitPlay,
+    identifyPlayedWord,
+    generateTurnUrlParams
 } from './scoring.js';
 import {
     GameState,
