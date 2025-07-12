@@ -416,7 +416,16 @@ export function calculateWordScore(words, board, placedMoves, gameSettings) {
  * - Generates and displays turn URL.
  * - Saves game state.
  */
-export async function handleCommitPlay(game, localPlayerId) {
+export {
+    validatePlacement,
+    identifyPlayedWord,
+    identifyAllPlayedWords,
+    calculateWordScore,
+    handleCommitPlay,
+    generateTurnUrlParams
+};
+
+async function handleCommitPlay(game, localPlayerId) {
     if (!game || game.getCurrentPlayer().id !== localPlayerId) {
         return {
             success: false,
