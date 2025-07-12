@@ -311,8 +311,8 @@ export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
             }
         } else { // Vertical
             while (currentCrossR < board.size && board.grid[currentCrossR][crossScanC].tile) {
-                crossWordCandidateTiles.push({ tile: board.grid[currentCrossR][crossScanC].tile, r: currentCrossR, c: scanC });
-                currentR++;
+                crossWordCandidateTiles.push({ tile: board.grid[currentCrossR][crossScanC].tile, r: currentCrossR, c: crossScanC });
+                currentCrossR++;
             }
         }
 
