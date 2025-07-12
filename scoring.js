@@ -234,7 +234,7 @@ function identifyPlayedWord(committedMovesInput, board, identifiedDirection) {
  *          its row (`r`), and column (`c`).
  *          Returns an empty array if no words are formed or if inputs are invalid.
  */
-export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
+function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
     if (!placedMoves || placedMoves.length === 0 || !board || !mainWordDirection) {
         console.warn("identifyAllPlayedWords: Invalid input (placedMoves, board, or mainWordDirection).");
         return [];
@@ -339,7 +339,7 @@ export function identifyAllPlayedWords(placedMoves, board, mainWordDirection) {
  *          An object containing the total `score` for the turn and an array `usedBonusSquares`
  *          listing coordinates of bonus squares that were applied in this turn.
  */
-export function calculateWordScore(words, board, placedMoves, gameSettings) {
+function calculateWordScore(words, board, placedMoves, gameSettings) {
     let totalTurnScore = 0;
     const bonusSquaresActivatedThisTurn = []; // Tracks {r, c} of bonuses applied in this turn.
     const effectiveTileValues = gameSettings.tileValues || DEFAULT_TILE_VALUES;
@@ -416,7 +416,7 @@ export function calculateWordScore(words, board, placedMoves, gameSettings) {
  * - Generates and displays turn URL.
  * - Saves game state.
  */
-export async function handleCommitPlay(game, localPlayerId) {
+async function handleCommitPlay(game, localPlayerId) {
     if (!game || game.getCurrentPlayer().id !== localPlayerId) {
         return {
             success: false,
@@ -574,7 +574,7 @@ export async function handleCommitPlay(game, localPlayerId) {
  *                                       Null if the turn is a word play.
  * @returns {URLSearchParams} The generated turn URL params.
  */
-export function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
+function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
     const params = new URLSearchParams();
     params.append('gid', game.gameId);
     params.append('tn', game.turnNumber);
@@ -641,3 +641,12 @@ export function generateTurnUrlParams(game, playerId, turnData, seed = null, set
     }
     return params;
 }
+
+export {
+    validatePlacement,
+    identifyPlayedWord,
+    identifyAllPlayedWords,
+    calculateWordScore,
+    handleCommitPlay,
+    generateTurnUrlParams
+};

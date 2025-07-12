@@ -1,0 +1,335 @@
+import {
+    validatePlacement,
+    identifyAllPlayedWords,
+    calculateWordScore,
+    handleCommitPlay,
+    identifyPlayedWord,
+    generateTurnUrlParams
+} from './scoring.js';
+import {
+    GameState,
+    Tile,
+    Board,
+    Player
+} from './types.js';
+
+// --- Test Framework ---
+const testSuite = [];
+let testsPassed = 0;
+let testsFailed = 0;
+
+function test(testName, testFunction) {
+    testSuite.push({
+        name: testName,
+        fn: testFunction
+    });
+}
+
+async function runTests() {
+    for (const testCase of testSuite) {
+        try {
+            await testCase.fn();
+            console.log(`%c[PASS] ${testCase.name}`, 'color: green;');
+            testsPassed++;
+        } catch (error) {
+            console.error(`%c[FAIL] ${testCase.name}`, 'color: red;');
+            console.error(error);
+            testsFailed++;
+        }
+    }
+    console.log(`\n--- Test Summary ---`);
+    console.log(`Total Tests: ${testSuite.length}`);
+    console.log(`%cPassed: ${testsPassed}`, 'color: green;');
+    console.log(`%cFailed: ${testsFailed}`, 'color: red;');
+}
+
+// Basic assertion function for deep equality
+function assertDeepEquals(expected, actual, message) {
+    const expectedStr = JSON.stringify(expected);
+    const actualStr = JSON.stringify(actual);
+    if (!actualStr === expectedStr) {
+        throw new Error(`${message} Expected ${expectedStr} but got ${actualStr}`);
+    }
+}
+
+
+function assertTrue(value, message) {
+    if (value !== true) {
+        throw new Error(message || `Expected true but got ${value}`);
+    }
+}
+
+function assertLength(value, expectedLength, message) {
+    if (value.length !== expectedLength) {
+        throw new Error(`${message} Expected length ${expectedLength} but got ${value} (length ${value.length})`)
+    }
+}
+// --- Mocks and Test Data ---
+
+function createMockGame(turnNumber = 1) {
+    const game = new GameState('test-game', 12345, {
+        playerNames: {
+            player1: "Player 1",
+            player2: "Player 2"
+        }
+    });
+    game.turnNumber = turnNumber;
+    game.players = [new Player('player1', 'Player 1'), new Player('player2', 'Player 2')];
+    game.board = new Board();
+    game.currentTurnMoves = [];
+    return game;
+}
+
+function createMockMoves(tiles) {
+    return tiles.map(t => ({
+        tileRef: new Tile(t.letter, t.value),
+        to: t.pos
+    }));
+}
+
+// --- Test Cases ---
+
+test('validatePlacement: Valid first move on center', () => {
+    const moves = createMockMoves([{
+        letter: 'A',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 7
+        }
+    }]);
+    const game = createMockGame(0);
+    const result = validatePlacement(moves, game.turnNumber, game.board);
+    assertTrue(result.isValid, 'First move on center should be valid');
+});
+
+test('validatePlacement: Invalid first move off center', () => {
+    const moves = createMockMoves([{
+        letter: 'A',
+        value: 1,
+        pos: {
+            row: 0,
+            col: 0
+        }
+    }]);
+    const game = createMockGame(0);
+    const result = validatePlacement(moves, game.turnNumber, game.board);
+    assertFalse(result.isValid, 'First move off center should be invalid');
+});
+
+test('identifyAllPlayedWords: Single horizontal word', () => {
+    const game = createMockGame();
+    const moves = createMockMoves([{
+        letter: 'W',
+        value: 4,
+        pos: {
+            row: 7,
+            col: 7
+        }
+    }, {
+        letter: 'O',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 8
+        }
+    }, {
+        letter: 'R',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 9
+        }
+    }, {
+        letter: 'D',
+        value: 2,
+        pos: {
+            row: 7,
+            col: 10
+        }
+    }]);
+    moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+    const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
+    assertEquals(1, words.length, 'Should identify one word');
+    const wordStr = words[0].map(t => t.tile.letter).join('');
+    assertEquals('WORD', wordStr, 'The identified word should be "WORD"');
+});
+
+test('identifyAllPlayedWords: Main word and one cross word', () => {
+    const game = createMockGame();
+    // Pre-existing tile
+    game.board.grid[7][7].tile = new Tile('A', 1);
+    game.board.grid[7][8].tile = new Tile('T', 1);
+
+    const moves = createMockMoves([{
+        letter: 'C',
+        value: 3,
+        pos: {
+            row: 7,
+            col: 6
+        }
+    }, {
+        letter: 'R',
+        value: 1,
+        pos: {
+            row: 8,
+            col: 6
+        }
+    }, {
+        letter: 'S',
+        value: 1,
+        pos: {
+            row: 9,
+            col: 6
+        }
+    }]);
+    moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
+
+    const words = identifyAllPlayedWords(moves, game.board, 'vertical');
+    assertLength(words, 2, 'Should identify two words');
+    const wordStrings = words.map(w => w.map(t => t.tile.letter).join('')).sort();
+    assertDeepEquals(['ACT', 'CRS'], wordStrings.toSorted(), 'Should identify "CRS" and "ACT"');
+});
+
+test('calculateWordScore: Simple word, no bonuses', () => {
+    const game = createMockGame();
+    const moves = createMockMoves([{
+        letter: 'W',
+        value: 4,
+        pos: {
+            row: 0,
+            col: 1
+        }
+    }, {
+        letter: 'O',
+        value: 1,
+        pos: {
+            row: 0,
+            col: 2
+        }
+    }]);
+    moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
+    const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
+    const scoreResult = calculateWordScore(words, game.board, moves, game.settings);
+    assertEquals(5, scoreResult.score, "Score for 'WO' should be 5");
+});
+
+test('calculateWordScore: Word with letter and word bonuses', () => {
+    const game = createMockGame();
+    // Pre-existing tile
+    game.board.grid[7][7] = new Tile('A', 1); // Not a new move
+
+    const moves = createMockMoves([{
+        letter: 'C',
+        value: 3,
+        pos: {
+            row: 7,
+            col: 8
+        }
+    }, {
+        letter: 'T',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 9
+        }
+    }]);
+    moves.forEach(m => game.board.grid[m.to.row][m.to.col].tile = m.tileRef);
+    // C is on DW, T is on TL
+    game.board.grid[7][8].bonus = 'dw';
+    game.board.grid[7][9].bonus = 'tl';
+
+
+    const words = identifyAllPlayedWords(moves, game.board, 'horizontal');
+    const scoreResult = calculateWordScore(words, game.board, moves, game.settings);
+    // Word is CAT. C is on DW, T is on TL.
+    // Score = (1 + 3 + 1*3) * 2 = 14
+    assertEquals(14, scoreResult.score, "Score for CAT with DW and TL should be 14");
+});
+
+test('handleCommitPlay: Valid play with function-based dictionary', async () => {
+    const game = createMockGame(0);
+    game.settings.dictionaryType = 'function';
+    game.settings.dictionaryUrlOrFunction = (word) => {
+        return word.toLowerCase() === 'cat';
+    };
+    game.currentTurnMoves = createMockMoves([{
+        letter: 'C',
+        value: 3,
+        pos: {
+            row: 7,
+            col: 7
+        }
+    }, {
+        letter: 'A',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 8
+        }
+    }, {
+        letter: 'T',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 9
+        }
+    }]);
+    game.currentTurnMoves.forEach(m => {
+        game.board.grid[m.to.row][m.to.col].tile = m.tileRef;
+    });
+
+    const result = await handleCommitPlay(game, 'player1');
+
+    assertTrue(result.success, 'handleCommitPlay should succeed');
+    assertEquals(7, result.score, 'Score for CAT on center (T on 3W) should be 3+1+(1*3)=7');
+    assertEquals(1, game.turnNumber, 'Turn number should advance');
+});
+
+test('handleCommitPlay: Invalid word with function-based dictionary', async () => {
+    const game = createMockGame(0);
+    game.settings.dictionaryType = 'function';
+    game.settings.dictionaryUrlOrFunction = (word) => {
+        return word.toLowerCase() === 'valid';
+    };
+    game.currentTurnMoves = createMockMoves([{
+        letter: 'I',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 7
+        }
+    }, {
+        letter: 'N',
+        value: 1,
+        pos: {
+            row: 7,
+            col: 8
+        }
+    }]);
+    game.currentTurnMoves.forEach(m => {
+        game.board.grid[m.to.row][m.to.col].tile = m.tileRef;
+    });
+
+    const result = await handleCommitPlay(game, 'player1');
+
+    assertFalse(result.success, 'handleCommitPlay should fail for invalid word');
+    assertEquals(0, game.turnNumber, 'Turn number should not advance on failure');
+});
+
+
+// --- Run All Tests ---
+runTests();
+
+function assertEquals(expected, actual, message) {
+    if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+        throw new Error(`Assertion failed: ${message || ''}. Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}.`);
+    }
+}
+
+function assertFalse(value, message) {
+    if (value !== false) {
+        throw new Error(message || `Expected false but got ${value}`);
+    }
+}
