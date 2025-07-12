@@ -10,13 +10,13 @@ import {
     Board,
     Player,
     GameState
-} from './types.js';
+} from './types.mjs';
 import {
     identifyAllPlayedWords,
     calculateWordScore,
     handleCommitPlay as handleCommitPlayLogic,
     generateTurnUrlParams
-} from './scoring.js';
+} from './scoring.mjs';
 
 // Crossword Builder Game - Main Script
 // This script handles game logic, UI interaction, and state management.

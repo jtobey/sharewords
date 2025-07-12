@@ -7,13 +7,13 @@ import {
     handleCommitPlay,
     identifyPlayedWord,
     generateTurnUrlParams
-} from './scoring.js';
+} from './scoring.mjs';
 import {
     GameState,
     Tile,
     Board,
     Player
-} from './types.js';
+} from './types.mjs';
 
 // --- Test Data and Helper Functions ---
 

@@ -2,7 +2,7 @@
   "name": "sharewords",
   "version": "1.0.0",
   "description": "Crossword Building Game",
-  "main": "main.js",
+  "main": "main.mjs",
   "scripts": {
     "test": "node run-tests.mjs"
   },
