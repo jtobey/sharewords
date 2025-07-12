@@ -1,7 +1,8 @@
 import {
     BONUS_TYPES,
     DEFAULT_TILE_VALUES,
-    RACK_SIZE
+    RACK_SIZE,
+    DEFAULT_LETTER_DISTRIBUTION
 } from './types.js';
 
 
