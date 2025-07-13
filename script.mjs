@@ -1839,7 +1839,7 @@ function loadGameFromURLOrStorage(searchSource, storage) {
 
     if (urlGameId) {
         console.log(`loadGameFromURLOrStorage: Processing 'gid' parameter: ${urlGameId}.`);
-        // If currentGame is already set (e.g. from a failed 'gs' load that kept local), respect it.
+        // If currentGame is already set, respect it.
         // Otherwise, attempt to load from local storage.
         if (!currentGame) {
             currentGame = loadGameStateFromLocalStorage(urlGameId, storage);
