@@ -467,9 +467,14 @@ async function handleCommitPlay(game, localPlayerId) {
 
                 if (validationFunction) {
                     if (!validationFunction(wordToValidateStr.toLowerCase())) {
+                        const invalidWords = allWordsToValidate
+                            .map(wordArr => wordArr.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join(''))
+                            .filter(wordStr => !validationFunction(wordStr.toLowerCase()));
+
                         return {
                             success: false,
-                            message: `Dictionary function returned false for word "${wordToValidateStr}". Play rejected.`
+                            message: `Invalid words found: ${invalidWords.join(', ')}`,
+                            error: `Invalid words found: ${invalidWords.join(', ')}`
                         };
                     }
                 }
