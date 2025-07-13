@@ -1945,20 +1945,6 @@ function initializeGameAndEventListeners() {
     // Load game from URL parameters or LocalStorage
     loadGameFromURLOrStorage(window.location.search, localStorage);
 
-    // "Copy Game" link functionality
-    const copyGameLink = document.getElementById('copy-game-link');
-    if (copyGameLink) {
-        copyGameLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            // Alert message improved for clarity
-            alert("To share the full game state:\n\n" +
-                  "1. Right-click (or long-press on mobile) this 'Copy Game' link.\n" +
-                  "2. Choose 'Copy Link Address' (or a similar option) to copy the URL.\n" +
-                  "3. Share this URL with the other player.\n\n" +
-                  "This URL contains the entire game, allowing the other player to resume from this exact point.");
-        });
-    }
-
     // Attach event listeners to game control buttons
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
     document.getElementById('exchange-tiles-btn').addEventListener('click', handleExchangeTiles);
