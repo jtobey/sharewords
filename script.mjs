@@ -1463,10 +1463,10 @@ function saveGameStateToLocalStorage(gameState, storage = localStorage) {
  * Loads a game state from LocalStorage by game ID.
  * Rehydrates the game state, reconstructing Tile, Square, Board, and Player objects.
  * @param {string} gameId - The ID of the game to load.
- * @param {Storage} [storage=localStorage] - The storage object to use (defaults to browser's localStorage).
+ * @param {Storage} storage - The storage object to use (e.g., localStorage).
  * @returns {?GameState} The rehydrated GameState object, or null if not found or error occurs.
  */
-function loadGameStateFromLocalStorage(gameId, storage = localStorage) {
+function loadGameStateFromLocalStorage(gameId, storage) {
     if (!gameId) {
         console.warn("loadGameStateFromLocalStorage: No gameId provided to load.");
         return null;
@@ -1824,11 +1824,10 @@ function applyTurnDataFromURL(gameState, params) {
  * Main function to load a game, either from URL parameters or from LocalStorage.
  * This function orchestrates the game setup or resumption process.
  * It determines if a game is being joined, continued, or started fresh.
- * @param {?string} [searchStringOverride=null] - Optional search string to use instead of `window.location.search`.
- *                                                Useful for testing or specific scenarios.
+ * @param {string} [searchSource] - Search string to use, e.g., `window.location.search`.
+ * @param {Storage} storage - The storage object to use (e.g., localStorage).
  */
-function loadGameFromURLOrStorage(searchStringOverride = null) {
-    const searchSource = searchStringOverride !== null ? searchStringOverride : window.location.search;
+function loadGameFromURLOrStorage(searchSource, storage) {
     let params = new URLSearchParams(searchSource); // Use let as it might be reassigned
 
     // --- Existing logic for turn URLs (gid, tn, etc.) or default loading ---
@@ -1843,7 +1842,7 @@ function loadGameFromURLOrStorage(searchStringOverride = null) {
         // If currentGame is already set (e.g. from a failed 'gs' load that kept local), respect it.
         // Otherwise, attempt to load from local storage.
         if (!currentGame) {
-            currentGame = loadGameStateFromLocalStorage(urlGameId);
+            currentGame = loadGameStateFromLocalStorage(urlGameId, storage);
         }
 
         if (currentGame) {
@@ -1944,7 +1943,7 @@ function initializeGameAndEventListeners() {
     // Note: modalPointsEarnedSpan and modalCopyCheckbox are accessed within showPostMoveModal.
 
     // Load game from URL parameters or LocalStorage
-    loadGameFromURLOrStorage();
+    loadGameFromURLOrStorage(window.location.search, localStorage);
 
     // "Copy Game" link functionality
     const copyGameLink = document.getElementById('copy-game-link');
