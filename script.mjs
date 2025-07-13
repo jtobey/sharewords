@@ -1824,7 +1824,7 @@ function applyTurnDataFromURL(gameState, params) {
  * Main function to load a game, either from URL parameters or from LocalStorage.
  * This function orchestrates the game setup or resumption process.
  * It determines if a game is being joined, continued, or started fresh.
- * @param {string} [searchSource] - Search string to use, e.g., `window.location.search`.
+ * @param {string} searchSource - Search string to use, e.g., `window.location.search`.
  * @param {Storage} storage - The storage object to use (e.g., localStorage).
  */
 function loadGameFromURLOrStorage(searchSource, storage) {
