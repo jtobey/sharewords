@@ -42,9 +42,9 @@ function createMockMoves(tiles) {
 let testsPassed = 0;
 let testsFailed = 0;
 
-function test(name, testFunction) {
+async function test(name, testFunction) {
     try {
-        testFunction();
+        await testFunction();
         console.log(`✅ PASS: ${name}`);
         testsPassed++;
     } catch (error) {
@@ -293,6 +293,7 @@ test('handleCommitPlay: Invalid word with function-based dictionary', async () =
 
     expect(result.success).to.be.false;
     expect(game.turnNumber).to.equal(0);
+    expect(result.error).to.equal('Invalid words found: IN');
 });
 
 // Test summary
