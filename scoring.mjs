@@ -442,76 +442,71 @@ async function handleCommitPlay(game, localPlayerId) {
 
     const actualCommittedMoves = [...game.currentTurnMoves];
 
-    // --- Dictionary Validation (if not permissive) ---
-    if (game.settings.dictionaryType !== 'permissive') {
-        const allWordsToValidate = identifyAllPlayedWords(actualCommittedMoves, game.board, identifiedDirection);
+    // --- Dictionary Validation ---
+    const wordsToValidate = identifyAllPlayedWords(actualCommittedMoves, game.board, identifiedDirection)
+          .map(wordArr => wordArr
+               .map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join(''))
+    if (!wordsToValidate || wordsToValidate.length === 0) {
+        console.warn("handleCommitPlay: No words identified for dictionary validation, though placement was valid. Allowing play.");
+    } else if (game.settings.dictionaryType === 'permissive') {
+        console.log("handleCommitPlay: Not validating words, since dictionary type is set to 'permissive'.");
+    } else if (game.settings.dictionaryType === 'function') {
+        const validationFunction = game.settings.dictionaryUrlOrFunction;
+        const invalidWords = wordsToValidate.filter(word => !validationFunction(word.toLowerCase()));
+        if (invalidWords && invalidWords.length > 0) {
+            return {
+                success: false,
+                message: `Invalid words found: ${invalidWords.join(', ')}`,
+                error: `Invalid words found: ${invalidWords.join(', ')}`
+            };
+        }
+    } else {
+        for (const wordToValidate of wordsToValidate) {
+            let validationApiUrl = "";
+            let dictionaryNameForAlert = "";
 
-        if (!allWordsToValidate || allWordsToValidate.length === 0) {
-            console.warn("handleCommitPlay: No words identified for dictionary validation, though placement was valid. Allowing play.");
-        } else {
-            for (const wordTileArray of allWordsToValidate) {
-                const wordToValidateStr = wordTileArray.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join('');
-                let validationFunction = null;
-                let validationApiUrl = "";
-                let dictionaryNameForAlert = "";
-
-                if (game.settings.dictionaryType === 'freeapi') {
-                    validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidateStr.toLowerCase()}`;
-                    dictionaryNameForAlert = "Free Dictionary API";
-                } else if (game.settings.dictionaryType === 'custom' && game.settings.dictionaryUrlOrFunction) {
-                    validationApiUrl = `${game.settings.dictionaryUrlOrFunction}${wordToValidateStr.toLowerCase()}`;
-                    dictionaryNameForAlert = "Custom Dictionary";
-                } else if (game.settings.dictionaryType === 'function' && typeof game.settings.dictionaryUrlOrFunction === 'function') {
-                    validationFunction = game.settings.dictionaryUrlOrFunction;
-                }
-
-                if (validationFunction) {
-                    if (!validationFunction(wordToValidateStr.toLowerCase())) {
-                        const invalidWords = allWordsToValidate
-                            .map(wordArr => wordArr.map(t => t.tile.isBlank ? t.tile.assignedLetter.toUpperCase() : t.tile.letter.toUpperCase()).join(''))
-                            .filter(wordStr => !validationFunction(wordStr.toLowerCase()));
-
-                        return {
-                            success: false,
-                            message: `Invalid words found: ${invalidWords.join(', ')}`,
-                            error: `Invalid words found: ${invalidWords.join(', ')}`
-                        };
-                    }
-                }
-                else if (validationApiUrl) {
-                    console.log(`Validating word: "${wordToValidateStr}" using ${dictionaryNameForAlert} at URL: ${validationApiUrl}`);
-                    try {
-                        const response = await fetch(validationApiUrl);
-                        if (!response.ok) {
-                            if (response.status === 404) {
-                                return {
-                                    success: false,
-                                    message: `Word "${wordToValidateStr}" not found in ${dictionaryNameForAlert}. Play rejected.`
-                                };
-                            } else {
-                                return {
-                                    success: false,
-                                    message: `Error validating word "${wordToValidateStr}" with ${dictionaryNameForAlert} (Status: ${response.status}). Play rejected.`
-                                };
-                            }
+            if (game.settings.dictionaryType === 'freeapi') {
+                validationApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${wordToValidate.toLowerCase()}`;
+                dictionaryNameForAlert = "Free Dictionary API";
+            } else if (game.settings.dictionaryType === 'custom' && game.settings.dictionaryUrlOrFunction) {
+                validationApiUrl = `${game.settings.dictionaryUrlOrFunction}${wordToValidate.toLowerCase()}`;
+                dictionaryNameForAlert = "Custom Dictionary";
+            } else {
+                console.error(`handleCommitPlay: Not validating words: Invalid dictionary settings (type=${game.settings.dictionaryType} dictionaryUrlOrFunction=${game.settings.dictionaryUrlOrFunction}).`)
+            }
+            if (validationApiUrl) {
+                console.log(`Validating word: "${wordToValidate}" using ${dictionaryNameForAlert} at URL: ${validationApiUrl}`);
+                try {
+                    const response = await fetch(validationApiUrl);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            return {
+                                success: false,
+                                message: `Word "${wordToValidate}" not found in ${dictionaryNameForAlert}. Play rejected.`
+                            };
+                        } else {
+                            return {
+                                success: false,
+                                message: `Error validating word "${wordToValidate}" with ${dictionaryNameForAlert} (Status: ${response.status}). Play rejected.`
+                            };
                         }
-                        if (game.settings.dictionaryType === 'freeapi') {
-                            const data = await response.json();
-                            if (!Array.isArray(data) || data.length === 0 || (data[0] && data[0].title === "No Definitions Found")) {
-                                return {
-                                    success: false,
-                                    message: `Word "${wordToValidateStr}" not found or has no definition in ${dictionaryNameForAlert}. Play rejected.`
-                                };
-                            }
-                        }
-                        console.log(`Word "${wordToValidateStr}" is valid according to ${dictionaryNameForAlert}.`);
-                    } catch (error) {
-                        console.error(`Network or other error validating word "${wordToValidateStr}":`, error);
-                        return {
-                            success: false,
-                            message: `Could not reach ${dictionaryNameForAlert} to validate "${wordToValidateStr}". Play rejected. Check connection or API status.`
-                        };
                     }
+                    if (game.settings.dictionaryType === 'freeapi') {
+                        const data = await response.json();
+                        if (!Array.isArray(data) || data.length === 0 || (data[0] && data[0].title === "No Definitions Found")) {
+                            return {
+                                success: false,
+                                message: `Word "${wordToValidate}" not found or has no definition in ${dictionaryNameForAlert}. Play rejected.`
+                            };
+                        }
+                    }
+                    console.log(`Word "${wordToValidate}" is valid according to ${dictionaryNameForAlert}.`);
+                } catch (error) {
+                    console.error(`Network or other error validating word "${wordToValidate}":`, error);
+                    return {
+                        success: false,
+                        message: `Could not reach ${dictionaryNameForAlert} to validate "${wordToValidate}". Play rejected. Check connection or API status.`
+                    };
                 }
             }
         }
