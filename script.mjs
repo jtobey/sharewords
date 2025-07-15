@@ -346,6 +346,8 @@ let draggedTileId = null;
 let touchDraggedElement = null;
 /** @type {?string} ID of the tile being dragged via touch. */
 let touchDraggedTileId = null;
+/** @type {?HTMLElement} The cloned DOM element that is visually dragged around. */
+let touchDraggedClone = null;
 // let initialTouchX = 0; // Relative to viewport, not used directly after initial calculation
 // let initialTouchY = 0; // Relative to viewport, not used directly after initial calculation
 /** @type {number} Offset from touch point to the dragged tile's top-left X-coordinate. */
@@ -405,6 +407,9 @@ function handleTouchStart(event) {
     touchDraggedTileId = tileId;
     touchDraggedElement = tileElement;
 
+    // Create a clone of the element to be dragged
+    touchDraggedClone = touchDraggedElement.cloneNode(true);
+
     originalParentNode = touchDraggedElement.parentNode;
     originalNextSibling = touchDraggedElement.nextSibling;
 
@@ -423,16 +428,20 @@ function handleTouchStart(event) {
     offsetX = event.touches[0].clientX - rect.left;
     offsetY = event.touches[0].clientY - rect.top;
 
+    // Hide the original element but keep it in place
+    touchDraggedElement.style.opacity = '0.4';
+
+
     // Temporarily move element to body for unrestricted positioning and to ensure it's visually on top.
-    document.body.appendChild(touchDraggedElement);
-    touchDraggedElement.style.position = 'absolute';
+    document.body.appendChild(touchDraggedClone);
+    touchDraggedClone.style.position = 'absolute';
     // Position includes current scroll offset to keep element under finger
     const scrollX = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft;
     const scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-    touchDraggedElement.style.left = (event.touches[0].clientX - offsetX + scrollX) + 'px';
-    touchDraggedElement.style.top = (event.touches[0].clientY - offsetY + scrollY) + 'px';
-    touchDraggedElement.style.opacity = '0.7'; // Make it semi-transparent
-    touchDraggedElement.style.zIndex = '1001'; // Ensure it's above other elements
+    touchDraggedClone.style.left = (event.touches[0].clientX - offsetX + scrollX) + 'px';
+    touchDraggedClone.style.top = (event.touches[0].clientY - offsetY + scrollY) + 'px';
+    touchDraggedClone.style.opacity = '0.7'; // Make it semi-transparent
+    touchDraggedClone.style.zIndex = '1001'; // Ensure it's above other elements
 
     // Add global listeners for move and end events
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -447,15 +456,15 @@ function handleTouchStart(event) {
  * @param {TouchEvent} event - The touchmove event.
  */
 function handleTouchMove(event) {
-    if (!touchDraggedElement) return;
+    if (!touchDraggedClone) return;
     event.preventDefault(); // Prevent scrolling during drag
 
     const touch = event.touches[0];
     // Update position, including scroll offset
     const scrollX = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft;
     const scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-    touchDraggedElement.style.left = (touch.clientX - offsetX + scrollX) + 'px';
-    touchDraggedElement.style.top = (touch.clientY - offsetY + scrollY) + 'px';
+    touchDraggedClone.style.left = (touch.clientX - offsetX + scrollX) + 'px';
+    touchDraggedClone.style.top = (touch.clientY - offsetY + scrollY) + 'px';
 
     // Visual feedback for drop targets: remove from old, add to new
     document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
@@ -488,7 +497,7 @@ function handleTouchMove(event) {
  * @param {TouchEvent} event - The touchend or touchcancel event.
  */
 function handleTouchEnd(event) {
-    if (!touchDraggedElement) return;
+    if (!touchDraggedClone) return;
 
     // Clean up global event listeners
     document.removeEventListener('touchmove', handleTouchMove);
@@ -497,10 +506,10 @@ function handleTouchEnd(event) {
     document.querySelectorAll('.touch-drag-over').forEach(el => el.classList.remove('touch-drag-over'));
 
     // Temporarily hide the dragged element to correctly find the element underneath the touch point
-    touchDraggedElement.style.display = 'none';
+    touchDraggedClone.style.display = 'none';
     const touch = event.changedTouches[0]; // Use changedTouches for touchend/touchcancel
     const dropTargetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-    touchDraggedElement.style.display = ''; // Make it visible again
+    touchDraggedClone.style.display = ''; // Make it visible again
 
     let droppedSuccessfully = false;
 
@@ -516,7 +525,7 @@ function handleTouchEnd(event) {
             // Allow drop if square is empty, or if it's the original square of the currently dragged tile
             if (!boardSquare.tile || (boardSquare.tile && boardSquare.tile.id === touchDraggedTileId)) {
                 console.log(`Touch Drop on Board: tile ${touchDraggedTileId} to (${r},${c})`);
-                touchDraggedElement.remove(); // Remove the temporarily-styled element from body
+                // touchDraggedElement.remove(); // Remove the temporarily-styled element from body
 
                 const realDraggedTileIdBackup = draggedTileId; // Backup mouse DND state
                 draggedTileId = touchDraggedTileId;    // Temporarily set for handleDropOnBoard compatibility
@@ -532,7 +541,7 @@ function handleTouchEnd(event) {
             }
         } else if (rackElement) { // Dropped on the local player's rack
             console.log(`Touch Drop on Rack: tile ${touchDraggedTileId}`);
-            touchDraggedElement.remove(); // Remove the temporarily-styled element from body
+            // touchDraggedElement.remove(); // Remove the temporarily-styled element from body
 
             const realDraggedTileIdBackup = draggedTileId; // Backup mouse DND state
             draggedTileId = touchDraggedTileId; // Temporarily set for handleDropOnRack compatibility
@@ -551,9 +560,6 @@ function handleTouchEnd(event) {
     if (!droppedSuccessfully) {
         console.log("Touch Drop: Invalid target or drop failed. Returning tile to original position.");
         // If the element was not removed by a successful drop, it's still a child of document.body.
-        if (touchDraggedElement.parentNode === document.body) {
-             touchDraggedElement.remove(); // Remove from body first
-        }
         // Re-insert into original DOM position with original styles
         if (originalParentNode && draggedElementOriginalStyles) {
             touchDraggedElement.style.position = draggedElementOriginalStyles.position;
@@ -562,7 +568,7 @@ function handleTouchEnd(event) {
             touchDraggedElement.style.opacity = draggedElementOriginalStyles.opacity;
             touchDraggedElement.style.zIndex = draggedElementOriginalStyles.zIndex;
             touchDraggedElement.style.transform = draggedElementOriginalStyles.transform;
-            originalParentNode.insertBefore(touchDraggedElement, originalNextSibling);
+            // originalParentNode.insertBefore(touchDraggedElement, originalNextSibling);
         }
         // If the drop failed, a fullRender might be needed to ensure UI consistency,
         // especially if the tile was from the board and its logical state needs resetting.
@@ -572,9 +578,13 @@ function handleTouchEnd(event) {
         fullRender(currentGame, localPlayerId);
     }
 
+    // remove the clone
+    touchDraggedClone.remove();
+
     // Reset touch DND state variables
     touchDraggedElement = null;
     touchDraggedTileId = null;
+    touchDraggedClone = null;
     originalParentNode = null;
     originalNextSibling = null;
     draggedElementOriginalStyles = null;
