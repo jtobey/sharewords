@@ -5,11 +5,12 @@
   "main": "main.mjs",
   "type": "module",
   "scripts": {
-    "test": "node --test *.test.mjs"
+    "test": "node --test game_state.test.mjs scoring.test.mjs && node --import ./test-setup.mjs --test script.test.mjs"
   },
   "author": "",
   "devDependencies": {
     "chai": "^5.2.1",
+    "jsdom": "^26.1.0",
     "mocha": "^11.7.1"
   },
   "dependencies": {
