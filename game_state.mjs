@@ -17,7 +17,7 @@ const LOCAL_STORAGE_KEY_PREFIX = "crosswordGame_";
  * @param {Storage} storage - The storage object to use (e.g., localStorage).
  * @returns {{gameState: ?GameState, playerId: ?string, [message: string]}} An object containing the rehydrated GameState object and local player ID, or nulls if not found or error occurs.
  */
-function loadGameStateFromLocalStorage(gameId, storage) {
+export function loadGameStateFromLocalStorage(gameId, storage) {
     if (!gameId) {
         return {gameState: null, playerId: null, message: "loadGameStateFromLocalStorage: No gameId provided to load."};
     }
@@ -120,7 +120,7 @@ function loadGameStateFromLocalStorage(gameId, storage) {
  * @param {URLSearchParams} params - The URLSearchParams object parsed from the turn URL.
  * @returns {boolean} True if turn data was successfully applied, false otherwise (e.g., error, desync).
  */
-function applyTurnDataFromURL(gameState, playerId, params) {
+export function applyTurnDataFromURL(gameState, playerId, params) {
     // playerWhoseTurnItWas is the player who *just finished* their turn and sent the URL.
     // When applying this URL, this player's index in the `gameState.players` array needs to be
     // determined based on the `gameState.currentPlayerIndex` *before* it's advanced.
@@ -529,7 +529,7 @@ export function saveGameStateToLocalStorage(gameState, playerId, storage) {
             savedLocalPlayerId: playerId // Persist which player this browser instance represents for this game
         };
         storage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
-        console.log(`Game ${gameState.gameId} (for local player ${playerId}) saved to ${storage === localStorage ? 'localStorage' : 'mockStorage'}.`);
+        console.log(`Game ${gameState.gameId} (for local player ${playerId}) saved to storage.`);
     } catch (error) {
         console.error("Error saving game state to LocalStorage:", error);
         return {success: false, message: `Error saving game state to LocalStorage: ${error}`};
