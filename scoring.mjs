@@ -493,6 +493,7 @@ async function handleCommitPlay(game, localPlayerId) {
                     }
                     if (game.settings.dictionaryType === 'freeapi') {
                         const data = await response.json();
+                        // TODO: Reject words defined only as abbreviations.
                         if (!Array.isArray(data) || data.length === 0 || (data[0] && data[0].title === "No Definitions Found")) {
                             return {
                                 success: false,
