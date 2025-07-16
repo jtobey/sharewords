@@ -56,6 +56,8 @@ let isExchangeModeActive = false;
 let selectedTilesForExchange = [];
 /** @type {Array<Tile>} Tiles in the trash can. */
 let tilesInTrash = [];
+/** @type {Array<number>} Indices of tiles in the trash can. */
+let trashedTileIndices = [];
 
 
 // --- UI Rendering Functions ---
@@ -790,6 +792,7 @@ function handleDropOnTrash(event) {
         return;
     }
 
+    trashedTileIndices.push(tileIndexInRack);
     const tileToTrash = localPlayerInstance.rack.splice(tileIndexInRack, 1)[0];
     tilesInTrash.push(tileToTrash);
 
@@ -920,6 +923,7 @@ function handleRecallTiles() {
             localPlayerInstance.rack.push(tile);
         });
         tilesInTrash = [];
+        trashedTileIndices = [];
 
         const exchangeArea = document.getElementById('exchange-area');
         exchangeArea.classList.remove('trash-can-full');
@@ -1071,11 +1075,11 @@ function handleTrashClick() {
 
     const confirmation = confirm(`Do you want to exchange ${tilesInTrash.length} tiles?`);
     if (confirmation) {
-        handleConfirmExchange();
+        handleConfirmExchange(trashedTileIndices);
     }
 }
 
-function handleConfirmExchange() {
+function handleConfirmExchange(indicesToExchange) {
     if (tilesInTrash.length === 0) {
         alert("Please drag tiles to the trash can to exchange them.");
         return;
@@ -1097,6 +1101,7 @@ function handleConfirmExchange() {
         tilesReturnedToBag.push(tile);
     });
     tilesInTrash = [];
+    trashedTileIndices = [];
 
     const exchangeArea = document.getElementById('exchange-area');
     exchangeArea.classList.remove('trash-can-full');
@@ -1119,7 +1124,7 @@ function handleConfirmExchange() {
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
     // 5. Generate Turn URL
-    const urlExchangeIndicesString = ""; // This is not used anymore
+    const urlExchangeIndicesString = indicesToExchange.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
     const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
