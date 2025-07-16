@@ -1223,8 +1223,9 @@ function toggleCustomSettingsSection() {
     if (settingsSection.style.display === 'none' || settingsSection.style.display === '') {
         settingsSection.style.display = 'block'; // Show the section
         // Reset dictionary options to default when opening
-        const defaultDictRadio = document.querySelector('input[name="dictionaryType"][value="permissive"]');
-        if (defaultDictRadio) defaultDictRadio.checked = true;
+        const dictionaryTypeSelect = document.getElementById('dictionary-type-select');
+        if (dictionaryTypeSelect) dictionaryTypeSelect.value = 'permissive';
+
 
         const customUrlInput = document.getElementById('custom-dictionary-url');
         if (customUrlInput) {
@@ -1247,7 +1248,7 @@ function toggleCustomSettingsSection() {
  */
 function startGameWithSettings() {
     // Collect dictionary settings
-    const selectedDictionaryType = document.querySelector('input[name="dictionaryType"]:checked').value;
+    const selectedDictionaryType = document.getElementById('dictionary-type-select').value;
     let customDictionaryUrl = null;
     if (selectedDictionaryType === 'custom') {
         customDictionaryUrl = document.getElementById('custom-dictionary-url').value.trim();
@@ -1466,13 +1467,14 @@ function initializeGameAndEventListeners() {
     const startGameBtn = document.getElementById('start-game-btn');
     if (startGameBtn) startGameBtn.addEventListener('click', startGameWithSettings);
 
-    // Dictionary type radio buttons: show/hide custom URL input
-    document.querySelectorAll('input[name="dictionaryType"]').forEach(radio => {
-        radio.addEventListener('change', function() {
+    // Dictionary type dropdown: show/hide custom URL input
+    const dictionaryTypeSelect = document.getElementById('dictionary-type-select');
+    if (dictionaryTypeSelect) {
+        dictionaryTypeSelect.addEventListener('change', function() {
             document.getElementById('custom-dictionary-url').style.display =
                 (this.value === 'custom') ? 'block' : 'none';
         });
-    });
+    }
 
     // "Copy URL" button for the main turn URL input field
     const copyUrlBtn = document.getElementById('copy-url-btn');

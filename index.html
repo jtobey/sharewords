@@ -52,17 +52,11 @@
                 </div>
                 <div id="dictionary-settings">
                     <h3>Dictionary Options</h3>
-                    <label>
-                        <input type="radio" name="dictionaryType" value="permissive" checked> Anything is a word (Default)
-                    </label>
-                    <br>
-                    <label>
-                        <input type="radio" name="dictionaryType" value="freeapi"> Free Dictionary API
-                    </label>
-                    <br>
-                    <label>
-                        <input type="radio" name="dictionaryType" value="custom"> Custom URL
-                    </label>
+                    <select id="dictionary-type-select">
+                        <option value="permissive" selected>Anything is a word (Default)</option>
+                        <option value="freeapi">Free Dictionary API</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
                     <br>
                     <input type="text" id="custom-dictionary-url" placeholder="Enter dictionary URL prefix" style="display:none; margin-top: 5px;">
                 </div>
