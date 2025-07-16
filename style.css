@@ -40,7 +40,6 @@ body {
     height: var(--board-size); /* Maintain square aspect ratio */
     max-width: 450px; /* Max size for larger screens */
     max-height: 450px; /* Max size for larger screens */
-    touch-action: none; /* Prevent scrolling/zooming while dragging on board */
 }
 
 .square {
@@ -128,7 +127,10 @@ body {
     background-color: #e0e0e0;
     flex-wrap: wrap; /* Allow tiles to wrap if rack is too narrow */
     justify-content: center; /* Center tiles in rack */
-    touch-action: none; /* Prevent scrolling/zooming while dragging on rack */
+}
+
+.tile-on-board[draggable="true"], .tile-in-rack[draggable="true"] {
+    touch-action: none;
 }
 
 .tile-in-rack {
