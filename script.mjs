@@ -54,10 +54,6 @@ let localPlayerId = "player1"; // Default, can be changed when loading/joining a
 let isExchangeModeActive = false;
 /** @type {Array<Tile>} Tiles selected by the local player for exchange. */
 let selectedTilesForExchange = [];
-/** @type {Array<Tile>} Tiles in the trash can. */
-let tilesInTrash = [];
-/** @type {Array<number>} Indices of tiles in the trash can. */
-let trashedTileIndices = [];
 
 
 // --- UI Rendering Functions ---
@@ -612,6 +608,11 @@ function handleDragStart(event) {
         console.log("Mouse Drag prevented: No current game active.");
         event.preventDefault(); return;
     }
+    // Exchange mode prevents tile dragging from rack/board for play
+    if (isExchangeModeActive) {
+        console.log("Mouse Drag prevented: Exchange mode is active.");
+        event.preventDefault(); return;
+    }
 
     const tileElement = event.target.closest('[data-tile-id]');
     if (!tileElement) { // Should be the tile itself or a child
@@ -772,38 +773,6 @@ function handleDropOnBoard(event) {
  * - Re-renders the game.
  * @param {DragEvent | {target: HTMLElement, preventDefault: function}} event - The drop event or a mock event for touch.
  */
-function handleDropOnTrash(event) {
-    event.preventDefault();
-    if (!draggedTileId) return;
-
-    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
-    if (!localPlayerInstance) {
-        console.error("Drop on Trash: Local player instance not found.");
-        draggedTileId = null;
-        fullRender(currentGame, localPlayerId);
-        return;
-    }
-
-    const tileIndexInRack = localPlayerInstance.rack.findIndex(t => t.id === draggedTileId);
-    if (tileIndexInRack === -1) {
-        console.error("Drop on Trash: Tile not found in local player's rack.", draggedTileId);
-        draggedTileId = null;
-        fullRender(currentGame, localPlayerId);
-        return;
-    }
-
-    trashedTileIndices.push(tileIndexInRack);
-    const tileToTrash = localPlayerInstance.rack.splice(tileIndexInRack, 1)[0];
-    tilesInTrash.push(tileToTrash);
-
-    const exchangeArea = document.getElementById('exchange-area');
-    exchangeArea.classList.remove('trash-can-empty');
-    exchangeArea.classList.add('trash-can-full');
-
-    fullRender(currentGame, localPlayerId);
-    draggedTileId = null;
-}
-
 function handleDropOnRack(event) {
     event.preventDefault();
     if (!draggedTileId) return; // No tile being dragged
@@ -896,42 +865,38 @@ function handleRecallTiles() {
         return;
     }
 
-    if (currentGame.currentTurnMoves && currentGame.currentTurnMoves.length > 0) {
-        console.log("Recalling uncommitted tiles to rack...");
-        for (let i = currentGame.currentTurnMoves.length - 1; i >= 0; i--) {
-            const move = currentGame.currentTurnMoves[i];
-            const tileToRecall = move.tileRef;
+    if (!currentGame.currentTurnMoves || currentGame.currentTurnMoves.length === 0) {
+        console.log("handleRecallTiles: No uncommitted tiles to recall.");
+        return;
+    }
 
-            localPlayerInstance.rack.push(tileToRecall);
+    console.log("Recalling all uncommitted tiles to rack...");
+    // Iterate backwards because we are modifying the array (splicing is not used here, but good practice if it were)
+    for (let i = currentGame.currentTurnMoves.length - 1; i >= 0; i--) {
+        const move = currentGame.currentTurnMoves[i];
+        const tileToRecall = move.tileRef; // The actual Tile object
 
-            if (tileToRecall.isBlank && move.from === 'rack') {
-                tileToRecall.assignedLetter = null;
-            }
+        // Return tile to the local player's rack (data structure)
+        localPlayerInstance.rack.push(tileToRecall);
 
-            if (currentGame.board.grid[move.to.row] && currentGame.board.grid[move.to.row][move.to.col]) {
-                currentGame.board.grid[move.to.row][move.to.col].tile = null;
-            } else {
-                console.warn(`handleRecallTiles: Attempted to clear tile from invalid board location: ${move.to.row}, ${move.to.col}`);
-            }
+        // If the recalled tile was a blank that had a letter assigned this turn, reset it
+        if (tileToRecall.isBlank && move.from === 'rack') { // Check if it was originally from rack for this move
+            tileToRecall.assignedLetter = null;
         }
-        currentGame.currentTurnMoves = [];
+
+        // Clear the tile from the board (data structure)
+        if (currentGame.board.grid[move.to.row] && currentGame.board.grid[move.to.row][move.to.col]) {
+            currentGame.board.grid[move.to.row][move.to.col].tile = null;
+        } else {
+            // This should not happen if moves are tracked correctly
+            console.warn(`handleRecallTiles: Attempted to clear tile from invalid board location: ${move.to.row}, ${move.to.col}`);
+        }
     }
 
-    if (tilesInTrash.length > 0) {
-        console.log("Recalling tiles from trash...");
-        tilesInTrash.forEach(tile => {
-            localPlayerInstance.rack.push(tile);
-        });
-        tilesInTrash = [];
-        trashedTileIndices = [];
-
-        const exchangeArea = document.getElementById('exchange-area');
-        exchangeArea.classList.remove('trash-can-full');
-        exchangeArea.classList.add('trash-can-empty');
-    }
-
-    fullRender(currentGame, localPlayerId);
-    updateControlButtonsVisibility();
+    currentGame.currentTurnMoves = []; // Clear the array of uncommitted moves
+    console.log("All uncommitted tiles recalled. Rack now:", localPlayerInstance.rack.map(t => t.letter || (t.isBlank ? 'BLANK' : '')));
+    fullRender(currentGame, localPlayerId); // Refresh the display
+    updateControlButtonsVisibility(); // Update button states (e.g., disable "Recall")
 }
 
 // --- Game Logic: Validation, Actions, and Scoring ---
@@ -1067,64 +1032,72 @@ function handleExchangeTiles() {
  * - Shuffles bag, advances turn, generates URL.
  * - Updates UI and saves game state.
  */
-function handleTrashClick() {
-    if (tilesInTrash.length === 0) {
-        alert("There are no tiles in the trash to exchange.");
+function handleConfirmExchange() {
+    if (!isExchangeModeActive) {
+        console.log("handleConfirmExchange: Called when exchange mode is not active. No action taken.");
         return;
     }
-
-    const confirmation = confirm(`Do you want to exchange ${tilesInTrash.length} tiles?`);
-    if (confirmation) {
-        handleConfirmExchange(trashedTileIndices);
-    }
-}
-
-function handleConfirmExchange(indicesToExchange) {
-    if (tilesInTrash.length === 0) {
-        alert("Please drag tiles to the trash can to exchange them.");
+    if (selectedTilesForExchange.length === 0) {
+        alert("Please select at least one tile from your rack to exchange.");
         return;
     }
 
     const player = currentGame.getCurrentPlayer();
-    if (currentGame.bag.length < tilesInTrash.length) {
+    if (currentGame.bag.length < selectedTilesForExchange.length) {
         alert(
             `Not enough tiles in the bag (${currentGame.bag.length}) to exchange ` +
-            `${tilesInTrash.length} tile(s).`
+            `${selectedTilesForExchange.length} tile(s).`
         );
         return;
     }
 
-    console.log(`Confirming exchange for ${player.name}. Tiles: ${tilesInTrash.map(t => t.letter || (t.isBlank ? 'BLANK' : '')).join(', ')}`);
+    console.log(`Confirming exchange for ${player.name}. Tiles: ${selectedTilesForExchange.map(t => t.letter || (t.isBlank ? 'BLANK' : '')).join(', ')}`);
 
+    // For the URL, we need the original indices of the selected tiles from the player's current rack
+    // *before* any splicing happens for this exchange operation.
+    const currentRackIndicesForURL = selectedTilesForExchange.map(selectedTile =>
+        player.rack.findIndex(rackTile => rackTile.id === selectedTile.id)
+    ).filter(index => index !== -1); // Filter out -1 just in case, though selection should be from rack.
+
+    // For actually removing tiles from the rack, sort indices descending to avoid issues with splicing.
+    const indicesToSpliceFromRack = [...currentRackIndicesForURL].sort((a, b) => b - a);
+
+    if (indicesToSpliceFromRack.length !== selectedTilesForExchange.length) {
+        // This indicates a mismatch, possibly if a selected tile was somehow no longer in the rack.
+        alert("Error: Some selected tiles could not be found in the rack for exchange. Please try again.");
+        // Reset selection and mode as a precaution.
+        selectedTilesForExchange = [];
+        isExchangeModeActive = false;
+        updateControlButtonsVisibility();
+        fullRender(currentGame, localPlayerId);
+        return;
+    }
+
+    // 1. Remove selected tiles from player's rack
     const tilesReturnedToBag = [];
-    tilesInTrash.forEach(tile => {
-        tilesReturnedToBag.push(tile);
-    });
-    tilesInTrash = [];
-    trashedTileIndices = [];
+    for (const index of indicesToSpliceFromRack) {
+        tilesReturnedToBag.push(player.rack.splice(index, 1)[0]);
+    }
 
-    const exchangeArea = document.getElementById('exchange-area');
-    exchangeArea.classList.remove('trash-can-full');
-    exchangeArea.classList.add('trash-can-empty');
-
-    // 1. Player draws new tiles
+    // 2. Player draws new tiles
     currentGame.drawTiles(player, tilesReturnedToBag.length);
 
-    // 2. Add exchanged tiles back to the bag and reset blanks
+    // 3. Add exchanged tiles back to the bag and reset blanks
     tilesReturnedToBag.forEach(tile => {
-        if (tile.isBlank) tile.assignedLetter = null;
+        if (tile.isBlank) tile.assignedLetter = null; // Reset blank tile before returning to bag
         currentGame.bag.push(tile);
     });
 
-    // 3. Shuffle the bag
+    // 4. Shuffle the bag
     currentGame._shuffleBag();
 
-    // 4. Advance turn
+    // 5. Advance turn
     currentGame.turnNumber++;
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
-    // 5. Generate Turn URL
-    const urlExchangeIndicesString = indicesToExchange.join(',');
+    // 6. Generate Turn URL
+    // The `exchangeData` for the URL should be the comma-separated string of original rack indices.
+    const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
     const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
@@ -1477,13 +1450,6 @@ function initializeGameAndEventListeners() {
 
     // Load game from URL parameters or LocalStorage
     loadGameFromURLOrStorage(window.location.search, localStorage);
-
-    const exchangeArea = document.getElementById('exchange-area');
-    if (exchangeArea) {
-        exchangeArea.addEventListener('click', handleTrashClick);
-        exchangeArea.addEventListener('dragover', handleDragOver);
-        exchangeArea.addEventListener('drop', handleDropOnTrash);
-    }
 
     // Attach event listeners to game control buttons
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
