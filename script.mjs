@@ -1171,7 +1171,7 @@ function updateControlButtonsVisibility() {
 
 function updateAfterMove(turnUrlParams, pointsEarned) {
     const baseURL = window.location.origin + window.location.pathname;
-    const turnURL = `${baseURL}?${turnUrlParams.toString()}`;
+    const turnURL = `${baseURL}#${turnUrlParams.toString()}`;
     const turnUrlInput = document.getElementById('turn-url');
     if (turnUrlInput) {
         turnUrlInput.value = turnURL;
@@ -1394,8 +1394,8 @@ function startGameWithSettings() {
  * @param {string} searchSource - Search string to use, e.g., `window.location.search`.
  * @param {Storage} storage - The storage object to use (e.g., localStorage).
  */
-function loadGameFromURLOrStorage(searchSource, storage) {
-    const params = new URLSearchParams(searchSource);
+function loadGameFromURLOrStorage(hashSource, storage) {
+    const params = new URLSearchParams(hashSource);
     const state = loadGameFromParamsOrStorage(params, localStorage, currentGame, localPlayerId);
 
     if (state.message) {
@@ -1449,7 +1449,12 @@ function initializeGameAndEventListeners() {
     // Note: modalPointsEarnedSpan and modalCopyCheckbox are accessed within showPostMoveModal.
 
     // Load game from URL parameters or LocalStorage
-    loadGameFromURLOrStorage(window.location.search, localStorage);
+    loadGameFromURLOrStorage(window.location.hash.substring(1), localStorage);
+
+    // Add a hashchange event listener to reload the game when the URL fragment changes
+    window.addEventListener('hashchange', () => {
+        loadGameFromURLOrStorage(window.location.hash.substring(1), localStorage);
+    });
 
     // Attach event listeners to game control buttons
     document.getElementById('play-word-btn').addEventListener('click', handleCommitPlay);
