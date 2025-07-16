@@ -382,7 +382,7 @@ function handleTouchStart(event) {
     }
 
     const tileElement = event.target.closest('[data-tile-id]');
-    if (!tileElement) return; // Not a tile or descendant of a a tile element
+    if (!tileElement) return; // Not a tile or descendant of a tile element
 
     const tileId = tileElement.dataset.tileId;
 
