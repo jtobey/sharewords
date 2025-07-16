@@ -22,7 +22,6 @@ body {
 
 /* Define CSS variables for tile size and font sizes for easier adjustments */
 :root {
-    --board-size: 90vw; /* Board width relative to viewport width */
     --tile-size: calc(var(--board-size) / 15);
     --tile-font-size: calc(var(--tile-size) * 0.5);
     --value-font-size: calc(var(--tile-size) * 0.3);
@@ -32,6 +31,7 @@ body {
 }
 
 #board-container {
+    --board-size: 90vw; /* Board width relative to viewport width */
     display: grid;
     /* grid-template-columns will be set by JS */
     /* grid-template-rows will be set by JS */
@@ -200,6 +200,24 @@ body {
 /* Basic styling for selected tiles or active elements if needed later */
 .selected {
     border: 2px solid red !important;
+}
+
+@media (min-width: 501px) and (max-width: 767px) {
+    #game-container {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    #board-container {
+        --board-size: 60vw;
+        width: 60%;
+        max-width: 450px; /* Ensure it doesn't get too big within this range */
+    }
+
+    #info-container {
+        width: 40%;
+        min-width: 200px; /* Prevent it from getting too squeezed */
+    }
 }
 
 /* Media Query for larger screens */
