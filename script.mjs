@@ -331,7 +331,17 @@ function showPostMoveModal(pointsEarned, turnURL) {
     }
     modalPointsEarnedSpan.textContent = pointsEarned;
     postMoveModalElement.dataset.turnUrl = turnURL; // Store URL for the copy button/action
-    if (modalCopyCheckbox) modalCopyCheckbox.checked = true; // Default to copying URL
+
+    if (modalCopyCheckbox) {
+        if (navigator.clipboard) {
+            modalCopyCheckbox.checked = true; // Default to copying URL
+            // show parent
+            modalCopyCheckbox.parentElement.style.display = 'block';
+        } else {
+            // hide parent
+            modalCopyCheckbox.parentElement.style.display = 'none';
+        }
+    }
     postMoveModalElement.removeAttribute('hidden'); // Make the modal visible
 }
 
@@ -1426,6 +1436,14 @@ function loadGameFromURLOrStorage(searchSource, storage) {
 function initializeGameAndEventListeners() {
     console.log("DOM fully loaded and parsed. Initializing game and event listeners.");
 
+    // Hide copy URL button if clipboard API is not available
+    if (!navigator.clipboard) {
+        const copyUrlBtn = document.getElementById('copy-url-btn');
+        const turnUrlContainer = document.getElementById('turn-url-container');
+        if (copyUrlBtn) copyUrlBtn.style.display = 'none';
+        if (turnUrlContainer) turnUrlContainer.style.display = 'none';
+    }
+
     // Modal elements (cache them for reuse)
     const postMoveModalElement = document.getElementById('post-move-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
@@ -1496,7 +1514,7 @@ function initializeGameAndEventListeners() {
             // If checkbox is checked, attempt to copy URL from modal's dataset before closing
             if (modalCopyCheckbox && modalCopyCheckbox.checked) {
                 const urlToCopyFromModal = postMoveModalElement.dataset.turnUrl;
-                if (urlToCopyFromModal) {
+                if (urlToCopyFromModal && navigator.clipboard) {
                     navigator.clipboard.writeText(urlToCopyFromModal)
                         .then(() => console.log('Turn URL copied to clipboard from modal.'))
                         .catch(err => {
