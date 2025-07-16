@@ -248,7 +248,7 @@ function renderRack(gameState, localPlayerId) {
     localPlayer.rack.forEach(tile => {
         // Tiles in local player's rack are draggable only if it's their turn and not in exchange mode.
         // Exchange mode handles its own click-to-select logic, not drag-and-drop.
-        const isDraggable = (gameState.getCurrentPlayer().id === localPlayerId && !isExchangeModeActive);
+        const isDraggable = !isExchangeModeActive;
         localRackElement.appendChild(renderTileInRack(tile, isDraggable));
     });
     // Opponent's rack is not explicitly rendered here, but could be (e.g., showing tile counts).
@@ -385,20 +385,6 @@ function handleTouchStart(event) {
     if (!tileElement) return; // Not a tile or descendant of a tile element
 
     const tileId = tileElement.dataset.tileId;
-    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
-
-    if (!localPlayerInstance) {
-        console.log("Touch drag prevented: Local player instance not found.");
-        return;
-    }
-    // Check if the tile is in the local player's rack OR part of their current uncommitted moves on the board.
-    const isTileInLocalPlayerRack = localPlayerInstance.rack.some(t => t.id === tileId);
-    const isTileInCurrentTurnMoves = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
-
-    if (!isTileInLocalPlayerRack && !isTileInCurrentTurnMoves) {
-        console.log("Touch drag prevented: Tile is not in local player's rack or current turn moves.", tileId);
-        return;
-    }
 
     // Tile is draggable by the local player.
     console.log(`Touch Start: Allowed for local player, tile ${tileId}`);
@@ -625,21 +611,6 @@ function handleDragStart(event) {
     }
 
     const tileId = tileElement.dataset.tileId;
-    const localPlayerInstance = currentGame.players.find(p => p.id === localPlayerId);
-
-    if (!localPlayerInstance) {
-        console.log("Mouse Drag prevented: Local player instance not found.");
-        event.preventDefault(); return;
-    }
-
-    // Check if the tile is in the local player's rack OR part of their current uncommitted moves on the board.
-    const isTileInLocalPlayerRack = localPlayerInstance.rack.some(t => t.id === tileId);
-    const isTileInCurrentTurnMoves = currentGame.currentTurnMoves.some(m => m.tileId === tileId);
-
-    if (!isTileInLocalPlayerRack && !isTileInCurrentTurnMoves) {
-        console.log("Mouse Drag prevented: Tile is not in local player's rack or current turn moves.", tileId);
-        event.preventDefault(); return;
-    }
 
     // Tile is draggable by the local player.
     console.log(`Mouse Drag Start: Allowed for local player, tile ${tileId}`);
