@@ -130,10 +130,6 @@ function renderBoard(gameState) {
     }
     boardContainer.innerHTML = ''; // Clear previous board content
 
-    // Set up CSS grid for the board based on its size
-    boardContainer.style.gridTemplateColumns = `repeat(${gameState.board.size}, var(--tile-size))`;
-    boardContainer.style.gridTemplateRows = `repeat(${gameState.board.size}, var(--tile-size))`;
-
     const centerR = Math.floor(gameState.board.size / 2);
     const centerC = Math.floor(gameState.board.size / 2);
 
