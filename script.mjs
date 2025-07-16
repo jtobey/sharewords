@@ -388,14 +388,7 @@ function handleTouchStart(event) {
 
     // Tile is draggable by the local player.
     console.log(`Touch Start: Allowed for local player, tile ${tileId}`);
-
-    const isDraggable = tileElement.draggable;
-
-    if (isDraggable) {
-        event.preventDefault(); // Prevent default touch actions (like scrolling or text selection).
-    } else {
-        return;
-    }
+    event.preventDefault(); // Prevent default touch actions (like scrolling or text selection).
 
     touchDraggedTileId = tileId;
     touchDraggedElement = tileElement;
