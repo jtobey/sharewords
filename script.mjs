@@ -18,6 +18,7 @@ import {
     generateTurnUrlParams
 } from './scoring.mjs';
 import {
+    gameSettingsFromUrlParams,
     loadGameFromParamsOrStorage,
     saveGameStateToLocalStorage
 } from './game_state.mjs';
@@ -1193,10 +1194,10 @@ function updateAfterMove(turnUrlParams, pointsEarned) {
  * - Sets the local player as 'player1'.
  * - Saves and renders the new game.
  */
-function initializeNewGame() {
+function initializeNewGame(params) {
     const gameId = `game-${Date.now()}`; // Simple unique game ID
-    const randomSeed = Math.floor(Math.random() * 1000000); // Generate a new random seed
-    currentGame = new GameState(gameId, randomSeed, {}); // Use default settings
+    const randomSeed = params.get('seed') || Math.floor(Math.random() * 1000000);
+    currentGame = new GameState(gameId, randomSeed, gameSettingsFromUrlParams(params));
     localPlayerId = 'player1'; // This browser initiates as Player 1
     console.log("New local game initialized by this browser (as Player 1):", currentGame);
 
@@ -1407,7 +1408,7 @@ function loadGameFromURLOrStorage(hashSource, storage) {
         // Check if there's a "last played" game ID in a separate local storage item (optional feature, not implemented here)
         // For now, if no gameId in URL, initialize a brand new local game for testing/solo play.
         console.log("No current game. Initializing a new local game.");
-        initializeNewGame(); // This sets `currentGame` and `localPlayerId`, and calls saveGameStateToLocalStorage.
+        initializeNewGame(params); // This sets `currentGame` and `localPlayerId`, and calls saveGameStateToLocalStorage.
         // No need to return here, the rest of the function will handle rendering if currentGame is set.
     }
     // --- Final Rendering and UI Update ---

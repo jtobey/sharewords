@@ -372,6 +372,29 @@ export function applyTurnDataFromURL(gameState, playerId, params) {
     return false;
 }
 
+export function gameSettingsFromUrlParams(params) {
+    const settings = {}; // Populate with settings from turn URL
+    const urlDictTypeTurn = params.get('dt');
+    if (urlDictTypeTurn) settings.dictionaryType = urlDictTypeTurn;
+    const urlDictUrlTurn = params.get('du');
+    if (urlDictUrlTurn) settings.dictionaryUrlOrFunction = urlDictUrlTurn;
+    try {
+        const urlLetterDistTurn = params.get('ld');
+        if (urlLetterDistTurn) settings.letterDistribution = JSON.parse(urlLetterDistTurn);
+        const urlTileValsTurn = params.get('tv');
+        if (urlTileValsTurn) settings.tileValues = JSON.parse(urlTileValsTurn);
+    } catch (e) { console.error("Error parsing JSON settings from turn URL (distribution/values):", e); }
+    const urlBlankCountTurn = params.get('bc');
+    if (urlBlankCountTurn !== null) settings.blankTileCount = parseInt(urlBlankCountTurn);
+    const urlSevenBonusTurn = params.get('sb');
+    if (urlSevenBonusTurn !== null) settings.sevenTileBonus = parseInt(urlSevenBonusTurn);
+    const urlCblTurn = params.get('cbl');
+    if (urlCblTurn) settings.customBoardLayout = urlCblTurn.split(',');
+    const p1nTurn = params.get('p1n'); const p2nTurn = params.get('p2n');
+    if (p1nTurn || p2nTurn) settings.playerNames = { player1: p1nTurn || "Player 1", player2: p2nTurn || "Player 2" };
+    return settings;
+}
+
 /**
  * Main function to load a game, either from URL parameters or from LocalStorage.
  * This function orchestrates the game setup or resumption process.
@@ -430,26 +453,8 @@ export function loadGameFromParamsOrStorage(params, storage, gameState, playerId
     } else { // Game not found in LocalStorage for this gid, implies joining a new game with turn URL
         if (urlSeed) {
             console.log(`New game ${urlGameId} initiated from turn URL by Player 2 (seed: ${urlSeed}).`);
-            const newGameSettingsFromTurnUrl = {}; // Populate with settings from turn URL if P1 included them
-            const urlDictTypeTurn = params.get('dt');
-            if (urlDictTypeTurn) newGameSettingsFromTurnUrl.dictionaryType = urlDictTypeTurn;
-            const urlDictUrlTurn = params.get('du');
-            if (urlDictUrlTurn) newGameSettingsFromTurnUrl.dictionaryUrlOrFunction = urlDictUrlTurn;
-            try {
-                const urlLetterDistTurn = params.get('ld');
-                if (urlLetterDistTurn) newGameSettingsFromTurnUrl.letterDistribution = JSON.parse(urlLetterDistTurn);
-                const urlTileValsTurn = params.get('tv');
-                if (urlTileValsTurn) newGameSettingsFromTurnUrl.tileValues = JSON.parse(urlTileValsTurn);
-            } catch (e) { console.error("Error parsing JSON settings from turn URL (distribution/values):", e); }
-            const urlBlankCountTurn = params.get('bc');
-            if (urlBlankCountTurn !== null) newGameSettingsFromTurnUrl.blankTileCount = parseInt(urlBlankCountTurn);
-            const urlSevenBonusTurn = params.get('sb');
-            if (urlSevenBonusTurn !== null) newGameSettingsFromTurnUrl.sevenTileBonus = parseInt(urlSevenBonusTurn);
-            const urlCblTurn = params.get('cbl');
-            if (urlCblTurn) newGameSettingsFromTurnUrl.customBoardLayout = urlCblTurn.split(',');
-            const p1nTurn = params.get('p1n'); const p2nTurn = params.get('p2n');
-            if (p1nTurn || p2nTurn) newGameSettingsFromTurnUrl.playerNames = { player1: p1nTurn || "Player 1", player2: p2nTurn || "Player 2" };
-
+            // Populate with settings from turn URL if P1 included them
+            const newGameSettingsFromTurnUrl = gameSettingsFromUrlParams(params);
             gameState = new GameState(urlGameId, parseInt(urlSeed), newGameSettingsFromTurnUrl);
             playerId = 'player2';
 
