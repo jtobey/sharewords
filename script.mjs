@@ -288,13 +288,17 @@ function updateGameStatus(gameState) {
     if (tilesInBagEl) tilesInBagEl.textContent = gameState.bag.length;
 
     if (gameState.isGameOver) {
-        const gameOverMessage = document.createElement('div');
-        gameOverMessage.textContent = 'Game Over';
-        gameOverMessage.style.fontSize = '2em';
-        gameOverMessage.style.textAlign = 'center';
-        gameOverMessage.style.marginTop = '20px';
-        const container = document.getElementById('game-status');
-        container.appendChild(gameOverMessage);
+        const existingMessage = document.getElementById('game-over-message');
+        if (!existingMessage) {
+            const gameOverMessage = document.createElement('div');
+            gameOverMessage.id = 'game-over-message';
+            gameOverMessage.textContent = 'Game Over';
+            gameOverMessage.style.fontSize = '2em';
+            gameOverMessage.style.textAlign = 'center';
+            gameOverMessage.style.marginTop = '20px';
+            const container = document.getElementById('game-status');
+            container.appendChild(gameOverMessage);
+        }
     }
 }
 
