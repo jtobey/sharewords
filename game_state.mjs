@@ -366,6 +366,10 @@ export function applyTurnDataFromURL(gameState, playerId, params) {
                 }
             }
         }
+        if (gameState.checkGameOver()) {
+            gameState.isGameOver = true;
+            console.log("Game over condition met.");
+        }
         return true; // Word play successfully applied
     }
 

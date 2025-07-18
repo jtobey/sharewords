@@ -286,6 +286,20 @@ function updateGameStatus(gameState) {
     if (turnPlayerEl) turnPlayerEl.textContent = gameState.getCurrentPlayer().name;
     const tilesInBagEl = document.getElementById('tiles-in-bag');
     if (tilesInBagEl) tilesInBagEl.textContent = gameState.bag.length;
+
+    if (gameState.isGameOver) {
+        const existingMessage = document.getElementById('game-over-message');
+        if (!existingMessage) {
+            const gameOverMessage = document.createElement('div');
+            gameOverMessage.id = 'game-over-message';
+            gameOverMessage.textContent = 'Game Over';
+            gameOverMessage.style.fontSize = '2em';
+            gameOverMessage.style.textAlign = 'center';
+            gameOverMessage.style.marginTop = '20px';
+            const container = document.getElementById('game-status');
+            container.appendChild(gameOverMessage);
+        }
+    }
 }
 
 /**
@@ -1094,7 +1108,7 @@ function handleConfirmExchange() {
     currentGame.turnNumber++;
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
-    // 6. Generate Turn URL
+    // 7. Generate Turn URL
     // The `exchangeData` for the URL should be the comma-separated string of original rack indices.
     const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
@@ -1136,6 +1150,16 @@ function updateControlButtonsVisibility() {
     const confirmExchangeBtn = document.getElementById('confirm-exchange-btn');
     const cancelExchangeBtn = document.getElementById('cancel-exchange-btn');
 
+    if (currentGame && currentGame.isGameOver) {
+        if (playWordBtn) playWordBtn.disabled = true;
+        if (exchangeTilesBtn) exchangeTilesBtn.disabled = true;
+        if (passTurnBtn) passTurnBtn.disabled = true;
+        if (recallTilesBtn) recallTilesBtn.disabled = true;
+        if (confirmExchangeBtn) confirmExchangeBtn.disabled = true;
+        if (cancelExchangeBtn) cancelExchangeBtn.disabled = true;
+        return;
+    }
+
     // In exchange mode:
     if (isExchangeModeActive) {
         if (playWordBtn) playWordBtn.style.display = 'none';           // Hide normal play buttons
@@ -1174,6 +1198,12 @@ function updateAfterMove(turnUrlParams, pointsEarned) {
     if (turnUrlInput) {
         turnUrlInput.value = turnURL;
         console.log("Exchange Turn URL generated:", turnURL);
+    }
+
+    // Check for game over
+    if (currentGame.checkGameOver()) {
+        currentGame.isGameOver = true;
+        console.log("Game over condition met.");
     }
 
     // Cleanup and UI updates

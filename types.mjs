@@ -295,6 +295,23 @@ function GameState(gameId, settings = {}) {
     this.getCurrentPlayer = function() { return this.players[this.currentPlayerIndex]; };
     /** Gets the opponent player object. @returns {Player} */
     this.getOpponentPlayer = function() { return this.players[(this.currentPlayerIndex + 1) % this.players.length]; };
+
+    /**
+     * Checks if the game is over.
+     * The game is over if the bag is empty and at least one player has an empty rack.
+     * @returns {boolean} True if the game is over, false otherwise.
+     */
+    this.checkGameOver = function() {
+        if (this.bag.length > 0) {
+            return false;
+        }
+        for (const player of this.players) {
+            if (player.rack.length === 0) {
+                return true;
+            }
+        }
+        return false;
+    };
 }
 
 // --- PRNG (Mulberry32) ---
