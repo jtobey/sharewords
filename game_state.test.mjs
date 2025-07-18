@@ -33,7 +33,7 @@ describe('GameState Persistence', () => {
     });
 
     it('should save and load a game state', () => {
-        const game = new GameState('test-game', 12345);
+        const game = new GameState('test-game', {randomSeed: 12345});
         const seedAfterInitGame = game.prng.seed;
         const playerId = 'player1';
 

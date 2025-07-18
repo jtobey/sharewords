@@ -191,7 +191,7 @@ function Player(id, name) {
  *                                              Each object: { tileId: string, tileRef: Tile, from: string ('rack'|'board'), to: {row: number, col: number} }
  * @property {boolean} isGameOver - Flag indicating if the game has ended.
  */
-function GameState(gameId, randomSeed, settings = {}) {
+function GameState(gameId, settings = {}) {
     this.gameId = gameId;
 
     // Consolidate settings, applying defaults for any not provided
@@ -209,7 +209,7 @@ function GameState(gameId, randomSeed, settings = {}) {
         ...settings // Spread any other custom settings passed in
     };
 
-    this.prng = new Mulberry32(randomSeed === null ? this.settings.randomSeed : randomSeed);
+    this.prng = new Mulberry32(this.settings.randomSeed || 0);
     this.bag = []; // Initialize empty bag, to be filled by _initializeBag
 
     /**
@@ -275,11 +275,13 @@ function GameState(gameId, randomSeed, settings = {}) {
     this.players = [new Player("player1", p1Name), new Player("player2", p2Name)];
     this.currentPlayerIndex = 0; // Player 1 starts
 
-    if (randomSeed !== null) {
+    if (this.prng.seed) {
         // Initialize and shuffle bag, then deal initial tiles to players
         this._initializeBag();
         this._shuffleBag();
         this.players.forEach(player => { this.drawTiles(player, this.settings.rackSize); });
+    } else {
+        // The caller should initialize the prng, bag, and racks.
     }
 
     // Initialize board

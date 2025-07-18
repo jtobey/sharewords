@@ -31,7 +31,7 @@ export function loadGameStateFromLocalStorage(gameId, storage) {
 
         // Create a new GameState instance. Settings are passed directly.
         // The GameState constructor handles defaults for settings not present in storedData.settings.
-        const rehydratedGame = new GameState(storedData.gameId, null, storedData.settings || {});
+        const rehydratedGame = new GameState(storedData.gameId, storedData.settings || {});
 
         // Restore scalar properties
         rehydratedGame.turnNumber = storedData.turnNumber;
@@ -463,7 +463,7 @@ export function loadGameFromParamsOrStorage(params, storage, gameState, playerId
             console.log(`New game ${urlGameId} initiated from turn URL by Player 2 (seed: ${urlSeed}).`);
             // Populate with settings from turn URL if P1 included them
             const newGameSettingsFromTurnUrl = gameSettingsFromUrlParams(params);
-            gameState = new GameState(urlGameId, parseInt(urlSeed), newGameSettingsFromTurnUrl);
+            gameState = new GameState(urlGameId, newGameSettingsFromTurnUrl);
             playerId = 'player2';
 
             if (urlTurnNumberStr && parseInt(urlTurnNumberStr) === 1 && (params.has('wh') || params.has('wv') || params.get('ex') !== null)) {

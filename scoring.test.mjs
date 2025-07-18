@@ -18,7 +18,8 @@ import {
 // --- Test Data and Helper Functions ---
 
 function createMockGame(turnNumber = 1) {
-    const game = new GameState('test-game', 12345, {
+    const game = new GameState('test-game', {
+        randomSeed: 12345,
         playerNames: {
             player1: "Player 1",
             player2: "Player 2"

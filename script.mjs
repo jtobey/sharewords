@@ -1193,10 +1193,13 @@ function updateAfterMove(turnUrlParams, pointsEarned) {
  */
 function initializeNewGame(params) {
     const gameId = `game-${Date.now()}`; // Simple unique game ID
-    const randomSeedStr = params.get('seed');
-    const randomSeed = (randomSeedStr !== null ? parseInt(randomSeedStr) : Math.floor(Math.random() * 1000000));
-    console.log(`initializeNewGame: seed is ${randomSeed}`);
-    currentGame = new GameState(gameId, randomSeed, gameSettingsFromUrlParams(params));
+    // TODO: Add `&gid=${gameId}` to window.location.hash.
+    const settings = {
+        randomSeed: Math.floor(Math.random() * 1000000),
+        ...gameSettingsFromUrlParams(params)
+    };
+    console.log(`initializeNewGame: seed is ${settings.randomSeed}`);
+    currentGame = new GameState(gameId, settings);
     localPlayerId = 'player1'; // This browser initiates as Player 1
     console.log("New local game initialized by this browser (as Player 1):", currentGame);
 
@@ -1360,6 +1363,9 @@ function startGameWithSettings() {
         player2: player2NameInput || "Player 2"
     };
 
+    // TODO: Add seed to the form.
+    collectedGameSettings.randomSeed = Math.floor(Math.random() * 1000000);
+
     // Hide the settings section after successfully collecting settings
     const settingsSection = document.getElementById('custom-settings-section');
     if (settingsSection) {
@@ -1368,8 +1374,7 @@ function startGameWithSettings() {
 
     // Initialize the game with the collected settings
     const gameId = `game-${Date.now()}`;
-    const randomSeed = Math.floor(Math.random() * 1000000);  // TODO: Add seed to the form.
-    currentGame = new GameState(gameId, randomSeed, collectedGameSettings);
+    currentGame = new GameState(gameId, collectedGameSettings);
     localPlayerId = 'player1'; // User starting a new game with settings is Player 1
 
     console.log("New game started with custom settings (as Player 1):", collectedGameSettings, currentGame);
