@@ -1108,7 +1108,7 @@ function handleConfirmExchange() {
     currentGame.turnNumber++;
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
-    // 7. Generate Turn URL
+    // 6. Generate Turn URL
     // The `exchangeData` for the URL should be the comma-separated string of original rack indices.
     const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
