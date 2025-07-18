@@ -34,6 +34,7 @@ describe('GameState Persistence', () => {
 
     it('should save and load a game state', () => {
         const game = new GameState('test-game', 12345);
+        const seedAfterInitGame = game.prng.seed;
         const playerId = 'player1';
 
         const saveResult = saveGameStateToLocalStorage(game, playerId, mockStorage);
@@ -43,7 +44,7 @@ describe('GameState Persistence', () => {
         assert.notStrictEqual(loadResult.gameState, null);
         assert.strictEqual(loadResult.playerId, playerId);
         assert.strictEqual(loadResult.gameState.gameId, 'test-game');
-        assert.strictEqual(loadResult.gameState.randomSeed, 12345);
+        assert.strictEqual(loadResult.gameState.prng.seed, seedAfterInitGame);
     });
 
     it('should return null when loading a non-existent game', () => {

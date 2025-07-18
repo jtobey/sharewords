@@ -31,7 +31,7 @@ export function loadGameStateFromLocalStorage(gameId, storage) {
 
         // Create a new GameState instance. Settings are passed directly.
         // The GameState constructor handles defaults for settings not present in storedData.settings.
-        const rehydratedGame = new GameState(storedData.gameId, storedData.randomSeed, storedData.settings || {});
+        const rehydratedGame = new GameState(storedData.gameId, null, storedData.settings || {});
 
         // Restore scalar properties
         rehydratedGame.turnNumber = storedData.turnNumber;
@@ -42,6 +42,8 @@ export function loadGameStateFromLocalStorage(gameId, storage) {
         // This is crucial for UI behavior and turn synchronization.
         // This assignment affects the global `localPlayerId`.
         const playerId = storedData.savedLocalPlayerId || 'player1'; // Default to 'player1' if not saved
+
+        rehydratedGame.prng.seed = storedData.randomSeed;
 
         // Rehydrate players (scores, racks)
         if (storedData.players && storedData.players.length === rehydratedGame.players.length) {
@@ -99,7 +101,7 @@ export function loadGameStateFromLocalStorage(gameId, storage) {
                 }
             }
         }
-        console.log(`Game ${gameId} loaded and rehydrated from localStorage. Local player is ${playerId}.`);
+        console.log(`Game ${gameId} loaded and rehydrated from localStorage. Local player is ${playerId}. Seed is ${rehydratedGame.prng.seed}`);
         return {gameState: rehydratedGame, playerId};
     } catch (error) {
         console.error(`Error loading or rehydrating game state for gameId "${gameId}":`, error);
@@ -374,6 +376,8 @@ export function applyTurnDataFromURL(gameState, playerId, params) {
 
 export function gameSettingsFromUrlParams(params) {
     const settings = {}; // Populate with settings from turn URL
+    const randomSeed = params.get('seed');
+    if (randomSeed) settings.randomSeed = parseInt(randomSeed);
     const urlDictTypeTurn = params.get('dt');
     if (urlDictTypeTurn) settings.dictionaryType = urlDictTypeTurn;
     const urlDictUrlTurn = params.get('du');
@@ -417,6 +421,10 @@ export function loadGameFromParamsOrStorage(params, storage, gameState, playerId
     if (!urlGameId) {
         console.log("No game ID in URL");
         return {gameState: null, playerId: null};
+    }
+    if (gameState && gameState.gameId !== urlGameId) {
+        console.log(`loadGameFromParamsOrStorage: Switching game from ${gameState.gameId} to ${urlGameId}.`);
+        gameState = null;
     }
     console.log(`loadGameFromParamsOrStorage: Processing 'gid' parameter: ${urlGameId}.`);
     // If gameState is already set, respect it.
@@ -494,7 +502,7 @@ export function saveGameStateToLocalStorage(gameState, playerId, storage) {
         // to simpler structures that can be JSON.stringified.
         const serializableState = {
             gameId: gameState.gameId,
-            randomSeed: gameState.randomSeed,
+            randomSeed: gameState.prng.seed,
             settings: gameState.settings, // Settings are assumed to be serializable (JSON-like)
             turnNumber: gameState.turnNumber,
             currentPlayerIndex: gameState.currentPlayerIndex,
@@ -534,7 +542,7 @@ export function saveGameStateToLocalStorage(gameState, playerId, storage) {
             savedLocalPlayerId: playerId // Persist which player this browser instance represents for this game
         };
         storage.setItem(LOCAL_STORAGE_KEY_PREFIX + gameState.gameId, JSON.stringify(serializableState));
-        console.log(`Game ${gameState.gameId} (for local player ${playerId}) saved to storage.`);
+        console.log(`Game ${gameState.gameId} (for local player ${playerId}) saved to storage. Seed is ${serializableState.randomSeed}.`);
     } catch (error) {
         console.error("Error saving game state to LocalStorage:", error);
         return {success: false, message: `Error saving game state to LocalStorage: ${error}`};

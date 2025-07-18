@@ -922,9 +922,8 @@ async function handleCommitPlay() {
 
     // Generate Turn URL
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
-    const seedForURL = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const settingsForURL = isFirstTurnByP1 ? currentGame.settings : null;
-    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, result.wordDataForURL, seedForURL, settingsForURL);
+    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, result.wordDataForURL, settingsForURL);
 
     updateAfterMove(turnUrlParams, result.score);
 }
@@ -961,10 +960,9 @@ function handlePassTurn() {
 
     // Generate URL for the pass action. For a pass, `exchangeData` is an empty string.
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
-    const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
     // The `null` for turnData indicates no word was played. The `""` for exchangeData signifies a pass.
-    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, null, urlSeed, urlSettings, "");
+    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, null, urlSettings, "");
 
     updateAfterMove(turnUrlParams, 0);
 }
@@ -1100,9 +1098,8 @@ function handleConfirmExchange() {
     // The `exchangeData` for the URL should be the comma-separated string of original rack indices.
     const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');
-    const urlSeed = isFirstTurnByP1 ? currentGame.randomSeed : null;
     const urlSettings = isFirstTurnByP1 ? currentGame.settings : null;
-    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, null, urlSeed, urlSettings, urlExchangeIndicesString);
+    const turnUrlParams = generateTurnUrlParams(currentGame, localPlayerId, null, urlSettings, urlExchangeIndicesString);
 
     updateAfterMove(turnUrlParams, 0);
 }
@@ -1196,7 +1193,9 @@ function updateAfterMove(turnUrlParams, pointsEarned) {
  */
 function initializeNewGame(params) {
     const gameId = `game-${Date.now()}`; // Simple unique game ID
-    const randomSeed = params.get('seed') || Math.floor(Math.random() * 1000000);
+    const randomSeedStr = params.get('seed');
+    const randomSeed = (randomSeedStr !== null ? parseInt(randomSeedStr) : Math.floor(Math.random() * 1000000));
+    console.log(`initializeNewGame: seed is ${randomSeed}`);
     currentGame = new GameState(gameId, randomSeed, gameSettingsFromUrlParams(params));
     localPlayerId = 'player1'; // This browser initiates as Player 1
     console.log("New local game initialized by this browser (as Player 1):", currentGame);
@@ -1369,7 +1368,7 @@ function startGameWithSettings() {
 
     // Initialize the game with the collected settings
     const gameId = `game-${Date.now()}`;
-    const randomSeed = Math.floor(Math.random() * 1000000);
+    const randomSeed = Math.floor(Math.random() * 1000000);  // TODO: Add seed to the form.
     currentGame = new GameState(gameId, randomSeed, collectedGameSettings);
     localPlayerId = 'player1'; // User starting a new game with settings is Player 1
 

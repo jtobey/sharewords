@@ -568,33 +568,27 @@ async function handleCommitPlay(game, localPlayerId) {
  * @param {?object} turnData - Data about a word play (word, location, blanks). Null for pass/exchange.
  *                             Expected structure: { word: string, start_row: number, start_col: number,
  *                                                 direction: string, blanks_info: Array<{idx: number, al: string}> }
- * @param {?number} [seed=null] - The game's random seed. Only included for P1's first turn URL.
  * @param {?object} [settings=null] - Custom game settings. Only included for P1's first turn URL.
  * @param {?string} [exchangeData=null] - Data about tile exchange.
  *                                       Empty string ("") for a pass, or comma-separated indices for exchanged tiles.
  *                                       Null if the turn is a word play.
  * @returns {URLSearchParams} The generated turn URL params.
  */
-function generateTurnUrlParams(game, playerId, turnData, seed = null, settings = null, exchangeData = null) {
+function generateTurnUrlParams(game, playerId, turnData, settings = null, exchangeData = null) {
     const params = new URLSearchParams();
     params.append('gid', game.gameId);
     params.append('tn', game.turnNumber);
 
-    let effectiveSeed = seed;
     let effectiveSettings = settings;
 
     if (game.turnNumber === 1 && playerId === 'player1') {
-        effectiveSeed = game.randomSeed;
         if (effectiveSettings === null) {
             effectiveSettings = game.settings;
         }
     }
 
-    if (effectiveSeed !== null) {
-        params.append('seed', effectiveSeed);
-    }
-
     if (effectiveSettings && game.turnNumber === 1 && playerId === 'player1') {
+        params.append('seed', effectiveSettings.randomSeed);
         if (effectiveSettings.dictionaryType && effectiveSettings.dictionaryType !== 'permissive') {
             params.append('dt', effectiveSettings.dictionaryType);
             if (effectiveSettings.dictionaryType === 'custom' && effectiveSettings.dictionaryUrlOrFunction) {
