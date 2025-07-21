@@ -8,7 +8,7 @@ export interface Bag<Tile extends Serializable> extends Serializable {
   /** Number of tiles in the bag. */
   size: number
   /** Removes tiles from the bag. */
-  draw(numberOfElements: number): Array<Tile>
+  draw(numberOfElements: number): Promise<Array<Tile>>
   /** Swaps a group of tiles with a like number chosen from the bag. */
-  exchange(elementsToExhange: ReadonlyArray<Tile>): Array<Tile>
+  exchange(elementsToExhange: ReadonlyArray<Tile>): Promise<Array<Tile>>
 }

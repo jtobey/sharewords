@@ -26,13 +26,13 @@ export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
   get size() { return this.tiles.length }
   draw(numberOfTiles: number) {
     this.checkEnoughTiles(numberOfTiles)
-    return this.tiles.splice(-numberOfTiles)
+    return Promise.resolve(this.tiles.splice(-numberOfTiles))
   }
   exchange(tilesToExchange: Array<Tile>) {
     this.checkEnoughTiles(tilesToExchange.length)
     const drawnTiles = this.tiles.splice(-tilesToExchange.length, tilesToExchange.length, ...tilesToExchange)
     this.shuffle(this.size - tilesToExchange.length)
-    return drawnTiles
+    return Promise.resolve(drawnTiles)
   }
   private checkEnoughTiles(numberOfTilesNeeded: number) {
     if (numberOfTilesNeeded > this.size) {
