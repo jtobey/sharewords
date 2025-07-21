@@ -18,10 +18,10 @@ function checkUint32(n: number) {
 export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
   private readonly tiles: Array<Tile>
   private seed: number  // uint32
-  constructor(args: {tiles: Array<Tile>; seed: number; shuffle?: boolean}) {
-    this.seed = checkUint32(args.seed)
-    this.tiles = [...args.tiles]
-    if ({shuffle: true, ...args}.shuffle) this.shuffle(0)
+  constructor({tiles, seed, shuffle=true}: {tiles: Array<Tile>; seed: number; shuffle?: boolean}) {
+    this.seed = checkUint32(seed)
+    this.tiles = [...tiles]
+    if (shuffle) this.shuffle(0)
   }
   get size() { return this.tiles.length }
   draw(numberOfTiles: number) {

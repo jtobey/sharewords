@@ -3,9 +3,9 @@ import type { Serializable } from './serializable.js'
 export class Tile implements Serializable {
   readonly letter: string
   readonly value: number
-  constructor(args: Readonly<{letter: string, value: number}>) {
-    this.letter = args.letter
-    this.value = args.value
+  constructor({letter, value}: Readonly<{letter: string, value: number}>) {
+    this.letter = letter
+    this.value = value
   }
   get isBlank() { return this.letter === '' }
   toJSON() {

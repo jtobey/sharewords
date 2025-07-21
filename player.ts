@@ -3,9 +3,9 @@ import type { Serializable } from './serializable.js'
 export class Player implements Serializable {
   id: string
   name: string
-  constructor(args: Readonly<{id: string, name?: string}>) {
-    this.id = args.id
-    this.name = {name: `Player ${this.id}`, ...args}.name
+  constructor({id, name=`Player ${id}`}: Readonly<{id: string, name?: string}>) {
+    this.id = id
+    this.name = name
   }
   toJSON() {
     return {

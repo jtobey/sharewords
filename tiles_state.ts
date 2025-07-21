@@ -14,10 +14,10 @@ export class TilesState<Tile extends Serializable> implements Serializable {
   readonly rackSize: number
   private readonly bag: Bag<Tile>
   private readonly racks: ReadonlyMap<string, Array<Tile>>
-  constructor(args: Readonly<{rackSize: number, bag: Bag<Tile>; playerIds: ReadonlyArray<string>}>) {
-    this.rackSize = args.rackSize
-    this.bag = args.bag
-    this.racks = new Map(args.playerIds.map(playerId => [playerId, []]))
+  constructor({rackSize, bag, playerIds}: Readonly<{rackSize: number, bag: Bag<Tile>; playerIds: ReadonlyArray<string>}>) {
+    this.rackSize = rackSize
+    this.bag = bag
+    this.racks = new Map(playerIds.map(playerId => [playerId, []]))
   }
   private getRack(playerId: string) {
     const rack = this.racks.get(playerId)
@@ -33,17 +33,17 @@ export class TilesState<Tile extends Serializable> implements Serializable {
     rack.push(...newTiles)
     return newTiles
   }
-  async exchangeForPlayer(args: Readonly<{playerId: string; tilesToExchange: ReadonlyArray<Tile>}>) {
-    const rack = this.getRack(args.playerId)
+  async exchangeForPlayer({playerId, tilesToExchange}: Readonly<{playerId: string; tilesToExchange: ReadonlyArray<Tile>}>) {
+    const rack = this.getRack(playerId)
     const rackCopy = [...rack]
-    for (const tileToExchange of args.tilesToExchange) {
+    for (const tileToExchange of tilesToExchange) {
       const index = rackCopy.lastIndexOf(tileToExchange)
       if (index === -1) {
-        throw new Error(`Player ${args.playerId} attempted to exchange an unheld tile: ${tileToExchange}`)
+        throw new Error(`Player ${playerId} attempted to exchange an unheld tile: ${tileToExchange}`)
       }
       rackCopy.splice(index, 1)
     }
-    const newTiles = await this.bag.exchange(args.tilesToExchange)
+    const newTiles = await this.bag.exchange(tilesToExchange)
     rack.push(...newTiles)
     return newTiles
   }
