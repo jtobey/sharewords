@@ -2,8 +2,8 @@ import type { Serializable } from './serializable.js'
 
 export class Tile implements Serializable {
   constructor(
-    public readonly letter: string,
-    public readonly value: number,
+    readonly letter: string,
+    readonly value: number,
   ) {}
   get isBlank() { return this.letter === '' }
   toJSON() {
@@ -16,7 +16,7 @@ export class Tile implements Serializable {
     if (!(typeof json === 'object'
       && typeof json.letter === 'string'
       && typeof json.value === 'number')) {
-        throw new Error(`invalid serialized Tile: ${json}`)
+        throw new Error(`invalid Tile serialization: ${json}`)
       }
     return new Tile(json.letter, json.value)
   }

@@ -6,7 +6,7 @@ import type { Serializable } from './serializable.js'
 
 export interface Bag<Tile extends Serializable> extends Serializable {
   /** Number of tiles in the bag. */
-  size: number
+  readonly size: number
   /** Removes tiles from the bag. */
   draw(numberOfElements: number): Promise<Array<Tile>>
   /** Swaps a group of tiles with a like number chosen from the bag. */
