@@ -5,7 +5,10 @@ import { HonorSystemBag } from './honor_system_bag.js'
 class TestTile implements Serializable {
   constructor(public readonly num: number) {}
   toJSON() { return this.num }
-  static fromJSON(json: any) { return new TestTile(json) }
+  static fromJSON(json: any) {
+    if (typeof json !== 'number') throw new TypeError(`not a number: ${json}`)
+    return new TestTile(json)
+  }
 }
 
 function _tiles(...nums: Array<number>) {
@@ -52,39 +55,46 @@ describe("honor system bag", () => {
     expect(await bag.exchange(_tiles(4, 4))).toEqual(_tiles(3, 3))
     expect(bag.toJSON()).toEqual({randomSeed: 0x21d9622c, tiles: [4, 3, 3, 4]})
   })
-  it("should support empty bag", () => {
+  it("should support an empty bag", () => {
     const bag = new HonorSystemBag({tiles: _tiles(), seed: 12})
     expect(bag.toJSON()).toEqual({randomSeed: 12, tiles: []})
   })
-  it("should reject negative seed", () => {
+  it("should reject a negative seed", () => {
     expect(() => new HonorSystemBag({tiles: _tiles(), seed: -1})).toThrow(RangeError)
   })
-  it("should reject huge seed", () => {
+  it("should reject a huge seed", () => {
     expect(() => new HonorSystemBag({tiles: _tiles(), seed: 0x100000000})).toThrow(RangeError)
   })
-  it("should reject fractional seed", () => {
+  it("should reject a fractional seed", () => {
     expect(() => new HonorSystemBag({tiles: _tiles(), seed: 1.5})).toThrow(RangeError)
   })
   describe("json", () => {
-    it("should roundtrip", async () => {
+    it("should roundtrip to and from JSON", async () => {
       const bag = new HonorSystemBag({tiles: _tiles(1, 2, 3, 5, 8), seed: 1})
       const bag2 = HonorSystemBag.fromJSON(bag.toJSON(), TestTile.fromJSON)
       expect(bag2).toEqual(bag)
       expect(await bag2.draw(1)).toEqual(_tiles(8))
       expect(bag2).not.toEqual(bag)
     })
-    it("should deserialize empty bag", () => {
+    it("should deserialize an empty bag", () => {
       const bag = HonorSystemBag.fromJSON({randomSeed: 7, tiles: []}, TestTile.fromJSON)
       expect(bag.toJSON()).toEqual({randomSeed: 7, tiles: []})
     })
-    it("should reject invalid object", () => {
+    it("should deserialize a non-empty bag", () => {
+      const bag = HonorSystemBag.fromJSON({randomSeed: 7, tiles: [35]}, TestTile.fromJSON)
+      expect(bag.toJSON()).toEqual({randomSeed: 7, tiles: [35]})
+    })
+    it("should reject an invalid object", () => {
       expect(() => HonorSystemBag.fromJSON('frob', TestTile.fromJSON)).toThrow(TypeError)
     })
-    it("should reject non-numeric seed", () => {
+    it("should reject a non-numeric seed", () => {
       expect(() => HonorSystemBag.fromJSON({randomSeed: 'x', tiles: []}, TestTile.fromJSON)).toThrow(TypeError)
     })
-    it("should reject non-array tiles", () => {
+    it("should reject a non-array tiles", () => {
       expect(() => HonorSystemBag.fromJSON({randomSeed: 123, tiles: null}, TestTile.fromJSON)).toThrow(TypeError)
+    })
+    it("should reject an invalid tile", () => {
+      expect(() => HonorSystemBag.fromJSON({randomSeed: 7, tiles: [null]}, TestTile.fromJSON)).toThrow(TypeError)
     })
   })
 })
