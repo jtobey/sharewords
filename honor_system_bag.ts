@@ -18,10 +18,10 @@ function checkUint32(n: number) {
 export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
   private readonly tiles: Array<Tile>
   private seed: number  // uint32
-  constructor(tiles: Array<Tile>, seed: number) {
-    this.seed = checkUint32(seed)
-    this.tiles = [...tiles]
-    this.shuffle(0)
+  constructor(args: {tiles: Array<Tile>; seed: number; shuffle?: boolean}) {
+    this.seed = checkUint32(args.seed)
+    this.tiles = [...args.tiles]
+    if ({shuffle: true, ...args}.shuffle) this.shuffle(0)
   }
   get size() { return this.tiles.length }
   draw(numberOfTiles: number) {
@@ -65,8 +65,9 @@ export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
       && typeof json.randomSeed === 'number'
       && json.randomSeed === (json.randomSeed >>> 0)
       && Array.isArray(json.tiles))) {
-        throw new Error(`invalid serialized HonorSystemBag: ${json}`)
+        throw new TypeError(`invalid serialized HonorSystemBag: ${json}`)
       }
-    return new HonorSystemBag<Tile>([...json.tiles.map((tile: any) => tileConstructor(tile))], json.randomSeed)
+    const tiles = [...json.tiles.map((tile: any) => tileConstructor(tile))]
+    return new HonorSystemBag<Tile>({tiles, seed: json.randomSeed, shuffle: false})
   }
 }
