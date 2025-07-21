@@ -8,29 +8,36 @@
 import type { Serializable } from './serializable.js'
 import type { Bag } from './bag.js'
 
+function checkUint32(n: number) {
+  if (n >>> 0 !== n) {
+    throw new RangeError(`seed must be a uint32, not ${seed}`)
+  }
+  return n
+}
+
 export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
-  private seed: number  // uint32
   private readonly tiles: Array<Tile>
-  constructor(elements: Array<Tile>, seed: number) {
-    this.seed = seed >>> 0
-    if (this.seed !== seed) {
-      throw new RangeError(`seed must be a uint32, not ${seed}`)
-    }
-    this.tiles = [...elements]
-    this.shuffle(this.size)
+  private seed: number  // uint32
+  constructor(tiles: Array<Tile>, seed: number) {
+    this.seed = checkUint32(seed)
+    this.tiles = [...tiles]
+    this.shuffle(0)
   }
   get size() { return this.tiles.length }
   draw(numberOfTiles: number) {
-    if (numberOfTiles > this.size) {
-      throw new RangeError(`not enough tiles in bag: ${this.size} < ${numberOfTiles}`)
-    }
+    this.checkEnoughTiles(numberOfTiles)
     return this.tiles.splice(-numberOfTiles)
   }
-  exchange(elementsToExchange: Array<Tile>) {
-    const drawnTiles = this.draw(elementsToExchange.length)
-    this.tiles.push(...elementsToExchange)
-    this.shuffle(elementsToExchange.length)
+  exchange(tilesToExchange: Array<Tile>) {
+    this.checkEnoughTiles(tilesToExchange.length)
+    const drawnTiles = this.tiles.splice(-tilesToExchange.length, tilesToExchange.length, ...tilesToExchange)
+    this.shuffle(this.size - tilesToExchange.length)
     return drawnTiles
+  }
+  private checkEnoughTiles(numberOfTilesNeeded: number) {
+    if (numberOfTilesNeeded > this.size) {
+      throw new RangeError(`not enough tiles in bag: ${this.size} < ${numberOfTilesNeeded}`)
+    }
   }
   private random(): number {
     // Mulberry32
@@ -40,12 +47,11 @@ export class HonorSystemBag<Tile extends Serializable> implements Bag<Tile> {
     t ^= t + Math.imul(t ^ t >>> 7, t | 61)
     return ((t ^ t >>> 14) >>> 0) / 4294967296
   }
-  private shuffle(numberOfUnshuffledTiles: number) {
-    const stop = Math.max(1, this.tiles.length - numberOfUnshuffledTiles)
-    for (let i = this.tiles.length - 1; i >= stop; --i) {
-      const j = Math.floor(this.random() * (i + 1));
+  private shuffle(indexOfFirstNewTile: number) {
+    for (let i = Math.max(1, indexOfFirstNewTile); i < this.size; ++i) {
+      const j = Math.floor(this.random() * i);
       // Fisher-Yates shuffle
-      [this.tiles[i], this.tiles[j]] = [this.tiles[j], this.tiles[i]] as [Tile, Tile];
+      [this.tiles[i-1], this.tiles[j]] = [this.tiles[j], this.tiles[i-1]] as [Tile, Tile];
     }
   }
   toJSON() {
