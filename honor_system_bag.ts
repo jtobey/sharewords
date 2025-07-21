@@ -10,7 +10,7 @@ import type { Bag } from './bag.js'
 
 function checkUint32(n: number) {
   if (n >>> 0 !== n) {
-    throw new RangeError(`seed must be a uint32, not ${seed}`)
+    throw new RangeError(`seed must be a uint32, not ${n}`)
   }
   return n
 }
