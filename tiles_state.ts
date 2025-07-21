@@ -7,8 +7,50 @@
  * board.
  */
 
-import { Tile } from './tile.js'
+import type { Serializable } from './serializable.js'
 import type { Bag } from './bag.js'
 
-export class TilesState {
+export class TilesState<Tile extends Serializable> implements Serializable {
+  readonly rackSize: number
+  private readonly bag: Bag<Tile>
+  private readonly racks: ReadonlyMap<string, Array<Tile>>
+  constructor(args: Readonly<{rackSize: number, bag: Bag<Tile>; playerIds: ReadonlyArray<string>}>) {
+    this.rackSize = args.rackSize
+    this.bag = args.bag
+    this.racks = new Map(args.playerIds.map(playerId => [playerId, []]))
+  }
+  private getRack(playerId: string) {
+    const rack = this.racks.get(playerId)
+    if (rack === undefined) {
+      throw new Error(`Unknown playerId: ${playerId}`)
+    }
+    return rack
+  }
+  async drawForPlayer(playerId: string) {
+    const rack = this.getRack(playerId)
+    const numberOfTiles = Math.min(this.rackSize - rack.length, this.bag.size)
+    const newTiles = await this.bag.draw(numberOfTiles)
+    rack.push(...newTiles)
+    return newTiles
+  }
+  async exchangeForPlayer(args: Readonly<{playerId: string; tilesToExchange: ReadonlyArray<Tile>}>) {
+    const rack = this.getRack(args.playerId)
+    const rackCopy = [...rack]
+    for (const tileToExchange of args.tilesToExchange) {
+      const index = rackCopy.lastIndexOf(tileToExchange)
+      if (index === -1) {
+        throw new Error(`Player ${args.playerId} attempted to exchange an unheld tile: ${tileToExchange}`)
+      }
+      rackCopy.splice(index, 1)
+    }
+    const newTiles = await this.bag.exchange(args.tilesToExchange)
+    rack.push(...newTiles)
+    return newTiles
+  }
+  toJSON() {
+    return {
+      bag: this.bag.toJSON(),
+      racks: Object.fromEntries(this.racks.entries().map(([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]))
+    }
+  }
 }
