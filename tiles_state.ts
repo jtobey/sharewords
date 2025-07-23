@@ -3,54 +3,41 @@
  *
  * @description
  * A TilesState represents information about how many and which tiles are in
- * the bag in each player's rack. It does not know about tiles committed to the
- * board.
+ * the bag and in each player's rack. It does not know about tiles committed
+ * to the board.
  */
 
 import type { Serializable } from './serializable.js'
-import type { Bag } from './bag.js'
 
-export class TilesState<Tile extends Serializable> implements Serializable {
-  readonly rackSize: number
-  private readonly bag: Bag<Tile>
-  private readonly racks: ReadonlyMap<string, Array<Tile>>
-  constructor({rackSize, bag, playerIds}: Readonly<{rackSize: number, bag: Bag<Tile>; playerIds: ReadonlyArray<string>}>) {
-    this.rackSize = rackSize
-    this.bag = bag
-    this.racks = new Map(playerIds.map(playerId => [playerId, []]))
-  }
-  private getRack(playerId: string) {
-    const rack = this.racks.get(playerId)
-    if (rack === undefined) {
-      throw new Error(`Unknown playerId: ${playerId}`)
-    }
-    return rack
-  }
-  async drawForPlayer(playerId: string) {
-    const rack = this.getRack(playerId)
-    const numberOfTiles = Math.min(this.rackSize - rack.length, this.bag.size)
-    const newTiles = await this.bag.draw(numberOfTiles)
-    rack.push(...newTiles)
-    return newTiles
-  }
-  async exchangeForPlayer({playerId, tilesToExchange}: Readonly<{playerId: string; tilesToExchange: ReadonlyArray<Tile>}>) {
-    const rack = this.getRack(playerId)
-    const rackCopy = [...rack]
-    for (const tileToExchange of tilesToExchange) {
-      const index = rackCopy.lastIndexOf(tileToExchange)
-      if (index === -1) {
-        throw new Error(`Player ${playerId} attempted to exchange an unheld tile: ${tileToExchange}`)
-      }
-      rackCopy.splice(index, 1)
-    }
-    const newTiles = await this.bag.exchange(tilesToExchange)
-    rack.push(...newTiles)
-    return newTiles
-  }
-  toJSON() {
-    return {
-      bag: this.bag.toJSON(),
-      racks: Object.fromEntries(this.racks.entries().map(([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]))
-    }
-  }
+export interface TilesState<Tile extends Serializable> extends Serializable {
+  /** A rack's capacity, for example 7 tiles. All racks have the same capacity. */
+  readonly rackCapacity: number
+  /** The number of unheld tiles remaining in the bag, for example 86. */
+  readonly numberOfTilesInBag: number
+  /**
+   * Returns the number of tiles currently in the given player's rack, assuming that all outstanding promises are fulfilled.
+   */
+  countTiles({playerId}: Readonly<{playerId: string}>)
+  /**
+   * Records the given player attempting to place the given tiles on the board.
+   *
+   * On success, transfers tiles from the bag to the player's rack until either the rack reaches capacity or the bag empties.
+   *
+   * @throws Will throw if it is not the specified player's turn.
+   * @throws Will throw if the player does not hold such tiles.
+   */
+  playTiles({playerId, tilesToPlay}: Readonly<{playerId: string, tilesToPlay: ReadonlyArray<Tile>}>): Promise<void>
+  /**
+   * Records the given player returning the specified tiles to the bag and drawing replacements.
+   *
+   * @throws Will throw if it is not the specified player's turn.
+   * @throws Will throw if the player holds fewer tiles than specified.
+   * @throws Will throw if the bag holds fewer tiles than specified.
+   */
+  exchangeTiles({playerId, tileIndicesInRack}: Readonly<{playerId: string, tileIndicesInRack}>): void
+  /**
+   * Returns the given player's tiles.
+   * @throws Will throw if not permitted.
+   */
+  getTiles({playerId}: Readonly<{playerId: string}>): Promise<Array<Tile>>
 }
