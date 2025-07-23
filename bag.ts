@@ -2,15 +2,22 @@
  * @file A shuffled bag from which tiles may be drawn and exchanged.
  */
 import type { Serializable } from './serializable.js'
+import type { RandomGenerator } from './random_generator.js'
 
-interface RandomGenerator extends Serializable {
-  random(): number
+interface ConstructorArgs<Tile extends Serializable> {
+  tiles: Array<Tile>
+  randomGenerator: RandomGenerator
+  shuffle?: boolean
+}
+
+interface CreateArgs<Tile extends Serializable> extends ConstructorArgs<Tile> {
+  type?: new (args: ConstructorArgs<Tile>) => Bag<Tile>
 }
 
 export class Bag<Tile extends Serializable> {
   private readonly tiles: Array<Tile>
   private readonly prng: RandomGenerator
-  constructor({tiles, randomGenerator, shuffle=true}: {tiles: Array<Tile>; randomGenerator: RandomGenerator; shuffle?: boolean}) {
+  constructor({tiles, randomGenerator, shuffle=true}: ConstructorArgs<Tile>) {
     this.tiles = [...tiles]
     this.prng = randomGenerator
     if (shuffle) this.shuffle(0)
@@ -44,11 +51,15 @@ export class Bag<Tile extends Serializable> {
       tiles: this.tiles.map(tile => tile.toJSON()),
     }
   }
-  public static fromJSON<Tile extends Serializable>({json, constructors}: {json: any; constructors: {tile: (json: any) => Tile, randomGenerator: (json: any) => RandomGenerator}}): Bag<Tile> {
+  static fromJsonAndConstructors<Tile extends Serializable>({json, constructors}: {json: any; constructors: {tile: (json: any) => Tile, randomGenerator: (json: any) => RandomGenerator}}): Bag<Tile> {
     if (!(typeof json === 'object' && Array.isArray(json.tiles))) {
       throw new TypeError(`invalid serialized Bag: ${json}`)
     }
     const tiles = [...json.tiles.map((tile: any) => constructors.tile(tile))]
-    return new Bag<Tile>({tiles, randomGenerator: constructors.randomGenerator(json.prng), shuffle: false})
+    return new this({tiles, randomGenerator: constructors.randomGenerator(json.prng), shuffle: false})
   }
+}
+
+export function createBag<Tile extends Serializable>({type=Bag, ...rest}: CreateArgs<Tile>) {
+  return new type(rest)
 }

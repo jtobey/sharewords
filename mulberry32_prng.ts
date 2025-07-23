@@ -1,7 +1,7 @@
 /**
  * @file A simple, insecure, serializable pseudorandom number generator.
  */
-import type { Serializable } from './serializable.js'
+import type { RandomGenerator } from './random_generator.js'
 
 function checkUint32(n: number) {
   if (n >>> 0 !== n) {
@@ -10,7 +10,7 @@ function checkUint32(n: number) {
   return n
 }
 
-export class Mulberry32Prng {
+export class Mulberry32Prng implements RandomGenerator {
   private seed: number
   constructor({randomSeed}: Readonly<{randomSeed: number}>) {
     this.seed = checkUint32(randomSeed)
