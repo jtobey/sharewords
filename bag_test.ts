@@ -1,6 +1,6 @@
 import { expect, describe, it } from "bun:test"
 import type { Serializable } from './serializable.js'
-import { Bag, createBag } from './bag.js'
+import { createBag } from './bag.js'
 import { Mulberry32Prng } from './mulberry32_prng.js'
 
 class TestTile implements Serializable {
@@ -71,30 +71,30 @@ describe("bag", () => {
   describe("json", () => {
     it("should roundtrip to and from JSON", () => {
       const bag = createBag({tiles: _tiles(1, 2, 3, 5, 8), ..._prng()})
-      const bag2 = Bag.fromJsonAndConstructors({json: bag.toJSON(), ..._constructors()})
+      const bag2 = createBag({json: bag.toJSON(), ..._constructors()})
       expect(bag2).toEqual(bag)
       expect(bag2.draw(1)).toEqual(_tiles(8))
       expect(bag2).not.toEqual(bag)
     })
     it("should deserialize an empty bag", () => {
-      const bag = Bag.fromJsonAndConstructors({json: {prng: {seed: 7}, tiles: []}, ..._constructors()})
+      const bag = createBag({json: {prng: {seed: 7}, tiles: []}, ..._constructors()})
       expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: []})
     })
     it("should deserialize a non-empty bag", () => {
-      const bag = Bag.fromJsonAndConstructors({json: {prng: {seed: 7}, tiles: [35]}, ..._constructors()})
+      const bag = createBag({json: {prng: {seed: 7}, tiles: [35]}, ..._constructors()})
       expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: [35]})
     })
     it("should reject an invalid object", () => {
-      expect(() => Bag.fromJsonAndConstructors({json: 'frob', ..._constructors()})).toThrow(TypeError)
+      expect(() => createBag({json: 'frob', ..._constructors()})).toThrow(TypeError)
     })
     it("should reject a non-numeric seed", () => {
-      expect(() => Bag.fromJsonAndConstructors({json: {prng: {seed: 'x'}, tiles: []}, ..._constructors()})).toThrow(TypeError)
+      expect(() => createBag({json: {prng: {seed: 'x'}, tiles: []}, ..._constructors()})).toThrow(TypeError)
     })
     it("should reject a non-array tiles", () => {
-      expect(() => Bag.fromJsonAndConstructors({json: {prng: {seed: 123}, tiles: null}, ..._constructors()})).toThrow(TypeError)
+      expect(() => createBag({json: {prng: {seed: 123}, tiles: null}, ..._constructors()})).toThrow(TypeError)
     })
     it("should reject an invalid tile", () => {
-      expect(() => Bag.fromJsonAndConstructors({json: {prng: {seed: 7}, tiles: [null]}, ..._constructors()})).toThrow(TypeError)
+      expect(() => createBag({json: {prng: {seed: 7}, tiles: [null]}, ..._constructors()})).toThrow(TypeError)
     })
   })
 })
