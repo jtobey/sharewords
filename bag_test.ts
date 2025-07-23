@@ -23,12 +23,12 @@ function _constructors() {
 
 class MyExpect {
   constructor(public value: any) {}
-  toEqualShuffled(array) {
+  toEqualShuffled(array: any) {
     expect(this.value).toEqual(expect.arrayContaining(array))
     expect(this.value).not.toEqual(array)
   }
 }
-const _expect = value => new MyExpect(value)
+const _expect = (value: any) => new MyExpect(value)
 
 describe("bag", () => {
   it("should know its size", () => {
