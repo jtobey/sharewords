@@ -58,7 +58,7 @@ export class Bag<Tile extends Serializable> {
     }
   }
   private shuffle(indexOfFirstNewTile: number) {
-    for (let i = Math.max(1, indexOfFirstNewTile); i < this.size; ++i) {
+    for (let i = Math.max(1, indexOfFirstNewTile); i <= this.size; ++i) {
       const j = Math.floor(this.prng.random() * i);
       // Fisher-Yates shuffle
       [this.tiles[i-1], this.tiles[j]] = [this.tiles[j], this.tiles[i-1]] as [Tile, Tile];
