@@ -8,6 +8,9 @@ export class Tile implements Serializable {
     this.value = value
   }
   get isBlank() { return this.letter === '' }
+  equals(other: Tile) {
+    return this.letter === other.letter && this.value === other.value
+  }
   toJSON() {
     return {
       letter: this.letter,

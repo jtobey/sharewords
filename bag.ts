@@ -2,8 +2,8 @@
  * @file A shuffled bag from which tiles may be drawn and exchanged.
  *
  * Anticipated uses include:
- * - client-side with an insecure PRNG for serverless, honor-system games
- * - server-side with a cryptographic PRNG for secure games
+ * - client-side with an insecure PRNG and Tile objects for serverless, honor-system games
+ * - server-side with a cryptographic PRNG and Tile IDs for secure games
  *
  * For the client side of secure games, @see {@link tiles_state.ts}.
  */
@@ -12,11 +12,11 @@ import type { RandomGenerator } from './random_generator.js'
 
 /** Signature of the constructor, for use by subclasses. */
 type ConstructorArgs<Tile extends Serializable> = {
-  tiles: Array<Tile>
+  tiles: Iterable<Tile>
   randomGenerator: RandomGenerator
   shuffle?: boolean
 }
-/** Signature of `fromJsonAndConstructors`. Do not use directly. */
+/** Signature of `fromJsonAndConstructors`. */
 type JsonAndConstructors<Tile extends Serializable> = {
   json: any
   constructors: {
@@ -50,23 +50,23 @@ export class Bag<Tile extends Serializable> {
     this.prng = randomGenerator
     if (shuffle) this.shuffle(0)
   }
-  get size() { return this.tiles.length }
-  draw(numberOfTiles: number) {
+  get size(): number { return this.tiles.length }
+  draw(numberOfTiles: number): Array<Tile> {
     this.checkEnoughTiles(numberOfTiles)
     return this.tiles.splice(-numberOfTiles)
   }
-  exchange(tilesToExchange: Array<Tile>) {
+  exchange(tilesToExchange: ReadonlyArray<Tile>): Array<Tile> {
     this.checkEnoughTiles(tilesToExchange.length)
     const drawnTiles = this.tiles.splice(-tilesToExchange.length, tilesToExchange.length, ...tilesToExchange)
     this.shuffle(this.size - tilesToExchange.length)
     return drawnTiles
   }
-  private checkEnoughTiles(numberOfTilesNeeded: number) {
+  private checkEnoughTiles(numberOfTilesNeeded: number): void {
     if (numberOfTilesNeeded > this.size) {
       throw new RangeError(`not enough tiles in bag: ${this.size} < ${numberOfTilesNeeded}`)
     }
   }
-  private shuffle(indexOfFirstNewTile: number) {
+  private shuffle(indexOfFirstNewTile: number): void {
     for (let i = Math.max(1, indexOfFirstNewTile); i <= this.size; ++i) {
       const j = Math.floor(this.prng.random() * i);
       // Fisher-Yates shuffle
@@ -106,7 +106,7 @@ export class Bag<Tile extends Serializable> {
  *         randomGenerator: MyRng.fromJSON,
  *     })
  */
-export function createBag<Tile extends Serializable, Subclass extends Bag<Tile>=Bag<Tile>>({type=Bag as BagType<Tile, Subclass>, ...args}: CreateArgs<Tile, Subclass>) {
+export function createBag<Tile extends Serializable, Subclass extends Bag<Tile>=Bag<Tile>>({type=Bag as BagType<Tile, Subclass>, ...args}: CreateArgs<Tile, Subclass>): Bag<Tile> {
   if ('json' in args) {
     return type.fromJsonAndConstructors(args as JsonAndConstructors<Tile>)
   }

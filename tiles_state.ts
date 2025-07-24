@@ -8,36 +8,62 @@
  */
 
 import type { Serializable } from './serializable.js'
+import { Tile } from './tile.js'
 
-export interface TilesState<Tile extends Serializable> extends Serializable {
-  /** A rack's capacity, for example 7 tiles. All racks have the same capacity. */
+export type PlayTurnsArgType = {
+  playerId: string
+} & (
+  {
+    playTiles: ReadonlyArray<Tile>
+  } | {
+    exchangeTileIndices: ReadonlyArray<number>
+  }
+)
+
+export interface TilesState extends Serializable {
+  /**
+   * A rack's capacity, for example 7 tiles.
+   * Within a game, all racks have the same capacity.
+   */
   readonly rackCapacity: number
+  /** The number of turns played so far. */
+  readonly numberOfTurnsPlayed: number
+  /** The last value returned by `playTurns`. May be `numberOfTurnsPlayed` or an opaque identifier. */
+  readonly stateId: any
   /** The number of unheld tiles remaining in the bag, for example 86. */
   readonly numberOfTilesInBag: number
   /**
-   * Returns the number of tiles currently in the given player's rack, assuming that all outstanding promises are fulfilled.
+   * @returns The number of tiles currently in the given player's rack.
    */
-  countTiles({playerId}: Readonly<{playerId: string}>)
+  countTiles(playerId: string): number
   /**
-   * Records the given player attempting to place the given tiles on the board.
-   *
-   * On success, transfers tiles from the bag to the player's rack until either the rack reaches capacity or the bag empties.
-   *
-   * @throws Will throw if it is not the specified player's turn.
-   * @throws Will throw if the player does not hold such tiles.
-   */
-  playTiles({playerId, tilesToPlay}: Readonly<{playerId: string, tilesToPlay: ReadonlyArray<Tile>}>): Promise<void>
-  /**
-   * Records the given player returning the specified tiles to the bag and drawing replacements.
-   *
-   * @throws Will throw if it is not the specified player's turn.
-   * @throws Will throw if the player holds fewer tiles than specified.
-   * @throws Will throw if the bag holds fewer tiles than specified.
-   */
-  exchangeTiles({playerId, tileIndicesInRack}: Readonly<{playerId: string, tileIndicesInRack}>): void
-  /**
-   * Returns the given player's tiles.
+   * @returns The given player's tiles.
    * @throws Will throw if not permitted.
    */
-  getTiles({playerId}: Readonly<{playerId: string}>): Promise<Array<Tile>>
+  getTiles(playerId: string): Promise<Array<Tile>>
+  /**
+   * Records turns played in the order given.
+   *
+   * `stateId = await tilesState.playTurns(...turnsToPlay)` is equivalent to:
+   * ```
+   * for (const turn of turnsToPlay) {
+   *   await tilesState.playTurns(turn)
+   * }
+   * stateId = tilesState.stateId
+   * ```
+   *
+   * When a `playTiles` turn succeeds, tiles are trasferred from the bag to the player's rack
+   * until either the rack reaches capacity or the bag empties.
+   *
+   * When an `exchangeTileIndices` turn succeeds, replacement tiles are drawn from the bag to
+   * the player's rack, and the exchanged tiles are shuffled into the bag.
+   *
+   * @returns {any} The resulting {@link stateId} value.
+   * @throws Will throw if it is not a specified player's turn.
+   * @throws Will throw if the player does not hold tiles specified to play.
+   * @throws {RangeError} Will throw if a return tile index is out of range.
+   * @throws Will throw if the exchange tile indices contain duplicates.
+   * @throws Will throw if the bag holds fewer tiles than specified for exchange.
+   */
+  playTurns(...turnsToPlay: Array<PlayTurnsArgType>): Promise<any>
 }

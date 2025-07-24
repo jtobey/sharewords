@@ -26,7 +26,7 @@ export function createHonorSystemBag({
   shuffle=true,
   type=HonorSystemBag,
 }: {
-  tiles: Array<Tile>
+  tiles: Iterable<Tile>
   randomSeed: number
   shuffle?: boolean
   type?: BagType<Tile, HonorSystemBag>
