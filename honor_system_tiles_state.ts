@@ -72,14 +72,40 @@ export class HonorSystemTilesState implements TilesState {
   }
   toJSON() {
     return {
+      rackCapacity: this.rackCapacity,
+      numberOfTurnsPlayed: this._numberOfTurnsPlayed,
       bag: this.bag.toJSON(),
       racks: Object.fromEntries(this.racks.entries().map(([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]))
     }
   }
+  static fromJSON(json: any) {
+    if (!(typeof json === 'object'
+      && typeof json.rackCapacity === 'number'
+      && typeof json.numberOfTurnsPlayed === 'number'
+      && typeof json.racks === 'object'
+      && Object.values(json.racks).every(Array.isArray))) {
+        throw new TypeError(`invalid HonorSystemTileState serialization: ${json}`)
+      }
+    const bag = HonorSystemBag.fromJSON(json.bag)
+    const racks = new Map<string, Array<Tile>>
+    for (const [playerId, rackJson] of Object.entries(json.racks)) {
+      racks.set(playerId, (rackJson as Array<any>).map(Tile.fromJSON))
+    }
+    const state = new HonorSystemTilesState({
+      rackCapacity: json.rackCapacity,
+      tiles: [],      // Filled in via `bag` and `racks` below.
+      randomSeed: 0,  // Filled in via `bag` below.
+      playerIds: [],  // Filled in via `racks` below.
+    });  // semicolon required
+    (state as unknown as {bag: HonorSystemBag}).bag = bag;
+    (state as unknown as {racks: Map<string, Array<Tile>>}).racks = racks;
+    (state as unknown as {_numberOfTurnsPlayed: number})._numberOfTurnsPlayed = json.numberOfTurnsPlayed
+    return state
+  }
 }
 
 /**
- * @returns A copy if `indices`.
+ * @returns A copy of `indices`.
  * @throws Will throw if `indices` contains duplicates.
  * @throws {RangeError} Will throw if any index is a non-integer or out of range for an array of the given length.
  */
