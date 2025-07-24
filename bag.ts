@@ -40,14 +40,14 @@ type CreateArgs<Tile extends Serializable, Subclass extends Bag<Tile>> = {type?:
  */
 export class Bag<Tile extends Serializable> {
   private readonly tiles: Array<Tile>
-  private readonly prng: RandomGenerator
+  private readonly randomGenerator: RandomGenerator
   /**
    * Constructor for internal use.
    * @see `createBag`.
    */
   constructor({tiles, randomGenerator, shuffle=true}: ConstructorArgs<Tile>) {
     this.tiles = [...tiles]
-    this.prng = randomGenerator
+    this.randomGenerator = randomGenerator
     if (shuffle) this.shuffle(0)
   }
   get size(): number { return this.tiles.length }
@@ -68,14 +68,14 @@ export class Bag<Tile extends Serializable> {
   }
   private shuffle(indexOfFirstNewTile: number): void {
     for (let i = Math.max(1, indexOfFirstNewTile); i <= this.size; ++i) {
-      const j = Math.floor(this.prng.random() * i);
+      const j = Math.floor(this.randomGenerator.random() * i);
       // Fisher-Yates shuffle
       [this.tiles[i-1], this.tiles[j]] = [this.tiles[j], this.tiles[i-1]] as [Tile, Tile];
     }
   }
   toJSON() {
     return {
-      prng: this.prng.toJSON(),
+      prng: this.randomGenerator.toJSON(),
       tiles: this.tiles.map(tile => tile.toJSON()),
     }
   }
