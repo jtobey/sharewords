@@ -1,10 +1,15 @@
 /**
  * @file A shuffled bag from which tiles may be drawn and exchanged.
+ *
+ * Anticipated uses include:
+ * - client-side with an insecure PRNG for serverless, honor-system games
+ * - server-side with a cryptographic PRNG for secure games
+ *
+ * For the client side of secure games, @see {@link tiles_state.ts}.
  */
 import type { Serializable } from './serializable.js'
 import type { RandomGenerator } from './random_generator.js'
 
-// TODO: Make the constructor and `fromJsonAndConstructors` protected.
 /** Signature of the constructor, for use by subclasses. */
 type ConstructorArgs<Tile extends Serializable> = {
   tiles: Array<Tile>
@@ -26,7 +31,7 @@ export type BagType<Tile extends Serializable, Subclass extends Bag<Tile>> = Con
   fromJsonAndConstructors: (args: JsonAndConstructors<Tile>) => Subclass
 }
 
-/** Type of `createBag`. */
+/** Type of the `createBag` parameter. */
 type CreateArgs<Tile extends Serializable, Subclass extends Bag<Tile>> = {type?: BagType<Tile, Subclass>} & (ConstructorArgs<Tile> | JsonAndConstructors<Tile>)
 
 /**
@@ -36,6 +41,10 @@ type CreateArgs<Tile extends Serializable, Subclass extends Bag<Tile>> = {type?:
 export class Bag<Tile extends Serializable> {
   private readonly tiles: Array<Tile>
   private readonly prng: RandomGenerator
+  /**
+   * Constructor for internal use.
+   * @see `createBag`.
+   */
   constructor({tiles, randomGenerator, shuffle=true}: ConstructorArgs<Tile>) {
     this.tiles = [...tiles]
     this.prng = randomGenerator
