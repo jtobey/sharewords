@@ -168,6 +168,43 @@ describe('honor system tiles state', () => {
       const stateAsJson = JSON.parse(JSON.stringify(state))
       const stateFromJson = HonorSystemTilesState.fromJSON(stateAsJson)
       expect(stateFromJson).toEqual(state)
+      const stateWithDifferentRackCapacity = HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        rackCapacity: 7
+      })
+      expect(stateWithDifferentRackCapacity.rackCapacity).not.toEqual(state.rackCapacity)
+    })
+
+    it('should reject invalid json', () => {
+      const tiles = makeTestTiles({A:9, B:2})
+      const state = new HonorSystemTilesState({
+        rackCapacity: 4,
+        tiles,
+        randomSeed: 1,
+        playerIds: ['John', 'Dave']
+      })
+      const stateAsJson = JSON.parse(JSON.stringify(state))
+      expect(() => HonorSystemTilesState.fromJSON('frob')).toThrow(TypeError)
+      expect(() => HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        bag: 1
+      })).toThrow(TypeError)
+      expect(() => HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        racks: 'frob'
+      })).toThrow(TypeError)
+      expect(() => HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        racks: {John: 'frob'}
+      })).toThrow(TypeError)
+      expect(() => HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        racks: {John: ['frob']}
+      })).toThrow(TypeError)
+      expect(() => HonorSystemTilesState.fromJSON({
+        ...stateAsJson,
+        rackCapacity: 'frob'
+      })).toThrow(TypeError)
     })
   })    
 })
