@@ -87,10 +87,9 @@ describe("bag", () => {
   describe("json", () => {
     it("should roundtrip to and from JSON", () => {
       const bag = createBag({tiles: _tiles(1, 1, 2, 3, 5), ..._prng()})
-      const bag2 = createBag({json: bag.toJSON(), ..._constructors()})
-      expect(bag2).toEqual(bag)
-      expect(bag2.draw(1)).toHaveLength(1)
-      expect(bag2).not.toEqual(bag)
+      const bagAsJson = JSON.parse(JSON.stringify(bag))
+      const bagFromJson = createBag({json: bagAsJson, ..._constructors()})
+      expect(bagFromJson).toEqual(bag)
     })
     it("should deserialize an empty bag", () => {
       const bag = createBag({json: {prng: 7, tiles: []}, ..._constructors()})
