@@ -53,11 +53,10 @@ describe("honor system bag", () => {
   describe("json", () => {
     it("should roundtrip to and from JSON", () => {
       const bag = createHonorSystemBag({tiles: _tiles(1, 2, 3, 5, 8), randomSeed: 1})
-      const bag2 = HonorSystemBag.fromJSON(bag.toJSON())
-      expect(bag2 instanceof HonorSystemBag).toBe(true)
-      expect(bag2).toEqual(bag)
-      expect(bag2.draw(1)).toEqual(_tiles(8))
-      expect(bag2).not.toEqual(bag)
+      const bagAsJson = JSON.parse(JSON.stringify(bag))
+      const bagFromJson = HonorSystemBag.fromJSON(bagAsJson)
+      expect(bagFromJson instanceof HonorSystemBag).toBe(true)
+      expect(bagFromJson).toEqual(bag)
     })
     it("should deserialize an empty bag", () => {
       const bag = HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: []})

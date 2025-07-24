@@ -19,12 +19,13 @@ describe('Mulberry32 PRNG', () => {
   })
   describe('json', () => {
     it("should roundtrip to and from JSON", () => {
-      const prng1 = new Mulberry32Prng({randomSeed: 12345})
-      const prng2 = Mulberry32Prng.fromJSON(prng1.toJSON())
-      expect(prng2).toEqual(prng1)
-      const random1 = prng1.random()
-      expect(prng2).not.toEqual(prng1)
-      expect(prng2.random()).toEqual(random1)
+      const prng = new Mulberry32Prng({randomSeed: 12345})
+      const prngAsJson = JSON.parse(JSON.stringify(prng))
+      const prngFromJson = Mulberry32Prng.fromJSON(prngAsJson)
+      expect(prngFromJson).toEqual(prng)
+      const random = prng.random()
+      expect(prngFromJson).not.toEqual(prng)
+      expect(prngFromJson.random()).toEqual(random)
     })
     it('should serialize', () => {
       const prng = new Mulberry32Prng({randomSeed: 3})
