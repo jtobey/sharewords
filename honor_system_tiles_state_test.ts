@@ -17,6 +17,19 @@ function getAllTiles(tilesState: HonorSystemTilesState) {
 }
 
 describe('honor system tiles state', () => {
+  it('should be serializable to and from JSON', () => {
+    const tiles = makeTestTiles({A:9, B:2})
+    const state = new HonorSystemTilesState({
+      rackCapacity: 4,
+      tiles,
+      randomSeed: 1,
+      playerIds: ['John', 'Dave']
+    })
+    const stateAsJson = JSON.parse(JSON.stringify(state))
+    const stateFromJson = HonorSystemTilesState.fromJSON(stateAsJson)
+    expect(stateFromJson).toEqual(state)
+  })
+
   it('should initialize', () => {
     const tiles = makeTestTiles({A:9, B:2})
     const state = new HonorSystemTilesState({
