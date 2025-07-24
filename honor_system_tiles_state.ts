@@ -23,7 +23,12 @@ export class HonorSystemTilesState implements TilesState {
     this.rackCapacity = rackCapacity
     this._numberOfTurnsPlayed = 0
     this.bag = createHonorSystemBag({tiles, randomSeed})
-    this.racks = new Map(playerIds.map(playerId => [playerId, this.bag.draw(this.rackCapacity)]))
+    this.racks = new Map(playerIds.map(playerId => [playerId, []]))
+    if (this.bag.size > 0) {
+      for (const rack of this.racks.values()) {
+        rack.push(...this.bag.draw(this.rackCapacity))
+      }
+    }
   }
   get numberOfTilesInBag() { return this.bag.size }
   get numberOfTurnsPlayed() { return this._numberOfTurnsPlayed }
@@ -83,7 +88,10 @@ export class HonorSystemTilesState implements TilesState {
       && typeof json.rackCapacity === 'number'
       && typeof json.numberOfTurnsPlayed === 'number'
       && typeof json.racks === 'object'
-      && Object.values(json.racks).every(Array.isArray))) {
+      && Object.values(json.racks).every(Array.isArray)
+      && Object.values(json.racks).every((rack: any) => rack.every((tile: any) => typeof tile === 'object'))
+      && typeof json.bag === 'object'
+    )) {
         throw new TypeError(`invalid HonorSystemTileState serialization: ${json}`)
       }
     const bag = HonorSystemBag.fromJSON(json.bag)
@@ -91,16 +99,12 @@ export class HonorSystemTilesState implements TilesState {
     for (const [playerId, rackJson] of Object.entries(json.racks)) {
       racks.set(playerId, (rackJson as Array<any>).map(Tile.fromJSON))
     }
-    const state = new HonorSystemTilesState({
-      rackCapacity: json.rackCapacity,
-      tiles: [],      // Filled in via `bag` and `racks` below.
-      randomSeed: 0,  // Filled in via `bag` below.
-      playerIds: [],  // Filled in via `racks` below.
-    });  // semicolon required
-    (state as unknown as {bag: HonorSystemBag}).bag = bag;
-    (state as unknown as {racks: Map<string, Array<Tile>>}).racks = racks;
-    (state as unknown as {_numberOfTurnsPlayed: number})._numberOfTurnsPlayed = json.numberOfTurnsPlayed
-    return state
+    const state = Object.create(HonorSystemTilesState.prototype);
+    (state as any).rackCapacity = json.rackCapacity;
+    (state as any)._numberOfTurnsPlayed = json.numberOfTurnsPlayed;
+    (state as any).bag = bag;
+    (state as any).racks = racks;
+    return state;
   }
 }
 
