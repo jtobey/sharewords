@@ -11,6 +11,9 @@ export class Tile implements Serializable {
   equals(other: Tile) {
     return this.letter === other.letter && this.value === other.value
   }
+  toString() {
+    return JSON.stringify(this.toJSON())
+  }
   toJSON() {
     return {
       letter: this.letter,
