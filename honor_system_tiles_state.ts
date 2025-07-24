@@ -39,7 +39,6 @@ export class HonorSystemTilesState implements TilesState {
     return Promise.resolve(this.stateId)
   }
   private playOneTurn(turn: PlayTurnsArgType) {
-    // TODO: Check whose turn?
     const rack = this.getRack(turn.playerId)
     const rackCopy = [...rack]
     if ('playTiles' in turn) {
@@ -79,6 +78,11 @@ export class HonorSystemTilesState implements TilesState {
   }
 }
 
+/**
+ * @returns A copy if `indices`.
+ * @throws Will throw if `indices` contains duplicates.
+ * @throws {RangeError} Will throw if any index is a non-integer or out of range for an array of the given length.
+ */
 function checkIndices(indices: ReadonlyArray<number>, length: number) {
   if ([...new Set(indices)].length !== indices.length) {
     throw new Error(`exchangeTileIndices contains duplicates: ${indices}`)

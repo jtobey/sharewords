@@ -3,7 +3,7 @@ import type { Serializable } from './serializable.js'
 export class Tile implements Serializable {
   readonly letter: string
   readonly value: number
-  constructor({letter, value}: Readonly<{letter: string, value: number}>) {
+  constructor({letter, value}: Readonly<{letter: string; value: number}>) {
     this.letter = letter
     this.value = value
   }
