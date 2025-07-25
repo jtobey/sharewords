@@ -120,7 +120,7 @@ export class Board implements Serializable {
     const firstNewTile = newTiles[0]
     if (!firstNewTile) throw new Error('Lost a tile.')
     let mainRow = firstNewTile.row, mainCol = firstNewTile.col
-    while ((this.squares[mainRow-mainDir.y] || [])[mainCol-mainDir.x]?.tile) {
+    while (this.squares[mainRow-mainDir.y]?.[mainCol-mainDir.x]?.tile) {
       mainRow -= mainDir.y
       mainCol -= mainDir.x
     }
@@ -128,7 +128,7 @@ export class Board implements Serializable {
     let newTileIndex = 0
     let mainWordMultiplier = 1, mainWordScore = 0, crossWordsScore = 0
     while (true) {
-      const mainSquare = (this.squares[mainRow] || [])[mainCol]
+      const mainSquare = this.squares[mainRow]?.[mainCol]
       if (!mainSquare) break
       let mainLetter: string, mainValue: number, wordMultiplier: number
       const newTile = newTiles[newTileIndex]
@@ -153,7 +153,7 @@ export class Board implements Serializable {
       // Find the start of the word that crosses this square, if any.
       const crossDir = {x: mainDir.y, y: mainDir.x}  // Flip along the main diagonal.
       let crossRow = mainRow, crossCol = mainCol
-      while ((this.squares[crossRow-crossDir.y] || [])[crossCol-crossDir.x]?.tile) {
+      while (this.squares[crossRow-crossDir.y]?.[crossCol-crossDir.x]?.tile) {
         crossRow -= crossDir.y
         crossCol -= crossDir.x
       }
@@ -161,7 +161,7 @@ export class Board implements Serializable {
       // If the cross "word" turns out to have only one letter, we won't count it.
       let crossWord = '', crossWordScore = 0
       while (true) {
-        const crossSquare = (this.squares[crossRow] || [])[crossCol]
+        const crossSquare = this.squares[crossRow]?.[crossCol]
         if (crossRow === mainRow && crossCol === mainCol) {
           crossWord += mainLetter
           crossWordScore += mainValue
@@ -189,7 +189,7 @@ export class Board implements Serializable {
     }
     if (!crossWords.length && mainWord.length === newTiles.length) {
       const centerRow = this.squares.length >> 1
-      const centerCol = (this.squares[0] || []).length >> 1
+      const centerCol = (this.squares[0]?.length || 0) >> 1
       if (!newTiles.some(tile => tile.row === centerRow && tile.col === centerCol)) {
         throw new WordPlacementError('Tiles must connect to existing words or cover the center square.')
       }
@@ -203,12 +203,12 @@ export class Board implements Serializable {
 
   placeTiles(...tiles: Array<TileForPlacement>): void {
     for (const tile of tiles) {
-      const square = (this.squares[tile.row] || [])[tile.col]
+      const square = this.squares[tile.row]?.[tile.col]
       if (!square) throw new Error(`Invalid board coordinates: ${tile.row},${tile.col}.`)
       if (square.tile) throw new Error(`Square ${tile.row}, ${tile.col} is occupied.`)
     }
     for (const tile of tiles) {
-      const square = (this.squares[tile.row] || [])[tile.col]
+      const square = this.squares[tile.row]?.[tile.col]
       if (square) {
         square.tile = tile.tile
         square.assignedLetter = tile.assignedLetter
@@ -250,7 +250,7 @@ export class Board implements Serializable {
         const [row, col, tileJson, assignedLetter] = tile
         if (!(typeof row === 'number')) bomb()
         if (!(typeof col === 'number')) bomb()
-        const square = (board.squares[row] || [])[col]
+        const square = board.squares[row]?.[col]
         if (!square) bomb()
         square.tile = Tile.fromJSON(tileJson)
         if (assignedLetter) square.assignedLetter = assignedLetter
