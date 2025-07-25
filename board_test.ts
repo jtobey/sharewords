@@ -54,4 +54,7 @@ describe('board', () => {
       wordsFormed: ['MU', 'MA', 'UT'],
     })
   })
+
+  // TODO: Test bridging gaps, extending on both sides, etc.
+  // TODO: Test validation.
 })
