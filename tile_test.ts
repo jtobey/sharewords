@@ -10,22 +10,19 @@ describe("tile", () => {
   })
   describe("json", () => {
     it("should serialize", () => {
-      expect(JSON.parse(JSON.stringify(new Tile({letter: "B", value: 3})))).toEqual({B: 3})
+      expect(JSON.parse(JSON.stringify(new Tile({letter: "B", value: 3})))).toEqual('B:3')
     })
     it("should deserialize", () => {
-      expect(Tile.fromJSON({D: 2})).toEqual(new Tile({letter: "D", value: 2}))
+      expect(Tile.fromJSON('D:2')).toEqual(new Tile({letter: "D", value: 2}))
     })
     it("should reject an invalid object", () => {
-      expect(() => Tile.fromJSON('frob')).toThrow(TypeError)
+      expect(() => Tile.fromJSON({B:3})).toThrow(TypeError)
     })
     it("should reject a non-numeric value", () => {
-      expect(() => Tile.fromJSON({A: 'x'})).toThrow(TypeError)
+      expect(() => Tile.fromJSON('A:x')).toThrow(TypeError)
     })
-    it("should reject an empty object", () => {
-      expect(() => Tile.fromJSON({})).toThrow(TypeError)
-    })
-    it("should reject an object with multiple keys", () => {
-      expect(() => Tile.fromJSON({A: 1, B: 3})).toThrow(TypeError)
+    it("should reject an invalid string", () => {
+      expect(() => Tile.fromJSON('B3')).toThrow(TypeError)
     })
   })
 

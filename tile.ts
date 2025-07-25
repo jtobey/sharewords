@@ -2,10 +2,16 @@
 
 import type { Serializable } from './serializable.js'
 
+const MIN_TILE_VALUE = 0
+const MAX_TILE_VALUE = 999999
+
 export class Tile implements Serializable {
   readonly letter: string
   readonly value: number
   constructor({letter, value}: Readonly<{letter: string; value: number}>) {
+    if (value !== Math.floor(value) || value < MIN_TILE_VALUE || value > MAX_TILE_VALUE) {
+      throw new RangeError(`Invalid Tile value: ${value}`)
+    }
     this.letter = letter
     this.value = value
   }
@@ -17,20 +23,16 @@ export class Tile implements Serializable {
     return JSON.stringify(this.toJSON())
   }
   toJSON() {
-    const result: {[key: string]: number} = {}
-    result[this.letter] = this.value
-    return result
+    return `${this.letter}:${this.value}`
   }
   static fromJSON(json: any): Tile {
-    if (typeof json === 'object') {
-      const entries = Object.entries(json)
-      if (entries.length === 1 &&
-        Array.isArray(entries[0]) &&
-        typeof entries[0][0] === 'string' &&
-        typeof entries[0][1] === 'number')
-        {
-          return new Tile({letter: entries[0][0], value: entries[0][1]})
-        }
+    if (typeof json === 'string') {
+      const match = json.match(/(.*):(\d+)$/s)
+      if (match) {
+        const letter = match[1] as string
+        const value = parseInt(match[2] as string)
+        return new Tile({letter, value})
+      }
     }
     throw new TypeError(`invalid Tile serialization: ${JSON.stringify(json)}`)
   }

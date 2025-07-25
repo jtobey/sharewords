@@ -96,8 +96,8 @@ describe("bag", () => {
       expect(bag.toJSON()).toEqual({prng: 7, tiles: []})
     })
     it("should deserialize a non-empty bag", () => {
-      const bag = createBag({json: {prng: {seed: 7}, tiles: [{A: 35}]}, ..._constructors()})
-      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: [{A: 35}]})
+      const bag = createBag({json: {prng: {seed: 7}, tiles: ['A:35']}, ..._constructors()})
+      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: ['A:35']})
     })
     it("should reject an invalid object", () => {
       expect(() => createBag({json: 'frob', ..._constructors()})).toThrow(TypeError)

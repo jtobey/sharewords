@@ -63,8 +63,8 @@ describe("honor system bag", () => {
       expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: []})
     })
     it("should deserialize a non-empty bag", () => {
-      const bag = HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: [{Q: 10}]})
-      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: [{Q: 10}]})
+      const bag = HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: ['Q:10']})
+      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: ['Q:10']})
     })
     it("should reject an invalid object", () => {
       expect(() => HonorSystemBag.fromJSON('frob')).toThrow(TypeError)
