@@ -220,16 +220,14 @@ export class Board implements Serializable {
 
   toJSON() {
     const rows = generateRowStrings(this.squares)
-    const tiles = this.squares.map((row, rowNumber) => {
-      row.map((square, colNumber) => {
-        if (square.tile) {
-          const result: Array<any> = [square.row, square.col, square.tile.toJSON()]
-          if (square.assignedLetter) result.push(square.assignedLetter)
-          return [result]
-        }
-        return []
-      }).flat()
-    }).flat()
+    const tiles: Array<any> = []
+    this.squares.forEach(row => row.forEach(square => {
+      if (square.tile) {
+        const result: Array<any> = [square.row, square.col, square.tile.toJSON()]
+        if (square.assignedLetter) result.push(square.assignedLetter)
+        tiles.push(result)
+      }
+    }))
     return {rows, tiles}
   }
 

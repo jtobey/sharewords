@@ -74,5 +74,64 @@ describe('board', () => {
   })
 
   // TODO: Test validation.
-  // TODO: Test JSON back and forth.
+
+  describe('json', () => {
+    it('should roundtrip to and from JSON', () => {
+      const board = new Board('.d', 'T.')
+      const boardAsJson = JSON.parse(JSON.stringify(board))
+      const boardFromJson = Board.fromJSON(boardAsJson)
+      expect(boardFromJson).toEqual(board)
+    })
+
+    it('should roundtrip a board with tiles', () => {
+      const board = new Board('.d', 'T.')
+      board.placeTiles(
+        _t(0, 0, 'A', 1),
+        {..._t(0, 1, 'B', 2), assignedLetter: 'C'},
+      )
+      const boardAsJson = JSON.parse(JSON.stringify(board))
+      const boardFromJson = Board.fromJSON(boardAsJson)
+      expect(boardFromJson).toEqual(board)
+    })
+
+    it('should reject an invalid object', () => {
+      expect(() => Board.fromJSON('frob')).toThrow(TypeError)
+    })
+
+    it('should reject a missing rows', () => {
+      expect(() => Board.fromJSON({tiles: []})).toThrow(TypeError)
+    })
+
+    it('should reject a non-array rows', () => {
+      expect(() => Board.fromJSON({rows: 'frob', tiles: []})).toThrow(TypeError)
+    })
+
+    it('should reject a non-string row', () => {
+      expect(() => Board.fromJSON({rows: [null], tiles: []})).toThrow(TypeError)
+    })
+
+    it('should reject a missing tiles', () => {
+      expect(() => Board.fromJSON({rows: []})).toThrow(TypeError)
+    })
+
+    it('should reject a non-array tiles', () => {
+      expect(() => Board.fromJSON({rows: [], tiles: 'frob'})).toThrow(TypeError)
+    })
+
+    it('should reject an invalid tile', () => {
+      expect(() => Board.fromJSON({rows: [], tiles: [null]})).toThrow(TypeError)
+    })
+
+    it('should reject an invalid tile row', () => {
+      expect(() => Board.fromJSON({rows: [], tiles: [['a', 1, 'A:1']]})).toThrow(TypeError)
+    })
+
+    it('should reject an invalid tile col', () => {
+      expect(() => Board.fromJSON({rows: [], tiles: [[0, 'b', 'A:1']]})).toThrow(TypeError)
+    })
+
+    it('should reject out-of-bounds tile placement', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [[0, 2, 'A:1']]})).toThrow(TypeError)
+    })
+  })
 })
