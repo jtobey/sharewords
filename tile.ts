@@ -17,7 +17,7 @@ export class Tile implements Serializable {
     return JSON.stringify(this.toJSON())
   }
   toJSON() {
-    const result = {}
+    const result: {[key: string]: number} = {}
     result[this.letter] = this.value
     return result
   }
@@ -25,14 +25,14 @@ export class Tile implements Serializable {
     if (typeof json === 'object') {
       const entries = Object.entries(json)
       if (entries.length === 1 &&
-        typeof Array.isArray(entries[0]) &&
+        Array.isArray(entries[0]) &&
         typeof entries[0][0] === 'string' &&
         typeof entries[0][1] === 'number')
         {
           return new Tile({letter: entries[0][0], value: entries[0][1]})
         }
     }
-    throw new TypeError(`invalid Tile serialization: ${JSON.serialize(json)}`)
+    throw new TypeError(`invalid Tile serialization: ${JSON.stringify(json)}`)
   }
 }
 
