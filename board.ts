@@ -19,6 +19,10 @@ export class Square {
     this.letterBonus = letterBonus
     this.wordBonus = wordBonus
   }
+  get letter() {
+    return this.assignedLetter || this.tile?.letter
+  }
+  get value() { return this.tile?.value }
 }
 
 const CHAR_TO_BONUS = new Map<string, [number, number]>([
@@ -158,7 +162,7 @@ export class Board implements Serializable {
             crossWord += mainLetter
             crossWordScore += mainValue
           } else if (crossSquare?.tile) {
-            crossWord += crossSquare.assignedLetter || crossSquare.tile.letter
+            crossWord += crossSquare.letter
             crossWordScore += crossSquare.tile.value
           } else {
             break
