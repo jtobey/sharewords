@@ -74,4 +74,5 @@ describe('board', () => {
   })
 
   // TODO: Test validation.
+  // TODO: Test JSON back and forth.
 })
