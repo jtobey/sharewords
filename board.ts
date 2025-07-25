@@ -68,7 +68,7 @@ interface TileForPlacement {
   row: number
   col: number
   tile: Tile
-  assignedLetter: string  // For when `tile` is a blank.
+  assignedLetter?: string  // For when `tile` is a blank.
 }
 
 class WordPlacementError extends Error {
@@ -101,15 +101,15 @@ export class Board implements Serializable {
     wordsFormed: Array<string>,
     score: number,
   } {
-    const firstNewTile = newTiles[0]
-    if (!firstNewTile) throw new WordPlacementError('No tiles.')
+    const anyNewTile = newTiles[0]
+    if (!anyNewTile) throw new WordPlacementError('No tiles.')
     // Find the direction of a line along which all newTiles lie.
     // Order the tiles by their position along this line.
     const mainDir = {x: 0, y: 0}
-    if (newTiles.every(tile => tile.row === firstNewTile.row)) {
+    if (newTiles.every(tile => tile.row === anyNewTile.row)) {
       mainDir.x = 1  // Left to right.
       newTiles.sort((a, b) => a.col - b.col)
-    } else if (newTiles.every(tile => tile.col === firstNewTile.col)) {
+    } else if (newTiles.every(tile => tile.col === anyNewTile.col)) {
       mainDir.y = 1  // Top to bottom.
       newTiles.sort((a, b) => a.row - b.row)
     } else {
@@ -117,6 +117,8 @@ export class Board implements Serializable {
     }
     // Find the start of the new word along the direction chosen above.
     // Adjacent old tiles are part of the word.
+    const firstNewTile = newTiles[0]
+    if (!firstNewTile) throw new Error('Lost a tile.')
     let mainRow = firstNewTile.row, mainCol = firstNewTile.col
     while ((this.squares[mainRow-mainDir.y] || [])[mainCol-mainDir.x]?.tile) {
       mainRow -= mainDir.y
