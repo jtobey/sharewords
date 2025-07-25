@@ -1,6 +1,7 @@
 import { expect, describe, it } from 'bun:test'
 import { Board, Square } from './board.js'
 import { Tile } from './tile.js'
+import { parseBoards, diffBoards } from './test_support.js'
 
 function _sq(row: number, col: number, letterBonus=1, wordBonus=1) {
   return new Square({row, col, letterBonus, wordBonus})
@@ -52,6 +53,23 @@ describe('board', () => {
     )).toEqual({
       score: 28,
       wordsFormed: ['MU', 'MA', 'UT'],
+    })
+  })
+
+  it('should score bridges', () => {
+    // @ts-ignore
+    const [oldBoard, newBoard] = parseBoards(`
+
+        . . . .     . . . .
+        A₁2 E₁²     A₁G₃E₁D₁
+        N₁O₁T₁.     N₁O₁T₁.
+        . . . .     . . . .
+
+    `)[0]
+    const diff = diffBoards(oldBoard, newBoard)
+    expect(oldBoard.checkWordPlacement(...diff)).toEqual({
+      score: 22,
+      wordsFormed: ['AGED', 'GO'],
     })
   })
 

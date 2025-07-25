@@ -114,6 +114,8 @@ export class Board implements Serializable {
     } else {
       throw new WordPlacementError('Tiles are not in a line.')
     }
+    const crossDir = {x: mainDir.y, y: mainDir.x}  // Flip along the main diagonal.
+
     // Find the start of the new word along the direction chosen above.
     // Adjacent old tiles are part of the word.
     const firstNewTile = newTiles[0]
@@ -140,7 +142,36 @@ export class Board implements Serializable {
         mainValue = mainSquare.letterBonus * newTile.tile.value
         wordMultiplier = mainSquare.wordBonus
         mainWordMultiplier *= wordMultiplier
+
+        // Find the start of the word that crosses this square, if any.
+        let crossRow = mainRow, crossCol = mainCol
+        while (this.squares[crossRow-crossDir.y]?.[crossCol-crossDir.x]?.tile) {
+          crossRow -= crossDir.y
+          crossCol -= crossDir.x
+        }
+        // Find the cross word letters and score contribution.
+        // If the cross "word" turns out to have only one letter, we won't count it.
+        let crossWord = '', crossWordScore = 0
+        while (true) {
+          const crossSquare = this.squares[crossRow]?.[crossCol]
+          if (crossRow === mainRow && crossCol === mainCol) {
+            crossWord += mainLetter
+            crossWordScore += mainValue
+          } else if (crossSquare?.tile) {
+            crossWord += crossSquare.assignedLetter || crossSquare.tile.letter
+            crossWordScore += crossSquare.tile.value
+          } else {
+            break
+          }
+          crossRow += crossDir.y
+          crossCol += crossDir.x
+        }
+        if (crossWord.length > 1) {
+          crossWords.push(crossWord)
+          crossWordsScore += crossWordScore * wordMultiplier
+        }
       } else if (mainSquare.tile) {
+        // A previously played tile within the main word.
         mainLetter = mainSquare.assignedLetter || mainSquare.tile.letter
         mainValue = mainSquare.tile.value
         wordMultiplier = 1
@@ -149,34 +180,6 @@ export class Board implements Serializable {
       }
       mainWord += mainLetter
       mainWordScore += mainValue
-      // Find the start of the word that crosses this square, if any.
-      const crossDir = {x: mainDir.y, y: mainDir.x}  // Flip along the main diagonal.
-      let crossRow = mainRow, crossCol = mainCol
-      while (this.squares[crossRow-crossDir.y]?.[crossCol-crossDir.x]?.tile) {
-        crossRow -= crossDir.y
-        crossCol -= crossDir.x
-      }
-      // Find the cross word letters and score contribution.
-      // If the cross "word" turns out to have only one letter, we won't count it.
-      let crossWord = '', crossWordScore = 0
-      while (true) {
-        const crossSquare = this.squares[crossRow]?.[crossCol]
-        if (crossRow === mainRow && crossCol === mainCol) {
-          crossWord += mainLetter
-          crossWordScore += mainValue
-        } else if (crossSquare?.tile) {
-          crossWord += crossSquare.assignedLetter || crossSquare.tile.letter
-          crossWordScore += crossSquare.tile.value
-        } else {
-          break
-        }
-        crossRow += crossDir.y
-        crossCol += crossDir.x
-      }
-      if (crossWord.length > 1) {
-        crossWords.push(crossWord)
-        crossWordsScore += crossWordScore * wordMultiplier
-      }
       mainRow += mainDir.y
       mainCol += mainDir.x
     }

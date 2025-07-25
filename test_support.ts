@@ -137,9 +137,6 @@ export function diffBoards(a: Board, b: Board): Array<TileForPlacement> {
 }
 
 function diffSquares(a: Square, b: Square): TileForPlacement | null {
-  if (a.letterBonus !== b.letterBonus || a.wordBonus !== b.wordBonus) {
-    throw new Error(`diffBoards: bonus difference at ${a.row},${a.col}`)
-  }
   if (a.tile && b.tile) {
     if (
       a.tile.letter !== b.tile.letter ||
@@ -151,7 +148,12 @@ function diffSquares(a: Square, b: Square): TileForPlacement | null {
     return null
   }
   if (a.tile) throw new Error(`diffBoards: tile removed at ${a.row},${a.col}`)
-  if (!b.tile) return null
+  if (!b.tile) {
+    if (a.letterBonus !== b.letterBonus || a.wordBonus !== b.wordBonus) {
+      throw new Error(`diffBoards: bonus difference at ${a.row},${a.col}`)
+    }
+    return null
+  }
   const diff: TileForPlacement = {row: a.row, col: a.col, tile: b.tile}
   if (b.assignedLetter) diff.assignedLetter = b.assignedLetter
   return diff
