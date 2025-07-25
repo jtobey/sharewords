@@ -27,7 +27,7 @@ export class Tile implements Serializable {
   }
   static fromJSON(json: any): Tile {
     if (typeof json === 'string') {
-      const match = json.match(/(.*):(\d+)$/s)
+      const match = json.match(/(.*):([0-9]+)$/s)
       if (match) {
         const letter = match[1] as string
         const value = parseInt(match[2] as string)

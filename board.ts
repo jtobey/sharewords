@@ -36,8 +36,7 @@ class InvalidBonusSquareLayout extends Error {
   }
 }
 
-function parseRowStrings(strings: Array<string>): Array<Array<Square>> {
-  const rowStrings = strings.map(s => s.split('\n')).flat().map(s => s.trim())  // ['..\n..'] is ['..', '..']
+function parseRowStrings(rowStrings: Array<string>): Array<Array<Square>> {
   const firstRowString = rowStrings[0]
   if (!firstRowString || !rowStrings.every(s => s.length === firstRowString.length)) {
     throw new InvalidBonusSquareLayout('Row strings do not form a rectangle.')
@@ -53,13 +52,13 @@ function parseRowStrings(strings: Array<string>): Array<Array<Square>> {
   ))
 }
 
-function generateRowStrings(squares: ReadonlyArray<ReadonlyArray<Square>>): Array<string> {
+export function generateRowStrings(squares: ReadonlyArray<ReadonlyArray<Square>>): Array<string> {
   return squares.map(row => (
     row.map(square => {
       const pair = [square.letterBonus, square.wordBonus]
-      const char = CHAR_TO_BONUS.entries().find(([char, bonus]) => bonus[0] === pair[0] && bonus[1] === pair[1])
-      if (char === undefined) throw new Error(`Unrecognized bonus multiplier pair: ${pair}`)
-      return char
+      const entry = CHAR_TO_BONUS.entries().find(([char, bonus]) => bonus[0] === pair[0] && bonus[1] === pair[1])
+      if (entry === undefined) throw new Error(`Unrecognized bonus multiplier pair: ${pair}`)
+      return entry[0]
     }).join('')
   ))
 }
