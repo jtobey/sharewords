@@ -73,6 +73,5 @@ describe('board', () => {
     })
   })
 
-  // TODO: Test bridging gaps, extending on both sides, etc.
   // TODO: Test validation.
 })
