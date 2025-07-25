@@ -80,35 +80,72 @@ describe('board', () => {
     })
 
     it('should throw if tiles are not in a line', () => {
-      const board = new Board('...')
-      expect(() => board.checkWordPlacement(_t(0, 0, 'A', 1), _t(1, 1, 'B', 1))).toThrow('Tiles are not in a line.')
+      // @ts-ignore
+      const [oldBoard, newBoard] = parseBoards(`
+
+          . . . .     A1. . .
+          . . . .     . B1. .
+
+      `)[0]
+      const diff = diffBoards(oldBoard, newBoard)
+      expect(() => oldBoard.checkWordPlacement(...diff))
+        .toThrow('Tiles are not in a line.')
     })
 
     it('should throw if a tile is placed on an occupied square', () => {
       const board = new Board('.')
       board.placeTiles(_t(0, 0, 'A', 1))
-      expect(() => board.checkWordPlacement(_t(0, 0, 'B', 1))).toThrow('Square 0,0 is occupied.')
+      expect(() => board.checkWordPlacement(_t(0, 0, 'B', 1)))
+        .toThrow('Square 0,0 is occupied.')
     })
 
     it('should throw if tiles form a line with gaps', () => {
-      const board = new Board('...')
-      expect(() => board.checkWordPlacement(_t(0, 0, 'A', 1), _t(0, 2, 'B', 1))).toThrow('Tiles form a line with gaps between them.')
+      const [oldBoard, newBoard] = parseBoards(`
+
+          . . .     A1. B2
+
+      `)[0]
+      const diff = diffBoards(oldBoard, newBoard)
+      expect(() => oldBoard.checkWordPlacement(...diff))
+        .toThrow('Tiles form a line with gaps between them.')
     })
 
     it('should throw if only a single letter word is formed', () => {
-      const board = new Board('D')
-      expect(() => board.checkWordPlacement(_t(0, 0, 'A', 1))).toThrow('No single-letter words accepted.')
+      const [oldBoard, newBoard] = parseBoards(`
+
+          . . .     . . .
+          . . .     . A1.
+          . . .     . . .
+
+      `)[0]
+      const diff = diffBoards(oldBoard, newBoard)
+      expect(() => oldBoard.checkWordPlacement(...diff))
+        .toThrow('No single-letter words accepted.')
     })
 
     it('should throw if the first word is not on the center square', () => {
-      const board = new Board('.....')
-      expect(() => board.checkWordPlacement(_t(0, 0, 'A', 1), _t(0, 1, 'B', 1))).toThrow('Tiles must connect to existing words or cover the center square.')
+      const [oldBoard, newBoard] = parseBoards(`
+
+          . . .     J9. .
+          . . .     A1. .
+          . . .     M3. .
+
+      `)[0]
+      const diff = diffBoards(oldBoard, newBoard)
+      expect(() => oldBoard.checkWordPlacement(...diff))
+        .toThrow('Tiles must connect to existing words or cover the center square.')
     })
 
     it('should throw if subsequent words are not connected', () => {
-      const board = new Board('D..', '...', '...')
-      board.placeTiles(_t(0, 0, 'A', 1))
-      expect(() => board.checkWordPlacement(_t(2, 0, 'B', 1), _t(2, 1, 'C', 1))).toThrow('Tiles must connect to existing words or cover the center square.')
+      const [oldBoard, newBoard] = parseBoards(`
+
+          . M3. .   . M3. .
+          . A1. .   . A1. O1
+          . . . .   . . . H3
+
+      `)[0]
+      const diff = diffBoards(oldBoard, newBoard)
+      expect(() => oldBoard.checkWordPlacement(...diff)).toThrow('Tiles must connect to existing words or cover the center square.')
     })
   })
 
