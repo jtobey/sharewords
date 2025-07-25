@@ -1,4 +1,5 @@
 import { Square, generateRowStrings, Board } from './board.ts'
+import type { TileForPlacement } from './board.ts'
 import { Tile } from './tile.ts'
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
@@ -62,7 +63,7 @@ const S = `
 export function parseBoards(...strings: Array<string>) {
   strings = strings
     .join('\n')
-    .replace(/^\n+|\n+$/sg, '')
+    .replace(/^\n+|\s+$/sg, '')
     .replace(/\n\n\n+/g, '\n\n')
     .split('\n\n')
   return strings.map(parseRowOfBoards)
@@ -120,4 +121,38 @@ function parseRowOfSquares(rowOfSquaresStr: string, row: number) {
     squares.push(parseSquare(match[0], row, squares.length))
   }
   return squares
+}
+
+export function diffBoards(a: Board, b: Board): Array<TileForPlacement> {
+  if (a.squares.length !== b.squares.length) throw new Error(`Mismatched board heights.`)
+  if (a.squares[0]?.length !== b.squares[0]?.length) throw new Error(`Mismatched board widths.`)
+  const result = [] as Array<TileForPlacement>
+  a.squares.forEach((rowOfSquares, row) => {
+    rowOfSquares.forEach((square, col) => {
+      const diff = diffSquares(square, b.squares[row]?.[col] as Square)
+      if (diff) result.push(diff)
+    })
+  })
+  return result
+}
+
+function diffSquares(a: Square, b: Square): TileForPlacement | null {
+  if (a.letterBonus !== b.letterBonus || a.wordBonus !== b.wordBonus) {
+    throw new Error(`diffBoards: bonus difference at ${a.row},${a.col}`)
+  }
+  if (a.tile && b.tile) {
+    if (
+      a.tile.letter !== b.tile.letter ||
+        a.tile.value !== b.tile.value ||
+        a.assignedLetter !== b.assignedLetter
+    ) {
+      throw new Error(`diffBoards: tile or assignment difference at ${a.row},${a.col}`)
+    }
+    return null
+  }
+  if (a.tile) throw new Error(`diffBoards: tile removed at ${a.row},${a.col}`)
+  if (!b.tile) return null
+  const diff: TileForPlacement = {row: a.row, col: a.col, tile: b.tile}
+  if (b.assignedLetter) diff.assignedLetter = b.assignedLetter
+  return diff
 }

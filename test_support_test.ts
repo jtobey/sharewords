@@ -1,5 +1,7 @@
+// @ts-nocheck
+
 import { expect, describe, it } from 'bun:test'
-import { parseBoards } from './test_support.js'
+import { parseBoards, diffBoards } from './test_support.js'
 import { Tile } from './tile.ts'
 import { Board } from './board.ts'
 
@@ -24,5 +26,41 @@ describe('test support', () => {
     const board = parsed[0]?.[0]
     expect(board).toBeInstanceOf(Board)
     expect(board as unknown as Board).toEqual(expected)
+  })
+
+  it('should parse rows of boards', () => {
+    const boardsStr = `
+    . .   . .
+    . .   . .
+
+    X8`
+    const parsed = parseBoards(boardsStr)
+    expect(parsed).toHaveLength(2)
+    expect(parsed[0]).toHaveLength(2)
+    expect(parsed[1]).toHaveLength(1)
+    parsed[0].forEach(board => {
+      expect(board).toBeInstanceOf(Board)
+      expect(board.squares).toHaveLength(2)
+      board.squares.forEach(row => expect(row).toHaveLength(2))
+    })
+    expect(parsed[1][0].squares[0][0].tile.letter).toEqual('X')
+  })
+
+  it('should diff boards', () => {
+    const boardsStr = `
+    2 . .   2 Q9I0
+    X8I1.   X8I1.
+    . . 3   . . 3
+    `
+    const [oldBoard, newBoard] = parseBoards(boardsStr)[0]
+    expect(oldBoard).not.toEqual(newBoard)
+    const expected = [
+      {row: 0, col: 1, tile: new Tile({letter: 'Q', value: 9})},
+      {row: 0, col: 2, tile: new Tile({letter: '', value: 0}), assignedLetter: 'I'},
+    ]
+    const diff = diffBoards(oldBoard, newBoard)
+    expect(diff).toEqual(expected)
+    oldBoard.placeTiles(...diff)
+    expect(oldBoard).toEqual(newBoard)
   })
 })

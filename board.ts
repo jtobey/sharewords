@@ -63,7 +63,7 @@ export function generateRowStrings(squares: ReadonlyArray<ReadonlyArray<Square>>
   ))
 }
 
-interface TileForPlacement {
+export interface TileForPlacement {
   row: number
   col: number
   tile: Tile
