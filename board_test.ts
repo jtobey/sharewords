@@ -7,8 +7,10 @@ function _sq(row: number, col: number, letterBonus=1, wordBonus=1) {
   return new Square({row, col, letterBonus, wordBonus})
 }
 
-function _t(row: number, col: number, letter: string, value: number) {
-  return { row, col, tile: new Tile({letter, value}) }
+function _t(row: number, col: number, letter: string, value: number, assignedLetter=null as string) {
+  const tile = { row, col, tile: new Tile({letter, value})}
+  if (assignedLetter !== null) tile.assignedLetter = assignedLetter
+  return tile
 }
 
 describe('board', () => {
@@ -148,6 +150,18 @@ describe('board', () => {
       expect(() => oldBoard.checkWordPlacement(...diff))
         .toThrow('Tiles must connect to existing words or cover the center square.')
     })
+
+    it('should throw if a blank tile is not assigned a letter.', () => {
+      const board = new Board('...')
+      expect(() => board.checkWordPlacement(_t(0, 0, '', 0), _t(0, 1, 'I', 1)))
+        .toThrow('Blank tiles must be assigned letters.')
+    })
+
+    it('should throw if a non-blank tile is assigned a letter.', () => {
+      const board = new Board('...')
+      expect(() => board.checkWordPlacement(_t(0, 1, 'A', 1), _t(0, 2, 'T', 1, 'N')))
+        .toThrow('Blank tiles must be assigned letters.')
+    })
   })
 
   describe('json', () => {
@@ -162,7 +176,7 @@ describe('board', () => {
       const board = new Board('.d', 'T.')
       board.placeTiles(
         _t(0, 0, 'A', 1),
-        {..._t(0, 1, 'B', 2), assignedLetter: 'C'},
+        _t(0, 1, '', 0, 'C'),
       )
       const boardAsJson = JSON.parse(JSON.stringify(board))
       const boardFromJson = Board.fromJSON(boardAsJson)
