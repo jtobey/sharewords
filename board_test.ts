@@ -145,7 +145,8 @@ describe('board', () => {
 
       `)[0]
       const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff)).toThrow('Tiles must connect to existing words or cover the center square.')
+      expect(() => oldBoard.checkWordPlacement(...diff))
+        .toThrow('Tiles must connect to existing words or cover the center square.')
     })
   })
 
