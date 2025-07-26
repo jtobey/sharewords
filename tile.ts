@@ -5,7 +5,7 @@ import type { Serializable } from './serializable.js'
 const MIN_TILE_VALUE = 0
 const MAX_TILE_VALUE = 999999
 
-export class Tile implements Serializable {
+export class Tile {
   readonly letter: string
   readonly value: number
   constructor({letter, value}: Readonly<{letter: string; value: number}>) {

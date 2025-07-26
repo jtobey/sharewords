@@ -2,7 +2,7 @@
  * @file Settings for starting new games.
  */
 
-import type { Serializable, Stringifiable } from './serializable.js'
+import type { Serializable } from './serializable.js'
 import { Player } from './player.js'
 
 const DEFAULT_PLAYER_LIST = [
@@ -43,7 +43,7 @@ const DEFAULT_BOARD_LAYOUT = [
 const DEFAULT_BINGO_BONUS = 42
 const DEFAULT_RACK_CAPACITY = 7
 
-export class Settings implements Serializable {
+export class Settings {
   players = DEFAULT_PLAYER_LIST
   letterCounts = DEFAULT_LETTER_COUNTS
   letterValues = DEFAULT_LETTER_VALUES
@@ -51,9 +51,9 @@ export class Settings implements Serializable {
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
   tileSystemType = 'honor'
-  tileSystemSettings = 1 as Stringifiable
+  tileSystemSettings = 1 as Serializable
   dictionaryType = 'permissive' as 'permissive' | 'freeapi' | 'custom'
-  dictionarySettings = null as Stringifiable
+  dictionarySettings = null as Serializable
 
   toJSON() {
     return {

@@ -82,7 +82,7 @@ class WordPlacementError extends Error {
   }
 }
 
-export class Board implements Serializable {
+export class Board {
   readonly squares: ReadonlyArray<ReadonlyArray<Square>>
   readonly scores = new Map<string, number>
   constructor(...rowStrings: Array<string>) {

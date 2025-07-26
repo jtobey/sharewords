@@ -1,17 +1,16 @@
-/** Interface implemented by classes that can be serialized to JSON. */
-export interface Serializable {
-  /** Returns this object as JSON-serializable data. */
-  toJSON(): any
-}
-
-export type Stringifiable = (
-  Serializable |
-  { [key: string]: Stringifiable } |
-  ReadonlyArray<Stringifiable> |
+export type Serializable = (
+  { toJSON(): any } |
+  { [key: string]: Serializable } |
+  ReadonlyArray<Serializable> |
   string |
   number |
   boolean |
   null)
+
+export function toJSON(s: Serializable): any {
+  if (s && typeof s === 'object' && 'toJSON' in s) return (s as {toJSON(): any}).toJSON()
+  return s
+}
 
 export function arraysEqual<T>(array1: Array<T>, array2: Array<T>) {
   return array1.length === array2.length &&

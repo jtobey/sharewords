@@ -8,6 +8,7 @@
  * For the client side of secure games, @see {@link tiles_state.ts}.
  */
 import type { Serializable } from './serializable.js'
+import { toJSON } from './serializable.js'
 import type { RandomGenerator } from './random_generator.js'
 
 /** Signature of the constructor, for use by subclasses. */
@@ -76,7 +77,7 @@ export class Bag<Tile extends Serializable> {
   toJSON() {
     return {
       prng: this.randomGenerator.toJSON(),
-      tiles: this.tiles.map(tile => tile.toJSON()),
+      tiles: this.tiles.map(toJSON),
     }
   }
   /**

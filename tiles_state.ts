@@ -7,11 +7,10 @@
  * to the board.
  */
 
-import type { Serializable } from './serializable.js'
 import { Tile } from './tile.js'
 import { Turn } from './turn.js'
 
-export interface TilesState extends Serializable {
+export interface TilesState {
   /**
    * A rack's capacity, for example 7 tiles.
    * Within a game, all racks have the same capacity.
@@ -57,4 +56,5 @@ export interface TilesState extends Serializable {
    * @throws Will throw if the bag holds fewer tiles than specified for exchange.
    */
   playTurns(...turnsToPlay: Array<Turn>): Promise<any>
+  toJSON(): any
 }

@@ -1,5 +1,4 @@
-import type { Serializable } from './serializable.js'
-
-export interface RandomGenerator extends Serializable {
+export interface RandomGenerator {
   random(): number
+  toJSON(): any
 }

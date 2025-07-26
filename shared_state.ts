@@ -11,7 +11,7 @@ import type { TilePlacement } from './board.ts'
 
 type GameId = string & { '__brand': 'GameId' }
 
-class SharedState implements Serializable {
+class SharedState {
   constructor(
     readonly settings: Settings,
     readonly board: Board,

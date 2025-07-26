@@ -1,6 +1,6 @@
 import type { Serializable } from './serializable.js'
 
-export class Player implements Serializable {
+export class Player {
   readonly id: string
   name: string
   constructor({id, name=`Player ${id}`}: Readonly<{id: string, name?: string}>) {
