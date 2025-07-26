@@ -2,7 +2,7 @@ import { makeTiles } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
-import type { TileForPlacement } from './board.ts'
+import type { TilePlacement } from './board.ts'
 import { Player } from './player.ts'
 
 const letterCounts = {
@@ -63,7 +63,7 @@ const HANDLERS = {
     const turnJson = JSON.parse(`[${turnStr}]`)
     const rack = await tilesState.getTiles('player1')
     const placements = turnJson.map(([rackIndex, row, col, ...rest]: [number, number, number, Array<string>]) =>
-      ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TileForPlacement>
+      ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TilePlacement>
     try {
       const {score, wordsFormed} = board.checkWordPlacement(...placements)
       myScore += score

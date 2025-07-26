@@ -68,7 +68,7 @@ export function generateRowStrings(squares: ReadonlyArray<ReadonlyArray<Square>>
   ))
 }
 
-export interface TileForPlacement {
+export interface TilePlacement {
   row: number
   col: number
   tile: Tile
@@ -90,7 +90,7 @@ export class Board implements Serializable {
   }
 
   /**
-   * @param newTiles - A list of tiles to play this turn, their locations, and
+   * @param placements - A list of tiles to play this turn, their locations, and
    *        any blank-tile letter assigments.
    * @returns An object containing the `score` for the turn (excluding any seven-tile bonus)
    *          and an array `wordsFormed` of words to check in the dictionary.
@@ -102,29 +102,29 @@ export class Board implements Serializable {
    * @throws {WordPlacementError} Will throw if only a single tiles is placed, not adjacent to any
    *         other, even if on the center square.
    */
-  checkWordPlacement(...newTiles: Array<TileForPlacement>): {
+  checkWordPlacement(...placements: Array<TilePlacement>): {
     wordsFormed: Array<string>,
     score: number,
   } {
-    const anyNewTile = newTiles[0]
-    if (!anyNewTile) throw new WordPlacementError('No tiles.')
-    for (const newTile of newTiles) {
-      if (newTile.tile.isBlank && !newTile.assignedLetter) {
+    const anyPlacement = placements[0]
+    if (!anyPlacement) throw new WordPlacementError('No tiles.')
+    for (const placement of placements) {
+      if (placement.tile.isBlank && !placement.assignedLetter) {
         throw new WordPlacementError('Blank tiles must be assigned letters.')
       }
-      if (!newTile.tile.isBlank && newTile.assignedLetter) {
+      if (!placement.tile.isBlank && placement.assignedLetter) {
         throw new WordPlacementError('Non-blank tiles cannot be assigned letters.')
       }
     }
-    // Find the direction of a line along which all newTiles lie.
+    // Find the direction of a line along which all placements lie.
     // Order the tiles by their position along this line.
     const mainDir = {x: 0, y: 0}
-    if (newTiles.every(tile => tile.row === anyNewTile.row)) {
+    if (placements.every(tile => tile.row === anyPlacement.row)) {
       mainDir.x = 1  // Left to right.
-      newTiles.sort((a, b) => a.col - b.col)
-    } else if (newTiles.every(tile => tile.col === anyNewTile.col)) {
+      placements.sort((a, b) => a.col - b.col)
+    } else if (placements.every(tile => tile.col === anyPlacement.col)) {
       mainDir.y = 1  // Top to bottom.
-      newTiles.sort((a, b) => a.row - b.row)
+      placements.sort((a, b) => a.row - b.row)
     } else {
       throw new WordPlacementError('Tiles are not in a line.')
     }
@@ -132,28 +132,28 @@ export class Board implements Serializable {
 
     // Find the start of the new word along the direction chosen above.
     // Adjacent old tiles are part of the word.
-    const firstNewTile = newTiles[0]
-    if (!firstNewTile) throw new Error('Lost a tile.')
-    let mainRow = firstNewTile.row, mainCol = firstNewTile.col
+    const firstPlacement = placements[0]
+    if (!firstPlacement) throw new Error('Lost a tile.')
+    let mainRow = firstPlacement.row, mainCol = firstPlacement.col
     while (this.squares[mainRow-mainDir.y]?.[mainCol-mainDir.x]?.tile) {
       mainRow -= mainDir.y
       mainCol -= mainDir.x
     }
     let mainWord = '', crossWords: Array<string> = []
-    let newTileIndex = 0
+    let placementIndex = 0
     let mainWordMultiplier = 1, mainWordScore = 0, crossWordsScore = 0
     while (true) {
       const mainSquare = this.squares[mainRow]?.[mainCol]
       if (!mainSquare) break
       let mainLetter: string, mainValue: number, wordMultiplier: number
-      const newTile = newTiles[newTileIndex]
-      if (newTile && newTile.row === mainRow && newTile.col === mainCol) {
+      const placement = placements[placementIndex]
+      if (placement && placement.row === mainRow && placement.col === mainCol) {
         if (mainSquare.tile) {
           throw new WordPlacementError(`Square ${mainRow},${mainCol} is occupied.`)
         }
-        newTileIndex += 1
-        mainLetter = newTile.assignedLetter || newTile.tile.letter
-        mainValue = mainSquare.letterBonus * newTile.tile.value
+        placementIndex += 1
+        mainLetter = placement.assignedLetter || placement.tile.letter
+        mainValue = mainSquare.letterBonus * placement.tile.value
         wordMultiplier = mainSquare.wordBonus
         mainWordMultiplier *= wordMultiplier
 
@@ -197,16 +197,16 @@ export class Board implements Serializable {
       mainRow += mainDir.y
       mainCol += mainDir.x
     }
-    if (newTileIndex < newTiles.length) {
+    if (placementIndex < placements.length) {
       throw new WordPlacementError('Tiles form a line with gaps between them.')
     }
     if (mainWord.length === 1) {
       throw new WordPlacementError('No single-letter words accepted.')
     }
-    if (!crossWords.length && mainWord.length === newTiles.length) {
+    if (!crossWords.length && mainWord.length === placements.length) {
       const centerRow = this.squares.length >> 1
       const centerCol = (this.squares[0]?.length || 0) >> 1
-      if (!newTiles.some(tile => tile.row === centerRow && tile.col === centerCol)) {
+      if (!placements.some(tile => tile.row === centerRow && tile.col === centerCol)) {
         throw new WordPlacementError('Tiles must connect to existing words or cover the center square.')
       }
     }
@@ -217,7 +217,7 @@ export class Board implements Serializable {
     }
   }
 
-  placeTiles(...tiles: Array<TileForPlacement>): void {
+  placeTiles(...tiles: Array<TilePlacement>): void {
     for (const tile of tiles) {
       const square = this.squares[tile.row]?.[tile.col]
       if (!square) throw new Error(`Invalid board coordinates: ${tile.row},${tile.col}.`)
