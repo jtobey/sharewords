@@ -1,4 +1,5 @@
 import type { Serializable } from './serializable.js'
+import { arraysEqual } from './serializable.js'
 import { Tile } from './tile.js'
 
 export class Square {
@@ -83,6 +84,7 @@ class WordPlacementError extends Error {
 
 export class Board implements Serializable {
   readonly squares: ReadonlyArray<ReadonlyArray<Square>>
+  readonly scores = new Map<string, number>
   constructor(...rowStrings: Array<string>) {
     this.squares = parseRowStrings(rowStrings)
   }
@@ -240,36 +242,45 @@ export class Board implements Serializable {
         tiles.push(result)
       }
     }))
-    return {rows, tiles}
+    const scores = [...this.scores.entries()]
+    return {rows, tiles, scores}
   }
 
   static fromJSON(json: any) {
-    function bomb(): never {
-      throw new TypeError(`invalid Board serialization: ${JSON.stringify(json)}`)
+    function fail(): never {
+      throw new TypeError(`Invalid Board serialization: ${JSON.stringify(json)}`)
     }
-    if (!(typeof json === 'object'
-      && Object.keys(json).length === 2
-      && Array.isArray(json.rows)
-      && json.rows.every((row: any) => typeof row === 'string')
-      && Array.isArray(json.tiles))) {
-        bomb()
-      }
+    if (!(typeof json === 'object')) fail()
+    if (!arraysEqual([...Object.keys(json)], ['rows', 'tiles', 'scores'])) fail()
+    if (!Array.isArray(json.rows)) fail()
+    if (!json.rows.every((row: any) => typeof row === 'string')) fail()
+    if (!Array.isArray(json.tiles)) fail()
+    if (!Array.isArray(json.scores)) fail()
     try {
       const board = new Board(...json.rows)
       for (const tile of json.tiles) {
-        if (!Array.isArray(tile)) bomb()
-        if (tile.length > 4) bomb()
+        if (!Array.isArray(tile)) fail()
+        if (tile.length > 4) fail()
         const [row, col, tileJson, assignedLetter] = tile
-        if (!(typeof row === 'number')) bomb()
-        if (!(typeof col === 'number')) bomb()
+        if (!(typeof row === 'number')) fail()
+        if (!(typeof col === 'number')) fail()
         const square = board.squares[row]?.[col]
-        if (!square) bomb()
+        if (!square) fail()
         square.tile = Tile.fromJSON(tileJson)
         if (assignedLetter) square.assignedLetter = assignedLetter
       }
+      for (const element of json.scores) {
+        if (!Array.isArray(element)) fail()
+        if (element.length !== 2) fail()
+        const [playerId, score] = element
+        if (!(typeof playerId === 'string')) fail()
+        if (!(typeof score === 'number')) fail()
+        if (board.scores.has(playerId)) fail()
+        board.scores.set(playerId, score)
+      }
       return board
     } catch (e: unknown) {
-      if (e instanceof InvalidBonusSquareLayout) bomb()
+      if (e instanceof InvalidBonusSquareLayout) fail()
       throw e
     }
   }

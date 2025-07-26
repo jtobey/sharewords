@@ -184,44 +184,89 @@ describe('board', () => {
       expect(boardFromJson).toEqual(board)
     })
 
+    it('should roundtrip a board with scores', () => {
+      const board = new Board('.d', 'T.')
+      board.scores.set('player', 10)
+      const boardAsJson = JSON.parse(JSON.stringify(board))
+      const boardFromJson = Board.fromJSON(boardAsJson)
+      expect(boardFromJson).toEqual(board)
+    })
+
     it('should reject an invalid object', () => {
       expect(() => Board.fromJSON('frob')).toThrow(TypeError)
     })
 
     it('should reject a missing rows', () => {
-      expect(() => Board.fromJSON({tiles: []})).toThrow(TypeError)
+      expect(() => Board.fromJSON({tiles: [], scores: []})).toThrow(TypeError)
     })
 
     it('should reject a non-array rows', () => {
-      expect(() => Board.fromJSON({rows: 'frob', tiles: []})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: 'frob', tiles: [], scores: []})).toThrow(TypeError)
     })
 
     it('should reject a non-string row', () => {
-      expect(() => Board.fromJSON({rows: [null], tiles: []})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [null], tiles: [], scores: []})).toThrow(TypeError)
     })
 
     it('should reject a missing tiles', () => {
-      expect(() => Board.fromJSON({rows: []})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [], scores: []})).toThrow(TypeError)
     })
 
     it('should reject a non-array tiles', () => {
-      expect(() => Board.fromJSON({rows: [], tiles: 'frob'})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [], tiles: 'frob', scores: []})).toThrow(TypeError)
     })
 
     it('should reject an invalid tile', () => {
-      expect(() => Board.fromJSON({rows: [], tiles: [null]})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [], tiles: [null], scores: []})).toThrow(TypeError)
     })
 
     it('should reject an invalid tile row', () => {
-      expect(() => Board.fromJSON({rows: [], tiles: [['a', 1, 'A:1']]})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [], tiles: [['a', 1, 'A:1']], scores: []})).toThrow(TypeError)
     })
 
     it('should reject an invalid tile col', () => {
-      expect(() => Board.fromJSON({rows: [], tiles: [[0, 'b', 'A:1']]})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: [], tiles: [[0, 'b', 'A:1']], scores: []})).toThrow(TypeError)
     })
 
     it('should reject out-of-bounds tile placement', () => {
-      expect(() => Board.fromJSON({rows: ['..'], tiles: [[0, 2, 'A:1']]})).toThrow(TypeError)
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [[0, 2, 'A:1']], scores: []})).toThrow(TypeError)
+    })
+
+    it('should reject a non-array scores', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: 'quux'})).toThrow(TypeError)
+    })
+
+    it('should reject a non-array score', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: ['quux']})).toThrow(TypeError)
+    })
+
+    it('should reject a short score array', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: [['p']]})).toThrow(TypeError)
+    })
+
+    it('should reject a long score array', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: [['p', 0, 0]]})).toThrow(TypeError)
+    })
+
+    it('should reject a non-string playerId', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: [[16, 0]]})).toThrow(TypeError)
+    })
+
+    it('should reject a non-numeric score', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: [['p', '0']]})).toThrow(TypeError)
+    })
+
+    it('should reject duplicate scores', () => {
+      expect(() => Board.fromJSON({rows: ['..'], tiles: [], scores: [['p', 0], ['q', 1], ['p', 0]]})).toThrow(TypeError)
+    })
+
+    it('should accept valid JSON', () => {
+      const board = Board.fromJSON({rows: ['.d'], tiles: [[0, 0, 'A:1']], scores: [['p', 0], ['q', 1]]})
+      expect(board.squares.length).toEqual(1)
+      expect(board.squares[0]?.length).toEqual(2)
+      expect(board.squares[0]?.[0]?.tile).toEqual(new Tile({letter:'A', value:1}))
+      expect(board.squares[0]?.[1]).toEqual(_sq(0, 1, 2, 1))
+      expect([...board.scores.entries()]).toEqual([['p', 0], ['q', 1]])
     })
   })
 })
