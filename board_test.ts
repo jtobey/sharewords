@@ -1,5 +1,6 @@
 import { expect, describe, it } from 'bun:test'
 import { Board, Square } from './board.js'
+import type { TileForPlacement } from './board.js'
 import { Tile } from './tile.js'
 import { parseBoards, diffBoards } from './test_support.js'
 
@@ -7,8 +8,8 @@ function _sq(row: number, col: number, letterBonus=1, wordBonus=1) {
   return new Square({row, col, letterBonus, wordBonus})
 }
 
-function _t(row: number, col: number, letter: string, value: number, assignedLetter=null as string) {
-  const tile = { row, col, tile: new Tile({letter, value})}
+function _t(row: number, col: number, letter: string, value: number, assignedLetter=null as string | null) {
+  const tile = { row, col, tile: new Tile({letter, value})} as TileForPlacement
   if (assignedLetter !== null) tile.assignedLetter = assignedLetter
   return tile
 }

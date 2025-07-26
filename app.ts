@@ -2,6 +2,8 @@ import { makeTiles } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
+import type { TileForPlacement } from './board.ts'
+import { Player } from './player.ts'
 
 const letterCounts = {
   'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 2, 'H': 2, 'I': 9, 'J': 1,
@@ -14,10 +16,10 @@ const letterValues = {
   'U': 2, 'V': 5, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10 // Z is 10 points
 }
 const tilesState: TilesState = new HonorSystemTilesState({
+  players: [new Player({id:'player1', name:'Player 1'})],
   rackCapacity: 7,
   tiles: makeTiles({letterCounts, letterValues}),
-  randomSeed: 17,
-  playerIds: ['player1']
+  tileSystemSettings: 17,  // random seed
 })
 const board = new Board(
   'D..d..T......T.', // Row 0
@@ -60,7 +62,8 @@ const HANDLERS = {
     const turnStr = window.prompt('Enter one or more [rackIndex,row,col,assignedLetter?] tuples, separated by commas. Indices are zero-based.')
     const turnJson = JSON.parse(`[${turnStr}]`)
     const rack = await tilesState.getTiles('player1')
-    const placements = turnJson.map(([rackIndex, row, col, ...rest]) => ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''}))
+    const placements = turnJson.map(([rackIndex, row, col, ...rest]: [number, number, number, Array<string>]) =>
+      ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TileForPlacement>
     try {
       const {score, wordsFormed} = board.checkWordPlacement(...placements)
       myScore += score
@@ -72,7 +75,7 @@ const HANDLERS = {
     await tilesState.playTurns({playerId: 'player1', playTiles: placements.map(p => p.tile)})
   }
 } as { [key: string]: any }
-for (const elt of document.getElementsByTagName('button')) {
+for (const elt of document.getElementsByTagName('button') as any) {
   const handler = HANDLERS[elt.textContent as string]
   if (handler) {
     elt.addEventListener('click', handler)

@@ -2,6 +2,7 @@
  * @file TilesState with no strong security against peeking.
  */
 
+import { Player } from './player.js'
 import type { TilesState, PlayTurnsArgType } from './tiles_state.js'
 import { Tile } from './tile.js'
 import { HonorSystemBag, createHonorSystemBag } from './honor_system_bag.js'
@@ -11,18 +12,22 @@ export class HonorSystemTilesState implements TilesState {
   private _numberOfTurnsPlayed: number
   private readonly bag: HonorSystemBag
   private readonly racks: ReadonlyMap<string, Array<Tile>>
-  constructor({rackCapacity, tiles, randomSeed, playerIds}: Readonly<{
+  constructor({players, rackCapacity, tiles, tileSystemSettings}: Readonly<{
+    players: ReadonlyArray<Player>
     rackCapacity: number
     tiles: Iterable<Tile>
-    randomSeed: number
-    playerIds: ReadonlyArray<string>
+    tileSystemSettings: any
   }>) {
+    const playerIds = players.map(p => p.id)
     if ([...new Set(playerIds)].length !== playerIds.length) {
       throw new Error(`The player IDs are not unique: ${playerIds}`)
     }
+    if (typeof tileSystemSettings !== 'number') {
+      throw new TypeError('tileSystemSettings should be a number used as a random seed.')
+    }
     this.rackCapacity = rackCapacity
     this._numberOfTurnsPlayed = 0
-    this.bag = createHonorSystemBag({tiles, randomSeed})
+    this.bag = createHonorSystemBag({tiles, randomSeed: tileSystemSettings})
     this.racks = new Map(playerIds.map(playerId => [playerId, []]))
     if (this.bag.size > 0) {
       for (const rack of this.racks.values()) {

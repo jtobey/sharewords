@@ -1,6 +1,11 @@
 import { expect, describe, it } from 'bun:test'
 import { Tile, makeTiles } from './tile.ts'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
+import { Player } from './player.js'
+
+function makePlayers(...ids: Array<string>) {
+  return ids.map(id => new Player({id}))
+}
 
 interface LetterCounts { [key: string]: number }
 
@@ -9,8 +14,9 @@ function makeTestTiles(letterCounts: LetterCounts) {
 }
 
 function getAllTiles(tilesState: HonorSystemTilesState) {
-  const tiles = [...(tilesState as unknown as {bag: {tiles: Iterable<Tile>}}).bag.tiles]
-  for (const rack of (tilesState as unknown as {racks: Map<any, Iterable<Tile>>}).racks.values()) {
+  // Read private properties of HonorSystemTilesState and HonorSystemBag for testing.
+  const tiles = [...(tilesState as any).bag.tiles]
+  for (const rack of (tilesState as any).racks.values()) {
     tiles.push(...rack)
   }
   return tiles
@@ -20,10 +26,10 @@ describe('honor system tiles state', () => {
   it('should initialize', () => {
     const tiles = makeTestTiles({A:9, B:2})
     const state = new HonorSystemTilesState({
+      players: makePlayers('John', 'Dave'),
       rackCapacity: 4,
       tiles,
-      randomSeed: 1,
-      playerIds: ['John', 'Dave']
+      tileSystemSettings: 1,
     })
     expect(state.rackCapacity).toEqual(4)
     expect(state.numberOfTilesInBag).toEqual(3)
@@ -37,10 +43,10 @@ describe('honor system tiles state', () => {
   it('should play turns', async () => {
     const tiles = makeTestTiles({A:9, B:2})
     const state = new HonorSystemTilesState({
+      players: makePlayers('John', 'Dave'),
       rackCapacity: 4,
       tiles,
-      randomSeed: 1,
-      playerIds: ['John', 'Dave']
+      tileSystemSettings: 1,
     })
     const daveWord = makeTestTiles({A:3, B:1})
     const stateId = await state.playTurns(
@@ -60,20 +66,20 @@ describe('honor system tiles state', () => {
     it('should throw on duplicate player IDs', () => {
       const tiles = makeTestTiles({A:1})
       expect(() => new HonorSystemTilesState({
+        players: makePlayers('John', 'John'),
         rackCapacity: 1,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John', 'John']
+        tileSystemSettings: 1,
       })).toThrow('The player IDs are not unique: John,John')
     })
 
     it('should throw on unknown player ID in countTiles', () => {
       const tiles = makeTestTiles({A:1})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John']
+        tileSystemSettings: 1,
       })
       expect(() => state.countTiles('Dave')).toThrow('Unknown playerId: Dave')
     })
@@ -81,10 +87,10 @@ describe('honor system tiles state', () => {
     it('should throw on unknown player ID in getTiles', async () => {
       const tiles = makeTestTiles({A:1})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John']
+        tileSystemSettings: 1,
       })
       try {
         await state.getTiles('Dave')
@@ -97,10 +103,10 @@ describe('honor system tiles state', () => {
     it('should throw when playing a tile that is not on the rack', async () => {
       const tiles = makeTestTiles({A:5})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John'),
         rackCapacity: 4,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John']
+        tileSystemSettings: 1,
       })
       const tileToPlay = new Tile({letter: 'B', value: 1})
       try {
@@ -114,10 +120,10 @@ describe('honor system tiles state', () => {
     it('should throw when exchanging tiles with invalid indices', async () => {
       const tiles = makeTestTiles({A:5})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John'),
         rackCapacity: 4,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John']
+        tileSystemSettings: 1,
       })
       try {
         await state.playTurns({playerId: 'John', exchangeTileIndices: [0, 0]})
@@ -142,10 +148,10 @@ describe('honor system tiles state', () => {
     it('should throw on unknown player ID in playTurns', async () => {
       const tiles = makeTestTiles({A:1})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John']
+        tileSystemSettings: 1,
       })
       try {
         await state.playTurns({playerId: 'Dave', exchangeTileIndices: []})
@@ -160,10 +166,10 @@ describe('honor system tiles state', () => {
     it('should be serializable to and from JSON', () => {
       const tiles = makeTestTiles({A:9, B:2})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John', 'Dave'),
         rackCapacity: 4,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John', 'Dave']
+        tileSystemSettings: 1,
       })
       const stateAsJson = JSON.parse(JSON.stringify(state))
       const stateFromJson = HonorSystemTilesState.fromJSON(stateAsJson)
@@ -178,10 +184,10 @@ describe('honor system tiles state', () => {
     it('should reject invalid json', () => {
       const tiles = makeTestTiles({A:9, B:2})
       const state = new HonorSystemTilesState({
+        players: makePlayers('John', 'Dave'),
         rackCapacity: 4,
         tiles,
-        randomSeed: 1,
-        playerIds: ['John', 'Dave']
+        tileSystemSettings: 1,
       })
       const stateAsJson = JSON.parse(JSON.stringify(state))
       expect(() => HonorSystemTilesState.fromJSON('frob')).toThrow(TypeError)
