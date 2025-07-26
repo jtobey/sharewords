@@ -7,46 +7,45 @@
  *
  * For the client side of secure games, @see {@link tiles_state.ts}.
  */
-import type { Serializable } from './serializable.js'
 import { toJSON } from './serializable.js'
+import { Tile } from './tile.js'
 import type { RandomGenerator } from './random_generator.js'
 
 /** Signature of the constructor, for use by subclasses. */
-type ConstructorArgs<Tile extends Serializable> = {
+type ConstructorArgs = {
   tiles: Iterable<Tile>
   randomGenerator: RandomGenerator
   shuffle?: boolean
 }
 /** Signature of `fromJsonAndConstructors`. */
-type JsonAndConstructors<Tile extends Serializable> = {
+type JsonAndConstructors = {
   json: any
   constructors: {
-    tile: (json: any) => Tile
     randomGenerator: (json: any) => RandomGenerator
   }
 }
 /** Type of the constructor. */
-type Constructor<Tile extends Serializable, Subclass extends Bag<Tile>> = new (args: ConstructorArgs<Tile>) => Subclass
+type Constructor<Subclass extends Bag> = new (args: ConstructorArgs) => Subclass
 /** Type of Bag and its subclasses. */
-export type BagType<Tile extends Serializable, Subclass extends Bag<Tile>> = Constructor<Tile, Subclass> & {
-  fromJsonAndConstructors: (args: JsonAndConstructors<Tile>) => Subclass
+export type BagType<Subclass extends Bag> = Constructor<Subclass> & {
+  fromJsonAndConstructors: (args: JsonAndConstructors) => Subclass
 }
 
 /** Type of the `createBag` parameter. */
-type CreateArgs<Tile extends Serializable, Subclass extends Bag<Tile>> = {type?: BagType<Tile, Subclass>} & (ConstructorArgs<Tile> | JsonAndConstructors<Tile>)
+type CreateArgs<Subclass extends Bag> = {type?: BagType<Subclass>} & (ConstructorArgs | JsonAndConstructors)
 
 /**
  * A shuffled bag from which tiles may be drawn and exchanged.
  * @see createBag
  */
-export class Bag<Tile extends Serializable> {
+export class Bag {
   private readonly tiles: Array<Tile>
   private readonly randomGenerator: RandomGenerator
   /**
    * Constructor for internal use.
    * @see `createBag`.
    */
-  constructor({tiles, randomGenerator, shuffle=true}: ConstructorArgs<Tile>) {
+  constructor({tiles, randomGenerator, shuffle=true}: ConstructorArgs) {
     this.tiles = [...tiles]
     this.randomGenerator = randomGenerator
     if (shuffle) this.shuffle(0)
@@ -84,11 +83,11 @@ export class Bag<Tile extends Serializable> {
    * JSON deserializer for internal use.
    * @see createBag
    */
-  static fromJsonAndConstructors<Tile extends Serializable>({json, constructors}: JsonAndConstructors<Tile>): Bag<Tile> {
+  static fromJsonAndConstructors({json, constructors}: JsonAndConstructors): Bag {
     if (!(typeof json === 'object' && Array.isArray(json.tiles))) {
       throw new TypeError(`invalid serialized Bag: ${json}`)
     }
-    const tiles = [...json.tiles.map((tile: any) => constructors.tile(tile))]
+    const tiles = [...json.tiles.map(Tile.fromJSON)]
     return new this({tiles, randomGenerator: constructors.randomGenerator(json.prng), shuffle: false})
   }
 }
@@ -103,13 +102,12 @@ export class Bag<Tile extends Serializable> {
  * createBag({
  *     json: JSON.parse('{"tiles":[], "prng":{}}'),
  *     constructors: {
- *         tile: Tile.fromJSON,
  *         randomGenerator: MyRng.fromJSON,
  *     })
  */
-export function createBag<Tile extends Serializable, Subclass extends Bag<Tile>=Bag<Tile>>({type=Bag as BagType<Tile, Subclass>, ...args}: CreateArgs<Tile, Subclass>): Bag<Tile> {
+export function createBag<Subclass extends Bag=Bag>({type=Bag as BagType<Subclass>, ...args}: CreateArgs<Subclass>): Bag {
   if ('json' in args) {
-    return type.fromJsonAndConstructors(args as JsonAndConstructors<Tile>)
+    return type.fromJsonAndConstructors(args as JsonAndConstructors)
   }
   return new type(args)
 }
