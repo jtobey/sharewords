@@ -106,6 +106,14 @@ export class Board implements Serializable {
   } {
     const anyNewTile = newTiles[0]
     if (!anyNewTile) throw new WordPlacementError('No tiles.')
+    for (const newTile of newTiles) {
+      if (newTile.tile.isBlank && !newTile.assignedLetter) {
+        throw new WordPlacementError('Blank tiles must be assigned letters.')
+      }
+      if (!newTile.tile.isBlank && newTile.assignedLetter) {
+        throw new WordPlacementError('Non-blank tiles cannot be assigned letters.')
+      }
+    }
     // Find the direction of a line along which all newTiles lie.
     // Order the tiles by their position along this line.
     const mainDir = {x: 0, y: 0}

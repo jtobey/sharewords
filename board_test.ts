@@ -160,7 +160,7 @@ describe('board', () => {
     it('should throw if a non-blank tile is assigned a letter.', () => {
       const board = new Board('...')
       expect(() => board.checkWordPlacement(_t(0, 1, 'A', 1), _t(0, 2, 'T', 1, 'N')))
-        .toThrow('Blank tiles must be assigned letters.')
+        .toThrow('Non-blank tiles cannot be assigned letters.')
     })
   })
 
