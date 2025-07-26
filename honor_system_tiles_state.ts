@@ -3,7 +3,8 @@
  */
 
 import { Player } from './player.js'
-import type { TilesState, PlayTurnsArgType } from './tiles_state.js'
+import type { TilesState } from './tiles_state.js'
+import { Turn } from './turn.js'
 import { Tile } from './tile.js'
 import { HonorSystemBag, createHonorSystemBag } from './honor_system_bag.js'
 
@@ -42,17 +43,17 @@ export class HonorSystemTilesState implements TilesState {
   getTiles(playerId: string) {
     return Promise.resolve([...this.getRack(playerId)])
   }
-  playTurns(...turnsToPlay: Array<PlayTurnsArgType>) {
+  playTurns(...turnsToPlay: Array<Turn>) {
     for (const turn of turnsToPlay) {
       this.playOneTurn(turn)
     }
     return Promise.resolve(this.stateId)
   }
-  private playOneTurn(turn: PlayTurnsArgType) {
+  private playOneTurn(turn: Turn) {
     const rack = this.getRack(turn.playerId)
     const rackCopy = [...rack]
-    if ('playTiles' in turn) {
-      for (const tileToPlay of turn.playTiles) {
+    if ('playTiles' in turn.move) {
+      for (const tileToPlay of turn.move.playTiles) {
         const index = rackCopy.findIndex(rackTile => rackTile.equals(tileToPlay))
         if (index === -1) {
           throw new Error(`Player ${turn.playerId} does not hold tile ${tileToPlay.toString()}`)
@@ -61,8 +62,8 @@ export class HonorSystemTilesState implements TilesState {
       }
       const numberOfTilesToDraw = Math.min(rack.length - rackCopy.length, this.bag.size)
       rackCopy.push(...this.bag.draw(numberOfTilesToDraw))
-    } else if ('exchangeTileIndices' in turn) {
-      const indicesOfTilesToExchange = checkIndices(turn.exchangeTileIndices, rackCopy.length)
+    } else if ('exchangeTileIndices' in turn.move) {
+      const indicesOfTilesToExchange = checkIndices(turn.move.exchangeTileIndices, rackCopy.length)
       indicesOfTilesToExchange.sort((a, b) => b - a)  // Descending index order for splice.
       const tilesToExchange: Array<Tile> = []
       for (const indexOfTileToExchange of indicesOfTilesToExchange) {

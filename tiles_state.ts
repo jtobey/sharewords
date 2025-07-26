@@ -9,16 +9,7 @@
 
 import type { Serializable } from './serializable.js'
 import { Tile } from './tile.js'
-
-export type PlayTurnsArgType = {
-  playerId: string
-} & (
-  {
-    playTiles: ReadonlyArray<Tile>
-  } | {
-    exchangeTileIndices: ReadonlyArray<number>
-  }
-)
+import { Turn } from './turn.js'
 
 export interface TilesState extends Serializable {
   /**
@@ -65,5 +56,5 @@ export interface TilesState extends Serializable {
    * @throws Will throw if the exchange tile indices contain duplicates.
    * @throws Will throw if the bag holds fewer tiles than specified for exchange.
    */
-  playTurns(...turnsToPlay: Array<PlayTurnsArgType>): Promise<any>
+  playTurns(...turnsToPlay: Array<Turn>): Promise<any>
 }

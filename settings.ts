@@ -43,7 +43,7 @@ const DEFAULT_BOARD_LAYOUT = [
 const DEFAULT_BINGO_BONUS = 42
 const DEFAULT_RACK_CAPACITY = 7
 
-class Settings implements Serializable {
+export class Settings implements Serializable {
   players = DEFAULT_PLAYER_LIST
   letterCounts = DEFAULT_LETTER_COUNTS
   letterValues = DEFAULT_LETTER_VALUES
@@ -69,4 +69,38 @@ class Settings implements Serializable {
       dictionarySettings: this.dictionarySettings,
     }
   }
+
+  static fromJSON(json: any) {
+    if (!(typeof json === 'object'
+      && Array.isArray(json.players)
+      && Array.isArray(json.boardLayout)
+      && json.boardLayout.every((s: any) => typeof s === 'string')
+      && typeof json.bingoBonus === 'number'
+      && typeof json.rackCapacity === 'number'
+      && json.tileSystemType === 'honor'
+      && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
+        throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
+      }
+    const settings = new Settings
+    settings.players = json.players.map(Player.fromJSON)
+    settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts)
+    settings.letterValues = checkLetterToNumberMap('letterValues', json.letterValues)
+    settings.boardLayout = json.boardLayout
+    settings.bingoBonus = json.bingoBonus
+    settings.rackCapacity = json.rackCapacity
+    settings.tileSystemType = json.tileSystemType
+    settings.tileSystemSettings = json.tileSystemSettings
+    settings.dictionaryType = json.dictionaryType
+    settings.dictionarySettings = json.dictionarySettings
+    return settings
+  }
+}
+
+function checkLetterToNumberMap(name: string, json: any): {[key: string]: number} {
+  if (!(typeof json === 'object'
+    && Object.keys(json).every(k => typeof k === 'string')
+    && Object.values(json).every(v => typeof v === 'number'))) {
+      throw new TypeError(`Invalid Settings.${name} serialization: ${JSON.stringify(json)}`)
+    }
+  return json
 }

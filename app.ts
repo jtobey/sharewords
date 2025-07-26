@@ -4,6 +4,8 @@ import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import type { TilePlacement } from './board.ts'
 import { Player } from './player.ts'
+import { Turn } from './turn.js'
+import type { TurnNumber } from './turn.js'
 
 const letterCounts = {
   'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 2, 'H': 2, 'I': 9, 'J': 1,
@@ -72,7 +74,7 @@ const HANDLERS = {
       return
     }
     board.placeTiles(...placements)
-    await tilesState.playTurns({playerId: 'player1', playTiles: placements.map(p => p.tile)})
+    await tilesState.playTurns(new Turn('player1', 1 as TurnNumber, {playTiles: placements.map(p => p.tile)}))
   }
 } as { [key: string]: any }
 for (const elt of document.getElementsByTagName('button') as any) {
