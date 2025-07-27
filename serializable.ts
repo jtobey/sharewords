@@ -12,7 +12,10 @@ export function toJSON(s: Serializable): any {
   return s
 }
 
-export function arraysEqual<T>(array1: Array<T>, array2: Array<T>) {
-  return array1.length === array2.length &&
-    array1.keys().every(k => array1[k] === array2[k])
+export function arraysEqual<T>(a1: Array<T>, a2: Array<T>) {
+  if (a1.length === a2.length && a1.keys().every(k => a1[k] === a2[k])) {
+    return true
+  }
+  console.warn(`[${a1}] does not equal [${a2}]`)
+  return false
 }

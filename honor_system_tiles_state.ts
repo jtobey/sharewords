@@ -6,7 +6,7 @@ import { Player } from './player.js'
 import type { TilesState } from './tiles_state.js'
 import { Turn } from './turn.js'
 import { Tile } from './tile.js'
-import { HonorSystemBag, createHonorSystemBag } from './honor_system_bag.js'
+import { HonorSystemBag } from './honor_system_bag.js'
 
 export class HonorSystemTilesState implements TilesState {
   readonly rackCapacity: number
@@ -28,7 +28,7 @@ export class HonorSystemTilesState implements TilesState {
     }
     this.rackCapacity = rackCapacity
     this._numberOfTurnsPlayed = 0
-    this.bag = createHonorSystemBag({tiles, randomSeed: tileSystemSettings})
+    this.bag = new HonorSystemBag(tiles, tileSystemSettings)
     this.racks = new Map(playerIds.map(playerId => [playerId, []]))
     if (this.bag.size > 0) {
       for (const rack of this.racks.values()) {
@@ -93,7 +93,7 @@ export class HonorSystemTilesState implements TilesState {
     if (!(typeof json === 'object'
       && typeof json.rackCapacity === 'number'
       && typeof json.numberOfTurnsPlayed === 'number'
-      && typeof json.racks === 'object'
+      && typeof json.racks === 'object'  // TODO: Make it an array of entries.
       && Object.values(json.racks).every(Array.isArray)
       && typeof json.bag === 'object'
     )) {

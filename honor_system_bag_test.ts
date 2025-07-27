@@ -1,9 +1,13 @@
 import { expect, describe, it } from "bun:test"
-import { HonorSystemBag, createHonorSystemBag } from './honor_system_bag.ts'
+import { HonorSystemBag } from './honor_system_bag.ts'
 import { Tile } from './tile.ts'
 
 function _tiles(...nums: Array<number>) {
   return nums.map(num => new Tile({letter: 'A', value: num}))
+}
+
+function createHonorSystemBag({tiles, randomSeed}: any) {
+  return new HonorSystemBag(tiles, randomSeed)
 }
 
 describe("honor system bag", () => {
@@ -59,24 +63,24 @@ describe("honor system bag", () => {
       expect(bagFromJson).toEqual(bag)
     })
     it("should deserialize an empty bag", () => {
-      const bag = HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: []})
-      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: []})
+      const bag = HonorSystemBag.fromJSON({tiles: [], prng: 7})
+      expect(bag.toJSON()).toEqual({tiles: [], prng: 7})
     })
     it("should deserialize a non-empty bag", () => {
-      const bag = HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: ['Q:10']})
-      expect(bag.toJSON()).toEqual({prng: {seed: 7}, tiles: ['Q:10']})
+      const bag = HonorSystemBag.fromJSON({tiles: ['Q:10'], prng: 7})
+      expect(bag.toJSON()).toEqual({tiles: ['Q:10'], prng: 7})
     })
     it("should reject an invalid object", () => {
       expect(() => HonorSystemBag.fromJSON('frob')).toThrow(TypeError)
     })
     it("should reject a non-numeric seed", () => {
-      expect(() => HonorSystemBag.fromJSON({prng: {seed: 'x'}, tiles: []})).toThrow(TypeError)
+      expect(() => HonorSystemBag.fromJSON({tiles: [], prng: 'x'})).toThrow(TypeError)
     })
     it("should reject a non-array tiles", () => {
-      expect(() => HonorSystemBag.fromJSON({prng: {seed: 123}, tiles: null})).toThrow(TypeError)
+      expect(() => HonorSystemBag.fromJSON({tiles: null, prng: 123})).toThrow(TypeError)
     })
     it("should reject an invalid tile", () => {
-      expect(() => HonorSystemBag.fromJSON({prng: {seed: 7}, tiles: [null]})).toThrow(TypeError)
+      expect(() => HonorSystemBag.fromJSON({tiles: [null], prng: 7})).toThrow(TypeError)
     })
   })
 })

@@ -3,23 +3,23 @@ import { Mulberry32Prng } from './mulberry32_prng.js'
 
 describe('Mulberry32 PRNG', () => {
   it('should generate pseudorandom numbers', () => {
-    const prng = new Mulberry32Prng({randomSeed: 17777})
+    const prng = new Mulberry32Prng(17777)
     expect(prng.random()).toEqual(0x3D838AC1 / 0x100000000)
     expect(prng.random()).toEqual(0xD510621D / 0x100000000)
     expect(prng.random()).toEqual(0xDC59BB95 / 0x100000000)
   })
   it("should reject a negative seed", () => {
-    expect(() => new Mulberry32Prng({randomSeed: -1})).toThrow(RangeError)
+    expect(() => new Mulberry32Prng(-1)).toThrow(RangeError)
   })
   it("should reject a huge seed", () => {
-    expect(() => new Mulberry32Prng({randomSeed: 0x100000000})).toThrow(RangeError)
+    expect(() => new Mulberry32Prng(0x100000000)).toThrow(RangeError)
   })
   it("should reject a fractional seed", () => {
-    expect(() => new Mulberry32Prng({randomSeed: 1.5})).toThrow(RangeError)
+    expect(() => new Mulberry32Prng(1.5)).toThrow(RangeError)
   })
   describe('json', () => {
     it("should roundtrip to and from JSON", () => {
-      const prng = new Mulberry32Prng({randomSeed: 12345})
+      const prng = new Mulberry32Prng(12345)
       const prngAsJson = JSON.parse(JSON.stringify(prng))
       const prngFromJson = Mulberry32Prng.fromJSON(prngAsJson)
       expect(prngFromJson).toEqual(prng)
@@ -28,18 +28,15 @@ describe('Mulberry32 PRNG', () => {
       expect(prngFromJson.random()).toEqual(random)
     })
     it('should serialize', () => {
-      const prng = new Mulberry32Prng({randomSeed: 3})
-      expect(prng.toJSON()).toEqual({seed: 3})
+      const prng = new Mulberry32Prng(3)
+      expect(prng.toJSON()).toEqual(3)
     })
     it('should deserialize', () => {
-      const prng = Mulberry32Prng.fromJSON({seed: 42})
-      expect(prng.random()).toEqual(new Mulberry32Prng({randomSeed: 42}).random())
-    })
-    it("should reject an invalid object", () => {
-      expect(() => Mulberry32Prng.fromJSON('frob')).toThrow(TypeError)
+      const prng = Mulberry32Prng.fromJSON(42)
+      expect(prng.random()).toEqual(new Mulberry32Prng(42).random())
     })
     it("should reject a non-numeric seed", () => {
-      expect(() => Mulberry32Prng.fromJSON({seed: 'x'})).toThrow(TypeError)
+      expect(() => Mulberry32Prng.fromJSON('frob')).toThrow(TypeError)
     })
   })
 })

@@ -1,31 +1,28 @@
 /**
  * @file An insecure Bag for casual use.
  */
-import type { BagType } from './bag.js'
-import { Bag, createBag } from './bag.js'
+import { Bag } from './bag.js'
 import { Mulberry32Prng } from './mulberry32_prng.js'
 import { Tile } from './tile.js'
+import { arraysEqual } from './serializable.js'
 
 export class HonorSystemBag extends Bag {
-  static fromJSON(json: any) {
-    return createBag({
-      type: this,
-      json,
-      constructors: {randomGenerator: Mulberry32Prng.fromJSON},
-    })
+  constructor(tiles: Iterable<Tile>, randomSeed: number, shuffle=true) {
+    super(tiles, new Mulberry32Prng(randomSeed), shuffle)
   }
-}
-
-export function createHonorSystemBag({
-  tiles,
-  randomSeed,
-  shuffle=true,
-  type=HonorSystemBag,
-}: {
-  tiles: Iterable<Tile>
-  randomSeed: number
-  shuffle?: boolean
-  type?: BagType<HonorSystemBag>
-}) {
-  return createBag({type, tiles, shuffle, randomGenerator: new Mulberry32Prng({randomSeed})})
+  static fromJSON(json: any) {
+    if (!(
+      typeof json === 'object'
+        && arraysEqual([...Object.keys(json)], ['tiles', 'prng'])
+        && Array.isArray(json.tiles)
+        && typeof json.prng === 'number'
+    )) {
+      throw new TypeError(`Invalid serialized Bag: ${JSON.stringify(json)}`)
+    }
+    return new HonorSystemBag(
+      json.tiles.map(Tile.fromJSON),
+      json.prng,
+      false,
+    )
+  }
 }
