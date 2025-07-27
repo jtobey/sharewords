@@ -75,7 +75,7 @@ export class SharedState {
       }
       const playerId = this.playerIds[(this.nextTurnNumber - 1) % this.playerIds.length]
       if (turn.playerId !== playerId) {
-        throw new Error(`Turn number ${turn.turnNumber} belongs to Player ${playerId}, not ${turn.playerId}.`)
+        throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
       if ('playTiles' in turn.move) {
         const {score, wordsFormed} = this.board.checkWordPlacement(...turn.move.playTiles)
