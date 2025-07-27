@@ -3,6 +3,7 @@ import { Settings } from './settings.js'
 import { Board } from './board.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Turn } from './turn.js'
+import type { TurnNumber } from './turn.js'
 import { makeTiles } from './tile.js'
 import { test, expect } from 'bun:test'
 
@@ -16,7 +17,7 @@ test('can create a shared state', () => {
     tileSystemSettings: 1
   })
   const sharedState = new SharedState(settings, board, tilesState)
-  expect(sharedState.nextTurnNumber).toBe(1)
+  expect(sharedState.nextTurnNumber).toBe(1 as TurnNumber)
 })
 
 test('can play a turn', async () => {
@@ -36,7 +37,7 @@ test('can play a turn', async () => {
   const player1Tiles = await tilesState.getTiles(player1Id)
   const turn = new Turn(
     player1Id,
-    1,
+    1 as TurnNumber,
     {
       playTiles: [
         { tile: player1Tiles[0]!, row: 7, col: 7 },
@@ -47,9 +48,9 @@ test('can play a turn', async () => {
 
   await sharedState.playTurns(turn)
 
-  expect(sharedState.nextTurnNumber).toBe(2)
-  expect(board.squares[7]![7]!.tile).toBe(player1Tiles[0])
-  expect(board.squares[7]![8]!.tile).toBe(player1Tiles[1])
+  expect(sharedState.nextTurnNumber).toBe(2 as TurnNumber)
+  expect(board.squares[7]![7]!.tile).toBe(player1Tiles[0]!)
+  expect(board.squares[7]![8]!.tile).toBe(player1Tiles[1]!)
   expect(board.scores.get(player1Id)).toBe(2) // Assuming tile values are 1
 })
 
