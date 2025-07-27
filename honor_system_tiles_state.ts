@@ -10,7 +10,7 @@ import { HonorSystemBag } from './honor_system_bag.js'
 
 export class HonorSystemTilesState implements TilesState {
   readonly rackCapacity: number
-  private _numberOfTurnsPlayed: number
+  private numberOfTurnsPlayed: number
   private readonly bag: HonorSystemBag
   private readonly racks: ReadonlyMap<string, Array<Tile>>
   constructor({players, rackCapacity, tiles, tileSystemSettings}: Readonly<{
@@ -27,7 +27,7 @@ export class HonorSystemTilesState implements TilesState {
       throw new TypeError('tileSystemSettings should be a number used as a random seed.')
     }
     this.rackCapacity = rackCapacity
-    this._numberOfTurnsPlayed = 0
+    this.numberOfTurnsPlayed = 0
     this.bag = new HonorSystemBag(tiles, tileSystemSettings)
     this.racks = new Map(playerIds.map(playerId => [playerId, []]))
     if (this.bag.size > 0) {
@@ -37,8 +37,7 @@ export class HonorSystemTilesState implements TilesState {
     }
   }
   get numberOfTilesInBag() { return this.bag.size }
-  get numberOfTurnsPlayed() { return this._numberOfTurnsPlayed }
-  get stateId() { return this._numberOfTurnsPlayed }
+  get stateId() { return this.numberOfTurnsPlayed }
   countTiles(playerId: string) { return this.getRack(playerId).length }
   getTiles(playerId: string) {
     return Promise.resolve([...this.getRack(playerId)])
@@ -72,7 +71,7 @@ export class HonorSystemTilesState implements TilesState {
       rackCopy.push(...this.bag.exchange(tilesToExchange))
     }
     rack.splice(0, rack.length, ...rackCopy)
-    this._numberOfTurnsPlayed += 1
+    this.numberOfTurnsPlayed += 1
   }
   private getRack(playerId: string): Array<Tile> {
     const rack = this.racks.get(playerId)
@@ -84,7 +83,7 @@ export class HonorSystemTilesState implements TilesState {
   toJSON() {
     return {
       rackCapacity: this.rackCapacity,
-      numberOfTurnsPlayed: this._numberOfTurnsPlayed,
+      numberOfTurnsPlayed: this.numberOfTurnsPlayed,
       bag: this.bag.toJSON(),
       racks: Object.fromEntries(this.racks.entries().map(([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]))
     }
@@ -106,7 +105,7 @@ export class HonorSystemTilesState implements TilesState {
     }
     const state = Object.create(HonorSystemTilesState.prototype);
     (state as any).rackCapacity = json.rackCapacity;
-    (state as any)._numberOfTurnsPlayed = json.numberOfTurnsPlayed;
+    (state as any).numberOfTurnsPlayed = json.numberOfTurnsPlayed;
     (state as any).bag = bag;
     (state as any).racks = racks;
     return state;

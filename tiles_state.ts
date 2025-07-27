@@ -16,9 +16,7 @@ export interface TilesState {
    * Within a game, all racks have the same capacity.
    */
   readonly rackCapacity: number
-  /** The number of turns played so far. */
-  readonly numberOfTurnsPlayed: number
-  /** The last value returned by `playTurns`. May be `numberOfTurnsPlayed` or an opaque identifier. */
+  /** The last value returned by `playTurns`. May be an opaque identifier. */
   readonly stateId: any
   /** The number of unheld tiles remaining in the bag, for example 86. */
   readonly numberOfTilesInBag: number
