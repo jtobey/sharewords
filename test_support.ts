@@ -1,5 +1,5 @@
 import { Square, generateRowStrings, Board } from './board.ts'
-import type { TilePlacement } from './board.ts'
+import type { TilePlacement } from './tile.ts'
 import { Tile } from './tile.ts'
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'

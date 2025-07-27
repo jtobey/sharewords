@@ -1,6 +1,7 @@
 import type { Serializable } from './serializable.js'
 import { arraysEqual } from './serializable.js'
 import { Tile } from './tile.js'
+import type { TilePlacement } from './tile.js'
 
 export class Square {
   readonly row: number
@@ -66,13 +67,6 @@ export function generateRowStrings(squares: ReadonlyArray<ReadonlyArray<Square>>
       return entry[0]
     }).join('')
   ))
-}
-
-export interface TilePlacement {
-  row: number
-  col: number
-  tile: Tile
-  assignedLetter?: string  // For when `tile` is a blank.
 }
 
 class WordPlacementError extends Error {

@@ -8,5 +8,9 @@ export class Turn {
     playTiles: ReadonlyArray<Tile>
   } | {
     exchangeTileIndices: ReadonlyArray<number>
-  }) {}
+  }) {
+    if ('playTiles' in move && 'exchangeTileIndices' in move) {
+      throw new Error(`Can't exchange and play tiles on the same turn. Turn number is ${turnNumber}.`)
+    }
+  }
 }

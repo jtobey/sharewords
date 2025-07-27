@@ -38,6 +38,13 @@ export class Tile {
   }
 }
 
+export interface TilePlacement {
+  row: number
+  col: number
+  tile: Tile
+  assignedLetter?: string  // For when `tile` is a blank.
+}
+
 interface StringNumbers { [key: string]: number }
 
 /**

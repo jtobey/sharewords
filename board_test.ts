@@ -1,6 +1,6 @@
 import { expect, describe, it } from 'bun:test'
 import { Board, Square } from './board.js'
-import type { TilePlacement } from './board.js'
+import type { TilePlacement } from './tile.js'
 import { Tile } from './tile.js'
 import { parseBoards, diffBoards } from './test_support.js'
 
