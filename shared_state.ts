@@ -109,9 +109,9 @@ export class SharedState {
       throw new TypeError(`Invalid SharedGameState serialization: ${JSON.stringify(json)}`)
     }
     if (typeof json !== 'object') fail()
-    if (!arraysEqual([...Object.keys(json)].sort(), [
+    if (!arraysEqual([...Object.keys(json)], [
       'gameId', 'nextTurnNumber', 'settings', 'board', 'tilesState',
-    ].sort())) fail()
+    ])) fail()
     if (typeof json.gameId !== 'string') fail()
     if (typeof json.nextTurnNumber !== 'number') fail()
     const settings = Settings.fromJSON(json.settings)
