@@ -44,7 +44,7 @@ class InvalidBonusSquareLayout extends Error {
 function parseRowStrings(rowStrings: Array<string>): Array<Array<Square>> {
   const firstRowString = rowStrings[0]
   if (!firstRowString || !rowStrings.every(s => s.length === firstRowString.length)) {
-    throw new InvalidBonusSquareLayout('Row strings do not form a rectangle.')
+    throw new InvalidBonusSquareLayout(`Row strings do not form a rectangle: ${rowStrings.join('\n')}.`)
   }
 
   return rowStrings.map((rowString, row) => (
