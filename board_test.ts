@@ -129,9 +129,9 @@ describe('board', () => {
     it('should throw if the first word is not on the center square', () => {
       const [oldBoard, newBoard] = parseBoards(`
 
-          . . .     J9. .
-          . . .     A1. .
-          . . .     M3. .
+          . . .     J₉. .
+          . . .     A₁. .
+          . . .     M₃. .
 
       `)[0]
       const diff = diffBoards(oldBoard, newBoard)
@@ -142,9 +142,9 @@ describe('board', () => {
     it('should throw if subsequent words are not connected', () => {
       const [oldBoard, newBoard] = parseBoards(`
 
-          . M3. .   . M3. .
-          . A1. .   . A1. O1
-          . . . .   . . . H3
+          . M₃. .   . M₃. .
+          . A₁. .   . A₁. O₁
+          . . . .   . . . H₃
 
       `)[0]
       const diff = diffBoards(oldBoard, newBoard)
