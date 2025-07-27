@@ -74,7 +74,7 @@ const HANDLERS = {
       return
     }
     board.placeTiles(...placements)
-    await tilesState.playTurns(new Turn('player1', 1 as TurnNumber, {playTiles: placements.map(p => p.tile)}))
+    await tilesState.playTurns(new Turn('player1', 1 as TurnNumber, {playTiles: placements}))
   }
 } as { [key: string]: any }
 for (const elt of document.getElementsByTagName('button') as any) {

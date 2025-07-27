@@ -49,7 +49,7 @@ describe('honor system tiles state', () => {
       tiles,
       tileSystemSettings: 1,
     })
-    const daveWord = makeTestTiles({A:3, B:1})
+    const daveWord = makeTestTiles({A:3, B:1}).map((tile, col) => ({row:1, col, tile}))
     const stateId = await state.playTurns(
       new Turn('John', 1 as TurnNumber, {exchangeTileIndices: []}),
       new Turn('Dave', 2 as TurnNumber, {playTiles: daveWord}),
@@ -110,7 +110,7 @@ describe('honor system tiles state', () => {
       })
       const tileToPlay = new Tile({letter: 'B', value: 1})
       try {
-        await state.playTurns(new Turn('John', 1 as TurnNumber, {playTiles: [tileToPlay]}))
+        await state.playTurns(new Turn('John', 1 as TurnNumber, {playTiles: [{row:0, col:0, tile:tileToPlay}]}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe(`Player John does not hold tile ${tileToPlay.toString()}`)

@@ -53,9 +53,9 @@ export class HonorSystemTilesState implements TilesState {
     const rackCopy = [...rack]
     if ('playTiles' in turn.move) {
       for (const tileToPlay of turn.move.playTiles) {
-        const index = rackCopy.findIndex(rackTile => rackTile.equals(tileToPlay))
+        const index = rackCopy.findIndex(rackTile => rackTile.equals(tileToPlay.tile))
         if (index === -1) {
-          throw new Error(`Player ${turn.playerId} does not hold tile ${tileToPlay.toString()}`)
+          throw new Error(`Player ${turn.playerId} does not hold tile ${tileToPlay.tile.toString()}`)
         }
         rackCopy.splice(index, 1)
       }
