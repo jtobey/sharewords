@@ -43,13 +43,17 @@ import type { TilePlacement } from './tile.ts'
 type GameId = string & { '__brand': 'GameId' }
 
 class SharedState {
+  readonly playerIds: Array<string>
+
   constructor(
     readonly settings: Settings,
     readonly board: Board,
     readonly tilesState: TilesState,
     readonly gameId = `game-${Date.now()}` as GameId,
     public nextTurnNumber = 1 as TurnNumber,
-  ) {}
+  ) {
+    this.playerIds = settings.players.map(p => p.id)
+  }
 
   toJSON() {
     return {
@@ -72,12 +76,31 @@ class SharedState {
         seen[turn.turnNumber] = turn
       }
     }
+    const turnsToPlayNow = [] as Array<Turn>
     for (const turn of seen) {
       if (turn.turnNumber !== this.nextTurnNumber) {
+        // TODO: Remember the turn.
         console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${this.nextTurnNumber}.`)
         break
       }
+      const playerId = this.playerIds[(this.nextTurnNumber - 1) % this.playerIds.length]
+      if (turn.playerId !== playerId) {
+        throw new Error(`Turn number ${turn.turnNumber} belongs to Player ${playerId}, not ${turn.playerId}.`)
+      }
+      if ('playTiles' in turn.move) {
+        const {score, wordsFormed} = this.board.checkWordPlacement(...turn.move.playTiles)
+        if (this.settings.dictionaryType !== 'permissive') {
+          throw new Error(`${this.settings.dictionaryType} dictionary is not yet supported.`)
+        }
+        this.board.placeTiles(...turn.move.playTiles)
+        this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
+        console.log(`Player ${playerId} played ${wordsFormed[0]} for ${score}`)
+      } else if ('exchangeTileIndices' in turn.move) {
+        // Exchanges do not affect the board. TilesState applies them below.
+      }
+      turnsToPlayNow.push(turn)
     }
+    return this.tilesState.playTurns(...turnsToPlayNow)
   }
 
   static fromJSON(json: any) {
