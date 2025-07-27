@@ -3,7 +3,9 @@
  */
 
 import type { Serializable } from './serializable.js'
+import { arraysEqual } from './serializable.js'
 import { Player } from './player.js'
+import { PROTOCOL_VERSION } from './version.js'
 
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
@@ -44,6 +46,7 @@ const DEFAULT_BINGO_BONUS = 42
 const DEFAULT_RACK_CAPACITY = 7
 
 export class Settings {
+  version = PROTOCOL_VERSION
   players = DEFAULT_PLAYER_LIST
   letterCounts = DEFAULT_LETTER_COUNTS
   letterValues = DEFAULT_LETTER_VALUES
@@ -57,6 +60,7 @@ export class Settings {
 
   toJSON() {
     return {
+      version: this.version,
       players: this.players.map(p => p.toJSON()),
       letterCounts: this.letterCounts,
       letterValues: this.letterValues,
@@ -72,6 +76,12 @@ export class Settings {
 
   static fromJSON(json: any) {
     if (!(typeof json === 'object'
+      && arraysEqual([...Object.keys(json)], [
+        'version', 'players', 'letterCounts', 'letterValues', 'boardLayout',
+        'bingoBonus', 'rackCapacity', 'tileSystemType', 'tileSystemSettings',
+        'dictionaryType', 'dictionarySettings',
+      ])
+      && json.version === PROTOCOL_VERSION
       && Array.isArray(json.players)
       && Array.isArray(json.boardLayout)
       && json.boardLayout.every((s: any) => typeof s === 'string')
@@ -82,6 +92,7 @@ export class Settings {
         throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
       }
     const settings = new Settings
+    settings.version = json.version
     settings.players = json.players.map(Player.fromJSON)
     settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts)
     settings.letterValues = checkLetterToNumberMap('letterValues', json.letterValues)

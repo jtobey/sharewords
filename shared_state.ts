@@ -1,4 +1,35 @@
-import { SHARED_STATE_VERSION } from './version.js'
+/**
+ * @file Game state shared by all players.
+ * @description
+ * This logically includes:
+ *
+ * - game settings
+ *   - protocol version
+ *   - board dimensions
+ *   - bonus square types and positions
+ *   - tile manager configuration
+ *   - bingo bonus value
+ *   - letter and blank distribution
+ *   - letter values
+ *   - rack size
+ *   - optional dictionary
+ *   - player IDs, names, and turn order
+ * - game ID
+ * - shared tile state
+ * - number of turns played
+ * - tiles played on the board
+ * - letter assignments to blank tiles played
+ * - number of tiles in the bag
+ * - each player's shared state
+ *   - number of tiles on rack
+ *   - score
+ *
+ * With the honor system, "shared tile state" contains the identities of all
+ * tiles in the bag and on each player's rack. A secure tile manager configured
+ * with a deck server URL could instead use an opaque identifier as the shared
+ * tile state.
+ */
+
 import type { Serializable } from './serializable.js'
 import { arraysEqual } from './serializable.js'
 import { Settings } from './settings.js'
@@ -35,7 +66,6 @@ class SharedState {
 
   toJSON() {
     return {
-      version: SHARED_STATE_VERSION,
       gameId: this.gameId,
       nextTurnNumber: this.nextTurnNumber,
       settings: this.settings.toJSON(),
@@ -64,11 +94,8 @@ class SharedState {
       throw new TypeError(`Invalid SharedGameState serialization: ${JSON.stringify(json)}`)
     }
     if (typeof json !== 'object') fail()
-    if (json.version !== SHARED_STATE_VERSION) {
-      throw new Error(`Unsupported software version: ${json.version}`)
-    }
     if (!arraysEqual([...Object.keys(json)], [
-      'version', 'gameId', 'turnNumber', 'settings', 'board', 'tilesState',
+      'gameId', 'turnNumber', 'settings', 'board', 'tilesState',
     ])) fail()
     if (typeof json.gameId !== 'string') fail()
     if (typeof json.turnNumber !== 'number') fail()
