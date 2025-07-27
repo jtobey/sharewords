@@ -6,6 +6,10 @@ const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 const DIGITS = '0123456789' + SUBSCRIPTS
 // const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
 
+export class TestBoard extends Board {
+  headers = {} as {[key: string]: string}
+}
+
 /**
  * Inflates a compact Square representation.
  * - '. ' => empty square
@@ -42,8 +46,8 @@ function parseSquare(squareStr: string, row: number, col: number) {
     }
     else if (char0 === '²') letterBonus = 2
     else if (char0 === '³') letterBonus = 3
-    else if (char0 === '2') wordBonus = 2
-    else if (char0 === '3') wordBonus = 3
+    else if (char0 === '2' || char0 === '₂') wordBonus = 2
+    else if (char0 === '3' || char0 === '₃') wordBonus = 3
     else if (char0 !== '.') {
       throw new Error(`Unknown bonus type in square: "${squareStr}".`)
     }
@@ -103,7 +107,7 @@ function parseRowOfBoards(rowOfBoardsStr: string) {
 
 function parseBoard(boardStrings: Array<string>) {
   const squares = boardStrings.map(parseRowOfSquares)
-  const board = new Board(...generateRowStrings(squares))
+  const board = new TestBoard(...generateRowStrings(squares))
   squares.map((row, rowNumber) => {
     row.map((square, colNumber) => {
       const boardSquare = board.squares[rowNumber]?.[colNumber] as Square

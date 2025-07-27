@@ -1,9 +1,8 @@
 // @ts-nocheck
 
 import { expect, describe, it } from 'bun:test'
-import { parseBoards, diffBoards } from './test_support.js'
+import { TestBoard, parseBoards, diffBoards } from './test_support.js'
 import { Tile } from './tile.ts'
-import { Board } from './board.ts'
 
 describe('test support', () => {
   it('should parse a board', () => {
@@ -11,7 +10,7 @@ describe('test support', () => {
     . ² Z₉.
     3 . A0.
     . 2 . ³`
-    const expected = new Board(
+    const expected = new TestBoard(
       '.d..',
       'T...',
       '.D.t',
@@ -24,8 +23,8 @@ describe('test support', () => {
     expect(parsed).toHaveLength(1)
     expect(parsed[0]).toHaveLength(1)
     const board = parsed[0]?.[0]
-    expect(board).toBeInstanceOf(Board)
-    expect(board as unknown as Board).toEqual(expected)
+    expect(board).toBeInstanceOf(TestBoard)
+    expect(board as unknown as TestBoard).toEqual(expected)
   })
 
   it('should parse rows of boards', () => {
@@ -39,7 +38,7 @@ describe('test support', () => {
     expect(parsed[0]).toHaveLength(2)
     expect(parsed[1]).toHaveLength(1)
     parsed[0].forEach(board => {
-      expect(board).toBeInstanceOf(Board)
+      expect(board).toBeInstanceOf(TestBoard)
       expect(board.squares).toHaveLength(2)
       board.squares.forEach(row => expect(row).toHaveLength(2))
     })
