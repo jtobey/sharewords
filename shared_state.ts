@@ -12,14 +12,26 @@ import type { TilePlacement } from './board.ts'
 type GameId = string & { '__brand': 'GameId' }
 
 class SharedState {
+  readonly turnsInFlight: Array<Turn>
   constructor(
     readonly settings: Settings,
     readonly board: Board,
     readonly tilesState: TilesState,
     readonly gameId = `game-${Date.now()}` as GameId,
     public nextTurnNumber = 1 as TurnNumber,
-    readonly turnsInFlight = [] as Array<Turn>,
-  ) {}
+    turnsInFlight = [] as Array<Turn>,
+  ) {
+    this.turnsInFlight = []
+    for (const turn of turnsInFlight) {
+      if (turn.turnNumber >= nextTurnNumber) {
+        throw new RangeError(`turnsInFlight contains a turnNumber ${turn.turnNumber}, which is not less than nextTurnNumber.`)
+      }
+      if (turn.turnNumber in this.turnsInFlight) {
+        throw new Error(`Duplicate turn number ${turn.turnNumber} in turnsInFlight.`)
+      }
+      this.turnsInFlight[turn.turnNumber] = turn
+    }
+  }
 
   toJSON() {
     return {
@@ -29,13 +41,21 @@ class SharedState {
       settings: this.settings.toJSON(),
       board: this.board.toJSON(),
       tilesState: this.tilesState.toJSON(),
-      turnsInFlight: this.turnsInFlight,
+      turnsInFlight: Object.values(this.turnsInFlight),
     }
   }
 
-  async playWord({playerId, tilePlacements}: {playerId: string, tilePlacements: ReadonlyArray<TilePlacement>}) {
-    console.log(`Player ${playerId} attempts to place tiles: ${tilePlacements}`)
-    const {score, wordsFormed} = this.board.checkWordPlacement(...tilePlacements)
+  async playTurns(...turns: Array<Turn>) {
+    const seen = new Set<number>
+    for (const turn of turns) {
+      if (turn.turnNumber < this.nextTurnNumber) {
+        console.log(`Ignoring old turn number ${turn.turnNumber}`)
+      } else if (turn.turnNumber in seen) {
+        throw new Error(`playTurns received duplicate turn number ${turn.turnNumber}`)
+      } else {
+        seen.add(turn.turnNumber)
+      }
+    }
     // XXX
   }
 
