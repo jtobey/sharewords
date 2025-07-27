@@ -42,7 +42,7 @@ import type { TilePlacement } from './tile.ts'
 
 type GameId = string & { '__brand': 'GameId' }
 
-class SharedState {
+export class SharedState {
   readonly playerIds: Array<string>
 
   constructor(
@@ -77,7 +77,7 @@ class SharedState {
       }
     }
     const turnsToPlayNow = [] as Array<Turn>
-    for (const turn of seen) {
+    for (const turn of seen.filter(t => t)) {
       if (turn.turnNumber !== this.nextTurnNumber) {
         // TODO: Remember the turn.
         console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${this.nextTurnNumber}.`)
@@ -99,6 +99,7 @@ class SharedState {
         // Exchanges do not affect the board. TilesState applies them below.
       }
       turnsToPlayNow.push(turn)
+      this.nextTurnNumber++
     }
     return this.tilesState.playTurns(...turnsToPlayNow)
   }
@@ -108,18 +109,18 @@ class SharedState {
       throw new TypeError(`Invalid SharedGameState serialization: ${JSON.stringify(json)}`)
     }
     if (typeof json !== 'object') fail()
-    if (!arraysEqual([...Object.keys(json)], [
-      'gameId', 'turnNumber', 'settings', 'board', 'tilesState',
-    ])) fail()
+    if (!arraysEqual([...Object.keys(json)].sort(), [
+      'gameId', 'nextTurnNumber', 'settings', 'board', 'tilesState',
+    ].sort())) fail()
     if (typeof json.gameId !== 'string') fail()
-    if (typeof json.turnNumber !== 'number') fail()
+    if (typeof json.nextTurnNumber !== 'number') fail()
     const settings = Settings.fromJSON(json.settings)
     return new SharedState(
       settings,
       Board.fromJSON(json.board),
       rehydrateTilesState(settings.tileSystemType, json.tilesState),
       json.gameId as GameId,
-      json.turnNumber as TurnNumber,
+      json.nextTurnNumber as TurnNumber,
     )
   }
 }
