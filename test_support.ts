@@ -76,37 +76,80 @@ export function parseBoards(...strings: Array<string>) {
 const SQUARE_PATTERN = /\S(?:.|$)/g
 const SQUARE_ROW_PATTERN = /( +)((?:\S(?:.|$))+)/g
 
-function getSpacing(rowOfSquareRows: string) {
-  const spacing: Array<number> = []
-  let match
+function getStartColumns(rowOfSquareRows: string) {
+  const columns: Array<number> = []
+  let col = 0, match
   while ((match = SQUARE_ROW_PATTERN.exec(rowOfSquareRows)) !== null) {
-    spacing.push((match[1] as string).length)
+    col += (match[1] as string).length
+    columns.push(col)
+    col += (match[2] as string).length
   }
-  return spacing
+  return columns
 }
 
 function parseRowOfBoards(rowOfBoardsStr: string) {
   const lines = rowOfBoardsStr.split('\n')
-  const line1 = lines[0]
-  if (!line1) throw new Error;
-  const lineSpacing = getSpacing(line1)
-  if (!lines.every(line => String(getSpacing(line)) === String(lineSpacing))) {
-    throw new Error(`Inconsistent spacing:\n${rowOfBoardsStr}\n`)
+  const header_lines = [] as Array<string>
+  const board_lines = [] as Array<string>
+  let line1 = ''
+  for (const line of lines) {
+    if (board_lines.length) {
+      board_lines.push(line)
+    } else if (line.includes(':')) {
+      header_lines.push(line)
+    } else {
+      line1 = line
+      board_lines.push(line)
+    }
   }
-  const boardStrings = lineSpacing.map(n => [] as Array<string>)
-  lines.map(line => {
-    boardStrings.keys().forEach(index => {
-      const match = SQUARE_ROW_PATTERN.exec(line)
-      if (!match) throw new Error
-      boardStrings[index]?.push(match[2] as string)
+  if (!line1) throw new Error;
+  const startColumns = getStartColumns(line1)
+  const startColumnsComma = `${startColumns},`
+  if (!board_lines.every(line => startColumnsComma.startsWith(`${getStartColumns(line)},`))) {
+    throw new Error(`Inconsistent spacing:\n${board_lines.join('\n')}\n`)
+  }
+  const boardStrings = new Map(startColumns.map(startColumn => [
+    startColumn,
+    {
+      headers: {} as {[key: string]: string},
+      body: [] as Array<string>,
+    }
+  ]))
+  board_lines.forEach(line => {
+    startColumns.forEach(startColumn => {
+      if (startColumn < line.length) {
+        const match = SQUARE_ROW_PATTERN.exec(line)
+        if (!match) throw new Error
+        boardStrings.get(startColumn)?.body.push(match[2] as string)
+      }
     })
     if (SQUARE_ROW_PATTERN.exec(line)) throw new Error
   })
-  return boardStrings.map(parseBoard)
+  header_lines.forEach(line => {
+    startColumns.forEach((startColumn, index) => {
+      let header
+      const endColumn = startColumns[index + 1]
+      if (endColumn) {
+        header = line.substr(startColumn, endColumn - startColumn)
+      } else {
+        header = line.substr(startColumn)
+      }
+      header = header.trim()
+      if (header) {
+        const colon = header.indexOf(':')
+        if (colon === -1) {
+          throw new Error(`Invalid TestBoard header: ${header}`)
+        }
+        const headers = boardStrings.get(startColumn)?.headers
+        if (headers) headers[header.substr(0, colon)] = header.substr(colon + 1).trim()
+      }
+    })
+  })
+  return [...boardStrings.values().map(parseBoard)]
 }
 
-function parseBoard(boardStrings: Array<string>) {
-  const squares = boardStrings.map(parseRowOfSquares)
+function parseBoard({headers, body}: {headers: {[key: string]: string}, body: Array<string>}) {
+  const squares = body.map(parseRowOfSquares)
   const board = new TestBoard(...generateRowStrings(squares))
   squares.map((row, rowNumber) => {
     row.map((square, colNumber) => {
@@ -115,6 +158,7 @@ function parseBoard(boardStrings: Array<string>) {
       if (square.assignedLetter) boardSquare.assignedLetter = square.assignedLetter
     })
   })
+  board.headers = headers
   return board
 }
 

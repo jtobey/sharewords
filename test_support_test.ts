@@ -45,6 +45,30 @@ describe('test support', () => {
     expect(parsed[1][0].squares[0][0].tile.letter).toEqual('X')
   })
 
+  it('should parse headers', () => {
+    const boardsStr = `
+
+        from:me                             disjoint: header
+        to: you   long-header: hello there!
+        . ² Z₉.   . .                       . .
+        3 . A0.   . .
+        . 2 . ³
+
+    `
+    const parsed = parseBoards(boardsStr)
+    expect(parsed).toHaveLength(1)
+    expect(parsed[0]).toHaveLength(3)
+    expect(parsed[0][0]?.squares).toHaveLength(3)
+    expect(parsed[0][0]?.squares?.[0]).toHaveLength(4)
+    expect(parsed[0][0]?.headers).toEqual({from:'me', to:'you'})
+    expect(parsed[0][1]?.squares).toHaveLength(2)
+    expect(parsed[0][1]?.squares?.[0]).toHaveLength(2)
+    expect(parsed[0][1]?.headers).toEqual({'long-header': 'hello there!'})
+    expect(parsed[0][2]?.squares).toHaveLength(1)
+    expect(parsed[0][2]?.squares?.[0]).toHaveLength(2)
+    expect(parsed[0][2]?.headers).toEqual({disjoint:'header'})
+  })
+
   it('should diff boards', () => {
     const boardsStr = `
     2 . .   2 Q9I0
