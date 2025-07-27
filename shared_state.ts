@@ -55,16 +55,6 @@ export class SharedState {
     this.playerIds = settings.players.map(p => p.id)
   }
 
-  toJSON() {
-    return {
-      gameId: this.gameId,
-      nextTurnNumber: this.nextTurnNumber,
-      settings: this.settings.toJSON(),
-      board: this.board.toJSON(),
-      tilesState: this.tilesState.toJSON(),
-    }
-  }
-
   async playTurns(...turns: Array<Turn>) {
     const seen = []
     for (const turn of turns) {
@@ -102,6 +92,16 @@ export class SharedState {
       this.nextTurnNumber++
     }
     return this.tilesState.playTurns(...turnsToPlayNow)
+  }
+
+  toJSON() {
+    return {
+      gameId: this.gameId,
+      nextTurnNumber: this.nextTurnNumber,
+      settings: this.settings.toJSON(),
+      board: this.board.toJSON(),
+      tilesState: this.tilesState.toJSON(),
+    }
   }
 
   static fromJSON(json: any) {
