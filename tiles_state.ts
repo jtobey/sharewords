@@ -56,3 +56,20 @@ export interface TilesState {
   playTurns(...turnsToPlay: Array<Turn>): Promise<any>
   toJSON(): any
 }
+
+/**
+ * @returns A copy of `indices`.
+ * @throws Will throw if `indices` contains duplicates.
+ * @throws {RangeError} Will throw if any index is a non-integer or out of range for an array of the given length.
+ */
+export function checkIndices(indices: ReadonlyArray<number>, length: number) {
+  if ([...new Set(indices)].length !== indices.length) {
+    throw new Error(`exchangeTileIndices contains duplicates: ${indices}`)
+  }
+  for (const index of indices) {
+    if (index !== Math.floor(index) || index < 0 || index >= length) {
+      throw new RangeError(`Index ${index} is out of rack range 0..${length - 1}.`)
+    }
+  }
+  return [...indices]
+}
