@@ -48,7 +48,7 @@ export class SharedState {
     readonly settings: Readonly<Settings>,
     readonly gameId = `game-${Date.now()}` as GameId,
     readonly board = new Board(...settings.boardLayout),
-    readonly tilesState = makeTilesState(settings),
+    tilesState_DO_NOT_USE?: TilesState,
     public nextTurnNumber = 1 as TurnNumber,
   ) {
     this.settings.players.forEach((player, index) => {
@@ -57,7 +57,10 @@ export class SharedState {
         throw new Error(`players[${index}] should have ID "${expected}", not "${player.id}".`)
       }
     })
+    this.tilesState = tilesState_DO_NOT_USE ?? makeTilesState(settings)
   }
+
+  readonly tilesState: TilesState
 
   get players() { return this.settings.players }
 
