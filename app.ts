@@ -19,21 +19,23 @@ const tilesState: TilesState = new HonorSystemTilesState({
   tileSystemSettings: 17,  // random seed
 })
 const sharedState = new SharedState(settings, board, tilesState)
+console.log(sharedState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
+function subscript(n: number) {
+  return String(n).split('').map((c: any) => SUBSCRIPTS[c]).join('')
+}
 const HANDLERS = {
   'Show Board': () => alert(
     sharedState.board.squares.map((squares, row) => squares.map(
       sq => `${sq.letter || {
         '1,1': '.', '2,1': '²', '3,1': '³', '1,2': '2', '1,3': '3'
-      }[String([sq.letterBonus, sq.wordBonus])]}${sq.value || ' '}`
+      }[String([sq.letterBonus, sq.wordBonus])]}${sq.value ? subscript(sq.value) : ' '}`
     ).join('   '))
       .join('\n')),
   'Show Stats': async () => {
     const rack = (await sharedState.tilesState.getTiles('player1'))
-      .map(
-        t => `${t.letter || '?'}${String(t.value).split('').map((c: any) => SUBSCRIPTS[c]).join('')}`
-      ).join(' ')
+      .map(t => `${t.letter || '?'}${subscript(t.value)}`).join(' ')
     alert(`
     Tiles in bag: ${sharedState.tilesState.numberOfTilesInBag}
     Rack: ${rack}
