@@ -1,5 +1,11 @@
 /**
- * @file What gets stored about a game in localStorage.
+ * @file Game-specific information that gets stored in localStorage.
+ * @description
+ * Players take turns playing moves. Each player has a private browser
+ * context, and the game is serverless, so players exchange move data
+ * through an outside channel, such as chat. After each move, the game
+ * must generate a "turn URL" for the local player to send to the other
+ * players. The game must parse and apply turn URLs received.
  */
 
 import { Settings } from './settings.js'
@@ -9,7 +15,7 @@ import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
 import type { TilePlacement } from './tile.js'
 import { Player } from './player.js'
-import { Turn } from './turn.js'
+import { Turn, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
@@ -20,6 +26,11 @@ class GameState {
     readonly shared: SharedState,
     public keepAllHistory = false,
     public rack = [] as Array<Tile>,
+    /**
+     * The last N turns played by any player, where N is at least one less
+     * than the number of players. Turn URLs should describe the last move
+     * made by each player except the player whose turn it is.
+     */
     readonly history = [] as Array<TurnData>,
   ) {
     if (!shared.settings.players.some(p => p.id === playerId)) {
@@ -29,13 +40,14 @@ class GameState {
 
   async updateRack() {
     this.rack = await this.shared.tilesState.getTiles(this.playerId)
-    // TODO - Fire a state-change event.
+    // TODO - Define and fire a rack-change event.
   }
 
   get settings()       { return this.shared.settings }
   get gameId()         { return this.shared.gameId }
   get nextTurnNumber() { return this.shared.nextTurnNumber }
   get players()        { return this.shared.players }
+  get board()          { return this.shared.board }
   
   async playTurns(...turns: Array<Turn>) {
     // `this.shared.playTurns` validates several turn properties before it awaits.
@@ -43,6 +55,7 @@ class GameState {
     // * It rejects turns whose `playerId` does not line up with the order of play.
     // * It rejects invalid tile placement combinations.
     // * It updates the board and scores.
+    // * It updates nextTurnNumber after each successfully processed turn.
     // It may or may not update tiles state (i.e., racks).
     let exception: any = null
     let promise: Promise<void> | null = null
@@ -51,20 +64,24 @@ class GameState {
     catch (e: any) { exception = e }
 
     // Update history. Try not to throw exceptions in this loop.
+    let wroteHistory = false
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
       if (turn.turnNumber as number >= this.nextTurnNumber) {
         // `this.shared.playTurns` must have returned early.
         break
       }
+      if (this.history.length && turn.turnNumber as number <= (this.history[-1]!.turnNumber as number)) {
+        continue
+      }
       if (turn.playerId === this.playerId) iPlayed = true
       const params = new URLSearchParams
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
         const tileAssignments = [] as Array<string>
-        turn.move.playTiles.forEach((placement: TilePlacement) => {
+        turn.move.playTiles.forEach((placement: TilePlacement, index) => {
           if (placement.tile.isBlank) {
-            tileAssignments.push(placement.assignedLetter!)
+            tileAssignments.push(`${index}-${placement.assignedLetter}`)
           }
         })
         if (tileAssignments.length) params.set('bt', tileAssignments.join('.'))
@@ -74,6 +91,10 @@ class GameState {
         params.set('ex', turn.move.exchangeTileIndices.join('.'))
       }
       this.history.push({turnNumber: turn.turnNumber, params: String(params)})
+      wroteHistory = true
+    }
+    if (wroteHistory) {
+      // TODO - Define and fire a change event.
     }
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length)
@@ -83,11 +104,114 @@ class GameState {
     if (iPlayed) await this.updateRack()
   }
 
-  applyTurnParams(params: URLSearchParams) {
-    // TODO - Build TurnData objects from params.
-    // TODO - Append unseen turn data to history.
-    // TODO - Trim history to the last players.length-1 turns unless this.keepAllHistory.
-    // TODO - Fire a state-change event.
+  async applyTurnParams(params: URLSearchParams) {
+    const urlTurnNumberStr = params.get('tn')
+    if (!urlTurnNumberStr) {
+      console.info('applyTurnParams: no turn number')
+      return
+    }
+    const turns = [] as Array<Turn>
+    let urlTurnNumber = parseInt(urlTurnNumberStr)
+    let wordLocationStr: string | null = null
+    let blankTileAssignmentsStr: string | null = null
+    let direction: null | 'wv' | 'wh' = null
+    let wordPlayed: string | null = null
+    let exchangeIndicesStr: string | null = null
+    const nextTurn = () => {
+      const playerId = this.players[urlTurnNumber % this.players.length]!.id
+      if (wordPlayed && direction && wordLocationStr) {
+        if (exchangeIndicesStr) {
+          throw new Error(`URL contains both word and exchange data for turn ${urlTurnNumber}`)
+        }
+        const blankTileAssignments = [] as Array<string>
+        if (blankTileAssignmentsStr) {
+          blankTileAssignmentsStr.split('.').forEach((s: string) => {
+            const match = s.match(/^(\d+)-(.+)/)
+            if (!match) { throw new Error(`Invalid "bt" URL parameter component: ${s}`) }
+            const index = parseInt(match[1]!)
+            if (index in blankTileAssignments) {
+              throw new Error(`Duplicate blank tile assignment index: bt=${blankTileAssignmentsStr}`)
+            }
+            blankTileAssignments[index] = match[2]!
+          })
+        }
+        const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
+        if (!match) { throw new Error(`Invalid wl parameter in URL: ${wordLocationStr}`) }
+        let row = parseInt(match[1]!)
+        let col = parseInt(match[2]!)
+        const placements = [] as Array<TilePlacement>
+        for (const letter of wordPlayed.split('')) {
+          const square = this.board.squares[row]?.[col]
+          if (!square) { throw new RangeError(`Attemted to play a word out of bounds: ${row},${col}.`) }
+          if (!square.tile) {
+            // It must be a new tile from the player's rack.
+            const assignedLetter = blankTileAssignments[placements.length] ?? ''
+            const value = assignedLetter ? 0 : this.settings.letterValues[letter]
+            if (value === undefined) { throw new Error(`Attempt to play an invalid letter: "${letter}"`) }
+            placements.push({tile: new Tile({letter, value}), assignedLetter, row, col})
+          } else if (square.letter !== letter) {
+            throw new Error(`Attempt word requires "${letter}" at ${row},${col}, but "${square.letter}" is there.`)
+          }
+          if (direction === 'wv') { row += 1 }
+          else { col += 1 }
+        }
+        if (blankTileAssignments.length > placements.length) {
+          throw new RangeError(
+            `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${placements.length - 1}`
+          )
+        }
+        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {playTiles: placements}))
+      } else if (exchangeIndicesStr != null) {
+        if (wordPlayed || direction || wordLocationStr || blankTileAssignmentsStr) {
+          throw new Error(
+            `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileAssignmentsStr}`)
+        }
+        const exchangeIndexStrs = exchangeIndicesStr.split('.')
+        const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
+        exchangeIndexStrs.forEach((s: string) => {
+          let index: number
+          try { index = parseInt(s) }
+          catch (e: any) {
+            throw new Error(`Invalid exchange tile index in URL: "${s}".`)
+          }
+          if (index < 0 || index >= numberOfTilesInRack) {
+            throw new RangeError(`Exchange tile index ${index} in URL is out of range 0-${numberOfTilesInRack - 1}`)
+          }
+        })
+        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {exchangeTileIndices: exchangeIndexStrs.map(parseInt)}))
+      } else {
+        // Nothing to see here, don't bump the turn number.
+        return
+      }
+      urlTurnNumber++
+      wordLocationStr = null
+      blankTileAssignmentsStr = null
+      direction = null
+      wordPlayed = null
+      exchangeIndicesStr = null
+    }
+    for (const [key, value] of params) {
+      if (key === 'wl') {
+        nextTurn()
+        wordLocationStr = value
+      } else if (key === 'ex') {
+        nextTurn()
+        exchangeIndicesStr = value
+      } else if (key === 'bt') {
+        if (blankTileAssignmentsStr) {
+          throw new Error(`Duplicate "bt" parameter in URL data for turn ${urlTurnNumber}`)
+        }
+        blankTileAssignmentsStr = value
+      } else if (key === 'wv' || key === 'wh') {
+        if (direction) {
+          throw new Error(`Duplicate word parameters in URL data for turn ${urlTurnNumber}`)
+        }
+        direction = key
+        wordPlayed = value
+      }
+    }
+    nextTurn()
+    await this.playTurns(...turns)
   }
 
   get turnUrlParams() {
@@ -146,7 +270,7 @@ class GameState {
     }
   }
 
-  static fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
+  static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
     const settings = new Settings
     const verParam = params.get('ver')
     if (verParam && verParam !== settings.version) {
@@ -184,7 +308,7 @@ class GameState {
       }
     }
     const gameState = new GameState(playerId, new SharedState(settings))
-    gameState.applyTurnParams(params)
+    await gameState.applyTurnParams(params)
     return gameState
   }
 
