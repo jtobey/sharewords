@@ -20,25 +20,18 @@ describe('shared state', () => {
       tileSystemSettings: 1
     })
     const sharedState = new SharedState(settings, gameId, board, tilesState)
+    expect(sharedState.gameId).toBe(gameId)
     expect(sharedState.nextTurnNumber).toBe(1 as TurnNumber)
   })
 
   test('can play a turn', async () => {
     const settings = new Settings()
-    const gameId = 'test' as GameId
-    const board = new Board(...settings.boardLayout)
-    const letterCounts = { 'A': 2, 'B': 2, 'C': 2, 'D': 2, 'E': 2, 'F': 2, 'G': 2 }
-    const letterValues = { 'A': 1, 'B': 1, 'C': 1, 'D': 1, 'E': 1, 'F': 1, 'G': 1 }
-    const tilesState = new HonorSystemTilesState({
-      players: settings.players,
-      rackCapacity: settings.rackCapacity,
-      tiles: makeTiles({ letterCounts, letterValues }),
-      tileSystemSettings: 1
-    })
-    const sharedState = new SharedState(settings, gameId, board, tilesState)
-
+    settings.letterCounts = { 'A': 2, 'B': 2, 'C': 2, 'D': 2, 'E': 2, 'F': 2, 'G': 2 }
+    settings.letterValues = { 'A': 1, 'B': 1, 'C': 1, 'D': 1, 'E': 1, 'F': 1, 'G': 1 }
+    settings.tileSystemSettings = 1
+    const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
-    const player1Tiles = await tilesState.getTiles(player1Id)
+    const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
     const turn = new Turn(
       player1Id,
       1 as TurnNumber,
@@ -53,23 +46,15 @@ describe('shared state', () => {
     await sharedState.playTurns(turn)
 
     expect(sharedState.nextTurnNumber).toBe(2 as TurnNumber)
-    expect(board.squares[7]![7]!.tile).toBe(player1Tiles[0]!)
-    expect(board.squares[7]![8]!.tile).toBe(player1Tiles[1]!)
-    expect(board.scores.get(player1Id)).toBe(2) // Assuming tile values are 1
+    expect(sharedState.board.squares[7]![7]!.tile).toBe(player1Tiles[0]!)
+    expect(sharedState.board.squares[7]![8]!.tile).toBe(player1Tiles[1]!)
+    expect(sharedState.board.scores.get(player1Id)).toBe(2) // Assuming tile values are 1
   })
 
   describe('json', () => {
     test('can serialize and deserialize', () => {
       const settings = new Settings()
-      const gameId = 'test' as GameId
-      const board = new Board(...settings.boardLayout)
-      const tilesState = new HonorSystemTilesState({
-        players: settings.players,
-        rackCapacity: settings.rackCapacity,
-        tiles: makeTiles({ letterCounts: settings.letterCounts, letterValues: settings.letterValues }),
-        tileSystemSettings: 1
-      })
-      const sharedState = new SharedState(settings, gameId, board, tilesState)
+      const sharedState = new SharedState(settings)
       const json = sharedState.toJSON()
       const sharedState2 = SharedState.fromJSON(json)
       expect(sharedState2.gameId).toBe(sharedState.gameId)
