@@ -39,6 +39,7 @@ import type { TurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import type { TilePlacement } from './tile.ts'
+import { makeTiles } from './tile.js'
 
 type GameId = string & { '__brand': 'GameId' }
 
@@ -46,9 +47,9 @@ export class SharedState {
   readonly playerIds: Array<string>
 
   constructor(
-    readonly settings: Settings,
-    readonly board: Board,
-    readonly tilesState: TilesState,
+    readonly settings: Readonly<Settings>,
+    readonly board = new Board(...settings.boardLayout),
+    readonly tilesState = makeTilesState(settings),
     readonly gameId = `game-${Date.now()}` as GameId,
     public nextTurnNumber = 1 as TurnNumber,
   ) {
@@ -79,7 +80,10 @@ export class SharedState {
       }
       if ('playTiles' in turn.move) {
         const {score, wordsFormed} = this.board.checkWordPlacement(...turn.move.playTiles)
-        if (this.settings.dictionaryType !== 'permissive') {
+        if (this.settings.dictionaryType === 'permissive') {
+          // Nothing to check - anything is a word.
+        } else {
+          // TODO.
           throw new Error(`${this.settings.dictionaryType} dictionary is not yet supported.`)
         }
         const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
@@ -118,15 +122,15 @@ export class SharedState {
   }
 
   static fromJSON(json: any) {
-    function fail() {
-      throw new TypeError(`Invalid SharedGameState serialization: ${JSON.stringify(json)}`)
+    function fail(msg: string) {
+      throw new TypeError(`${msg} in SharedState serialization: ${JSON.stringify(json)}`)
     }
-    if (typeof json !== 'object') fail()
+    if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual([...Object.keys(json)], [
       'gameId', 'nextTurnNumber', 'settings', 'board', 'tilesState',
-    ])) fail()
-    if (typeof json.gameId !== 'string') fail()
-    if (typeof json.nextTurnNumber !== 'number') fail()
+    ])) fail('Wrong keys or key order')
+    if (typeof json.gameId !== 'string') fail('Game ID is not a string')
+    if (typeof json.nextTurnNumber !== 'number') fail('Next turn number is not a number')
     const settings = Settings.fromJSON(json.settings)
     return new SharedState(
       settings,
@@ -138,7 +142,14 @@ export class SharedState {
   }
 }
 
+function makeTilesState(settings: Settings): TilesState {
+  if (settings.tileSystemType === 'honor') {
+    return new HonorSystemTilesState({...settings, tiles: makeTiles(settings)})
+  }
+  throw new Error(`Unsupported tileSystemType: ${settings.tileSystemType}`)
+}
+
 function rehydrateTilesState(tileSystemType: string, tilesStateJson: any) {
   if (tileSystemType === 'honor') return HonorSystemTilesState.fromJSON(tilesStateJson)
-  throw new TypeError(`Unknown tileSystemType ${tileSystemType}`)
+  throw new TypeError(`Unknown tileSystemType: ${tileSystemType}`)
 }

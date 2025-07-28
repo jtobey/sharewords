@@ -11,14 +11,8 @@ import type { TurnNumber } from './turn.js'
 
 const settings = new Settings
 settings.players=[new Player({id:'player1', name:'Player 1'})]
-const board = new Board(...settings.boardLayout)
-const tilesState: TilesState = new HonorSystemTilesState({
-  players: settings.players,
-  rackCapacity: 7,
-  tiles: makeTiles(settings),
-  tileSystemSettings: 17,  // random seed
-})
-const sharedState = new SharedState(settings, board, tilesState)
+settings.tileSystemSettings = 17  // random seed
+const sharedState = new SharedState(settings)
 console.log(sharedState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
@@ -39,7 +33,7 @@ const HANDLERS = {
     alert(`
     Tiles in bag: ${sharedState.tilesState.numberOfTilesInBag}
     Rack: ${rack}
-    Score: ${board.scores.get('player1') ?? 0}`)
+    Score: ${sharedState.board.scores.get('player1') ?? 0}`)
   },
   'Play Word': async () => {
     const turnStr = window.prompt('Enter one or more [rackIndex,row,col,assignedLetter?] tuples, separated by commas. Indices are zero-based.')

@@ -53,7 +53,7 @@ export class Settings {
   boardLayout = DEFAULT_BOARD_LAYOUT
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
-  tileSystemType = 'honor'
+  tileSystemType = 'honor' as 'honor'
   tileSystemSettings = 1 as Serializable
   dictionaryType = 'permissive' as 'permissive' | 'freeapi' | 'custom'
   dictionarySettings = null as Serializable
