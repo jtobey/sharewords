@@ -84,16 +84,20 @@ export class SharedState {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
       if ('playTiles' in turn.move) {
-        const {score, wordsFormed} = this.board.checkWordPlacement(...turn.move.playTiles)
+        const {score, wordsFormed, row, col, vertical} = this.board.checkWordPlacement(...turn.move.playTiles)
         if (this.settings.dictionaryType === 'permissive') {
           // Nothing to check - anything is a word.
         } else {
-          // TODO.
+          // TODO - Validate words *after* the turn loop.
           throw new Error(`${this.settings.dictionaryType} dictionary is not yet supported.`)
         }
         const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
         this.board.placeTiles(...turn.move.playTiles)
         this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score + bingoBonus)
+        turn.mainWord = wordsFormed[0]!
+        turn.row = row
+        turn.col = col
+        turn.vertical = vertical
         console.log(`Player ${playerId} played ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
         checkIndices(turn.move.exchangeTileIndices, this.tilesState.countTiles(playerId))

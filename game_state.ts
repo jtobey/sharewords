@@ -7,14 +7,16 @@ import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './serializable.js'
 import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
+import type { TilePlacement } from './tile.js'
 import { Player } from './player.js'
+import { Turn } from './turn.js'
 import type { TurnNumber } from './turn.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
 class GameState {
   constructor(
-    readonly playerId: string,
+    readonly playerId: string,  // The local player.
     readonly shared: SharedState,
     public keepAllHistory = false,
     public rack = [] as Array<Tile>,
@@ -34,6 +36,52 @@ class GameState {
   get gameId()         { return this.shared.gameId }
   get nextTurnNumber() { return this.shared.nextTurnNumber }
   get players()        { return this.shared.players }
+  
+  async playTurns(...turns: Array<Turn>) {
+    // `this.shared.playTurns` validates several turn properties before it awaits.
+    // For example:
+    // * It rejects turns whose `playerId` does not line up with the order of play.
+    // * It rejects invalid tile placement combinations.
+    // * It updates the board and scores.
+    // It may or may not update tiles state (i.e., racks).
+    let exception: any = null
+    let promise: Promise<void> | null = null
+    let iPlayed = false
+    try { promise = this.shared.playTurns(...turns) }
+    catch (e: any) { exception = e }
+
+    // Update history. Try not to throw exceptions in this loop.
+    for (const turn of turns) {
+      // Convert {playerId, turnNumber, move} to TurnData.
+      if (turn.turnNumber as number >= this.nextTurnNumber) {
+        // `this.shared.playTurns` must have returned early.
+        break
+      }
+      if (turn.playerId === this.playerId) iPlayed = true
+      const params = new URLSearchParams
+      if ('playTiles' in turn.move) {
+        params.set('wl', `${turn.row}.${turn.col}`)
+        const tileAssignments = [] as Array<string>
+        turn.move.playTiles.forEach((placement: TilePlacement) => {
+          if (placement.tile.isBlank) {
+            tileAssignments.push(placement.assignedLetter!)
+          }
+        })
+        if (tileAssignments.length) params.set('bt', tileAssignments.join('.'))
+        // Keep the word last so that it stands out in the URL.
+        params.set(turn.vertical ? 'wv' : 'wh', turn.mainWord!)
+      } else if ('exchangeTileIndices' in turn.move) {
+        params.set('ex', turn.move.exchangeTileIndices.join('.'))
+      }
+      this.history.push({turnNumber: turn.turnNumber, params: String(params)})
+    }
+    if (!this.keepAllHistory) {
+      this.history.splice(0, this.history.length - this.players.length)
+    }
+    if (!promise) throw exception
+    await promise
+    if (iPlayed) await this.updateRack()
+  }
 
   applyTurnParams(params: URLSearchParams) {
     // TODO - Build TurnData objects from params.

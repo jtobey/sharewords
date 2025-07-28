@@ -36,6 +36,10 @@ describe('board', () => {
     )).toEqual({
       score: 8,
       wordsFormed: ['CAT'],
+      mainWord: 'CAT',
+      row: 1,
+      col: 0,
+      vertical: false,
     })
   })
 
@@ -56,6 +60,10 @@ describe('board', () => {
     )).toEqual({
       score: 28,
       wordsFormed: ['MU', 'MA', 'UT'],
+      mainWord: 'MU',
+      row: 0,
+      col: 1,
+      vertical: false,
     })
   })
 
@@ -73,6 +81,10 @@ describe('board', () => {
     expect(oldBoard.checkWordPlacement(...diff)).toEqual({
       score: 22,
       wordsFormed: ['AGED', 'GO'],
+      mainWord: 'AGED',
+      row: 1,
+      col: 0,
+      vertical: false,
     })
   })
 

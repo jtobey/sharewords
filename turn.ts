@@ -3,6 +3,11 @@ import type { TilePlacement } from './tile.js'
 export type TurnNumber = number & { '__brand': 'TurnNumber' }
 
 export class Turn {
+  mainWord?: string
+  row?: number
+  col?: number
+  vertical?: boolean
+
   constructor(readonly playerId: string, readonly turnNumber: TurnNumber, readonly move: {
     playTiles: ReadonlyArray<TilePlacement>
   } | {

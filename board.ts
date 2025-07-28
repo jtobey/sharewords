@@ -98,6 +98,10 @@ export class Board {
   checkWordPlacement(...placements: Array<TilePlacement>): {
     wordsFormed: Array<string>,
     score: number,
+    mainWord: string,
+    row: number,
+    col: number,
+    vertical: boolean,
   } {
     const anyPlacement = placements[0]
     if (!anyPlacement) throw new WordPlacementError('No tiles.')
@@ -132,6 +136,8 @@ export class Board {
       mainRow -= mainDir.y
       mainCol -= mainDir.x
     }
+    const mainStartRow = mainRow
+    const mainStartCol = mainCol
     let mainWord = '', crossWords: Array<string> = []
     let placementIndex = 0
     let mainWordMultiplier = 1, mainWordScore = 0, crossWordsScore = 0
@@ -207,6 +213,10 @@ export class Board {
     return {
       wordsFormed: [mainWord, ...crossWords],
       score: mainWordScore + crossWordsScore,
+      mainWord,
+      row: mainStartRow,
+      col: mainStartCol,
+      vertical: Boolean(mainDir.y),
     }
   }
 
