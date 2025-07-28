@@ -34,6 +34,7 @@ import type { Serializable } from './serializable.js'
 import { arraysEqual } from './serializable.js'
 import { Settings } from './settings.js'
 import type { TilesState } from './tiles_state.js'
+import { checkIndices } from './tiles_state.js'
 import { Turn } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -86,7 +87,19 @@ export class SharedState {
         this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
         console.log(`Player ${playerId} played ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
-        // Exchanges do not affect the board. TilesState applies them below.
+        checkIndices(turn.move.exchangeTileIndices, this.tilesState.countTiles(playerId))
+        const numAttempted = turn.move.exchangeTileIndices.length
+        const numInBag = this.tilesState.numberOfTilesInBag
+        if (numAttempted > numInBag) {
+          throw new Error(`Player ${playerId} attempted to exchange ${numAttempted} but the bag holds only ${numInBag}.`)
+        }
+        if (numAttempted) {
+          console.log(`Player ${playerId} exchanged ${numAttempted} tiles.`)
+        } else {
+          console.log(`Player ${playerId} passed.`)
+        }
+      } else {
+        throw new Error(`Turn number ${turn.turnNumber} is not a play or exchange.`)
       }
       turnsToPlayNow.push(turn)
       this.nextTurnNumber++
