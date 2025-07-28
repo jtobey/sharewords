@@ -4,7 +4,7 @@
 
 import { Settings } from './settings.js'
 import { Board } from './board.js'
-import { arraysEqual } from './serializable.js'
+import { arraysEqual, objectsEqual } from './serializable.js'
 import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
 import { Player } from './player.js'
@@ -30,7 +30,6 @@ class GameState {
   get settings()       { return this.shared.settings }
   get gameId()         { return this.shared.gameId }
   get nextTurnNumber() { return this.shared.nextTurnNumber }
-  get players()        { return this.shared.players }
 
   applyTurnParams(params: URLSearchParams) {
     // TODO
@@ -38,17 +37,37 @@ class GameState {
 
   toParams(params: URLSearchParams) {
     params.set('gameId', this.gameId)
-    if (this.nextTurnNumber <= this.players.length) {
+    if (this.nextTurnNumber <= this.settings.players.length) {
       // Not all players have played. Include non-default game settings.
       const defaults = new Settings
       params.set('ver', this.settings.version)
-      if (!playersEqual(this.players, defaults.players)) {
-        for (const p of this.players) {
-          params.set('pid', p.id)
-          if (p.name) params.set('pn', p.name)
-        }
+      if (!playersEqual(this.settings.players, defaults.players)) {
+        this.settings.players.forEach((p, index) => {
+          params.append('pn', p.name)
+          if (p.id !== String(index + 1)) params.append('pid', p.id)
+        })
       }
-      // TODO - Finish.
+      if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
+        params.set('board', this.settings.boardLayout.join('-'))
+      }
+      if (this.settings.bingoBonus !== defaults.bingoBonus) {
+        params.set('bingo', String(this.settings.bingoBonus))
+      }
+      if (!objectsEqual(this.settings.letterCounts, defaults.letterCounts)) {
+        // TODO
+      }
+      if (!objectsEqual(this.settings.letterValues, defaults.letterValues)) {
+        // TODO
+      }
+      if (this.settings.tileSystemType !== defaults.tileSystemType) {
+        // TODO
+      }
+      if (this.settings.tileSystemType === 'honor') {
+        params.set('seed', String(this.settings.tileSystemSettings))
+      }
+      if (this.settings.dictionaryType !== defaults.dictionaryType) {
+        // TODO
+      }
     }
     // TODO - Add turn params.
   }
@@ -59,6 +78,7 @@ class GameState {
     if (verParam && verParam !== settings.version) {
       throw new Error(`Protocol version not supported: ${verParam}`)
     }
+    // TODO: Handle `pid`. Its position among the `pn` params matters.
     const pnParams = params.getAll('pn')
     if (pnParams) settings.players = pnParams.map((name, index) => {
       const args = {id: String(index + 1), ...(name ? {name} : {})}
