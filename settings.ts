@@ -10,7 +10,7 @@ import { PROTOCOL_VERSION } from './version.js'
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
   new Player({id: '2'}),
-] as ReadonlyArray<Player>
+] as ReadonlyArray<Readonly<Player>>
 
 const DEFAULT_LETTER_COUNTS = {
   'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 2, 'H': 2, 'I': 9, 'J': 1,

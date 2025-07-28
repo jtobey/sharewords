@@ -8,13 +8,15 @@ import { arraysEqual, objectsEqual } from './serializable.js'
 import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
 import { Player } from './player.js'
+import type { TurnNumber } from './turn.js'
 
-type TurnData = string
+type TurnData = {turnNumber: TurnNumber, params: string}
 
 class GameState {
   constructor(
     readonly playerId: string,
     readonly shared: SharedState,
+    public keepAllHistory = false,
     public rack = [] as Array<Tile>,
     readonly history = [] as Array<TurnData>,
   ) {
@@ -25,26 +27,51 @@ class GameState {
 
   async updateRack() {
     this.rack = await this.shared.tilesState.getTiles(this.playerId)
+    // TODO - Fire a state-change event.
   }
 
   get settings()       { return this.shared.settings }
   get gameId()         { return this.shared.gameId }
   get nextTurnNumber() { return this.shared.nextTurnNumber }
+  get players()        { return this.shared.players }
 
   applyTurnParams(params: URLSearchParams) {
-    // TODO
+    // TODO - Build TurnData objects from params.
+    // TODO - Append unseen turn data to history.
+    // TODO - Trim history to the last players.length-1 turns unless this.keepAllHistory.
+    // TODO - Fire a state-change event.
+  }
+
+  get turnUrlParams() {
+    const gameParams = new URLSearchParams
+    const turnHistory = this.history.slice(-this.players.length)
+    const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
+    // Include game settings in the URL at the start of the game.
+    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === 1 as TurnNumber) {
+      this.toParams(gameParams)
+    }
+    if (turnHistory.length) {
+      gameParams.append('tn', String(firstHistoryTurnNumber))
+      const turnParams = [] as Array<URLSearchParams>
+      turnHistory.forEach((turnData: TurnData) => {
+        turnParams.push(new URLSearchParams(turnData.params))
+      })
+      const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
+      return new URLSearchParams([...gameParams, ...flatTurnParams])
+    } else {
+      return gameParams
+    }
   }
 
   toParams(params: URLSearchParams) {
-    params.set('gameId', this.gameId)
+    params.set('gid', this.gameId)
     if (this.nextTurnNumber <= this.settings.players.length) {
-      // Not all players have played. Include non-default game settings.
+      // Not all players have played. Include any non-default game settings.
       const defaults = new Settings
       params.set('ver', this.settings.version)
       if (!playersEqual(this.settings.players, defaults.players)) {
         this.settings.players.forEach((p, index) => {
           params.append('pn', p.name)
-          if (p.id !== String(index + 1)) params.append('pid', p.id)
         })
       }
       if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
@@ -69,7 +96,6 @@ class GameState {
         // TODO
       }
     }
-    // TODO - Add turn params.
   }
 
   static fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
@@ -78,7 +104,6 @@ class GameState {
     if (verParam && verParam !== settings.version) {
       throw new Error(`Protocol version not supported: ${verParam}`)
     }
-    // TODO: Handle `pid`. Its position among the `pn` params matters.
     const pnParams = params.getAll('pn')
     if (pnParams) settings.players = pnParams.map((name, index) => {
       const args = {id: String(index + 1), ...(name ? {name} : {})}
@@ -119,29 +144,32 @@ class GameState {
     return {
       shared: this.shared.toJSON(),
       playerId: this.playerId,
+      keepAllHistory: this.keepAllHistory,
       rack: this.rack.map(t => t.toJSON()),
       history: this.history,
     }
   }
 
   static fromJSON(json: any) {
-    function fail(msg: string) {
+    function fail(msg: string): never {
       throw new TypeError(`${msg} in GameState serialization: ${JSON.stringify(json)}`)
     }
     if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual(
       [...Object.keys(json)],
-      ['shared', 'playerId', 'rack', 'history'])
+      ['shared', 'playerId', 'keepAllHistory', 'rack', 'history'])
     ) {
       fail('Wrong keys or key order')
     }
     if (typeof json.playerId !== 'string') fail('Player ID is not a string')
+    if (typeof json.keepAllHistory !== 'boolean') fail('keepAllHistory is not a boolean')
     if (!Array.isArray(json.rack)) fail('Rack is not an array')
     if (!Array.isArray(json.history)) fail('History is not an array')
 
     return new GameState(
       json.playerId,
       SharedState.fromJSON(json.shared),
+      json.keepAllHistory,
       json.rack.map(Tile.fromJSON),
       json.history,
     )

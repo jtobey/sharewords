@@ -1,4 +1,5 @@
 import { SharedState } from './shared_state.js'
+import type { GameId } from './shared_state.js'
 import { Settings } from './settings.js'
 import { Board } from './board.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -16,7 +17,7 @@ test('can create a shared state', () => {
     tiles: makeTiles({ letterCounts: settings.letterCounts, letterValues: settings.letterValues }),
     tileSystemSettings: 1
   })
-  const sharedState = new SharedState(settings, board, tilesState)
+  const sharedState = new SharedState(settings, 'test' as GameId, board, tilesState)
   expect(sharedState.nextTurnNumber).toBe(1 as TurnNumber)
 })
 
@@ -31,7 +32,7 @@ test('can play a turn', async () => {
     tiles: makeTiles({ letterCounts, letterValues }),
     tileSystemSettings: 1
   })
-  const sharedState = new SharedState(settings, board, tilesState)
+  const sharedState = new SharedState(settings, 'test' as GameId, board, tilesState)
 
   const player1Id = settings.players[0]!.id
   const player1Tiles = await tilesState.getTiles(player1Id)
@@ -63,7 +64,7 @@ test('can serialize and deserialize a shared state', () => {
     tiles: makeTiles({ letterCounts: settings.letterCounts, letterValues: settings.letterValues }),
     tileSystemSettings: 1
   })
-  const sharedState = new SharedState(settings, board, tilesState)
+  const sharedState = new SharedState(settings, 'test' as GameId, board, tilesState)
   const json = sharedState.toJSON()
   const sharedState2 = SharedState.fromJSON(json)
   expect(sharedState2.gameId).toBe(sharedState.gameId)

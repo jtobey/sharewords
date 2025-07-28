@@ -41,16 +41,23 @@ import { Board } from './board.ts'
 import type { TilePlacement } from './tile.ts'
 import { makeTiles } from './tile.js'
 
-type GameId = string & { '__brand': 'GameId' }
+export type GameId = string & { '__brand': 'GameId' }
 
 export class SharedState {
   constructor(
     readonly settings: Readonly<Settings>,
+    readonly gameId = `game-${Date.now()}` as GameId,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
-    readonly gameId = `game-${Date.now()}` as GameId,
     public nextTurnNumber = 1 as TurnNumber,
-  ) {}
+  ) {
+    this.settings.players.forEach((player, index) => {
+      const expected = String(index + 1)
+      if (player.id !== expected) {
+        throw new Error(`players[${index}] should have ID "${expected}", not "${player.id}".`)
+      }
+    })
+  }
 
   get players() { return this.settings.players }
 
@@ -132,9 +139,9 @@ export class SharedState {
     const settings = Settings.fromJSON(json.settings)
     return new SharedState(
       settings,
+      json.gameId as GameId,
       Board.fromJSON(json.board),
       rehydrateTilesState(settings.tileSystemType, json.tilesState),
-      json.gameId as GameId,
       json.nextTurnNumber as TurnNumber,
     )
   }
