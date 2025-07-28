@@ -1,16 +1,23 @@
 export class Player {
   readonly id: string
   name: string
+
   constructor({id, name=`Player ${id}`}: Readonly<{id: string, name?: string}>) {
     this.id = id
     this.name = name
   }
+
+  equals(other: any) {
+    return other instanceof Player && other.id === this.id && other.name === this.name
+  }
+
   toJSON() {
     return {
       id: this.id,
       name: this.name,
     }
   }
+
   static fromJSON(json: any): Player {
     if (!(typeof json === 'object'
       && typeof json.id === 'string'

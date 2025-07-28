@@ -44,17 +44,15 @@ import { makeTiles } from './tile.js'
 type GameId = string & { '__brand': 'GameId' }
 
 export class SharedState {
-  readonly playerIds: Array<string>
-
   constructor(
     readonly settings: Readonly<Settings>,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     readonly gameId = `game-${Date.now()}` as GameId,
     public nextTurnNumber = 1 as TurnNumber,
-  ) {
-    this.playerIds = settings.players.map(p => p.id)
-  }
+  ) {}
+
+  get players() { return this.settings.players }
 
   async playTurns(...turns: Array<Turn>) {
     const seen = []
@@ -74,7 +72,7 @@ export class SharedState {
         console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${this.nextTurnNumber}.`)
         break
       }
-      const playerId = this.playerIds[(this.nextTurnNumber - 1) % this.playerIds.length]
+      const playerId = this.players[(this.nextTurnNumber - 1) % this.players.length]!.id
       if (turn.playerId !== playerId) {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }

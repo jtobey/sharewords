@@ -27,15 +27,30 @@ class GameState {
     this.rack = await this.shared.tilesState.getTiles(this.playerId)
   }
 
-  get gameId() { return this.shared.gameId }
+  get settings()       { return this.shared.settings }
+  get gameId()         { return this.shared.gameId }
   get nextTurnNumber() { return this.shared.nextTurnNumber }
+  get players()        { return this.shared.players }
 
   applyTurnParams(params: URLSearchParams) {
     // TODO
   }
 
   toParams(params: URLSearchParams) {
-    // TODO
+    params.set('gameId', this.gameId)
+    if (this.nextTurnNumber <= this.players.length) {
+      // Not all players have played. Include non-default game settings.
+      const defaults = new Settings
+      params.set('ver', this.settings.version)
+      if (!playersEqual(this.players, defaults.players)) {
+        for (const p of this.players) {
+          params.set('pid', p.id)
+          if (p.name) params.set('pn', p.name)
+        }
+      }
+      // TODO - Finish.
+    }
+    // TODO - Add turn params.
   }
 
   static fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
@@ -111,4 +126,12 @@ class GameState {
       json.history,
     )
   }
+}
+
+function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
+  if (ps1.length !== ps2.length) return false
+  for (const index in ps1) {
+    if (!ps1[index]!.equals(ps2[index])) return false
+  }
+  return true
 }
