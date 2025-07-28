@@ -82,8 +82,9 @@ export class SharedState {
         if (this.settings.dictionaryType !== 'permissive') {
           throw new Error(`${this.settings.dictionaryType} dictionary is not yet supported.`)
         }
+        const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
         this.board.placeTiles(...turn.move.playTiles)
-        this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
+        this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score + bingoBonus)
         console.log(`Player ${playerId} played ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
         checkIndices(turn.move.exchangeTileIndices, this.tilesState.countTiles(playerId))
