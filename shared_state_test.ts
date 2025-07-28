@@ -77,7 +77,7 @@ describe('shared state', () => {
 
   test('throws on unsupported dictionary', async () => {
     const settings = new Settings()
-    settings.dictionaryType = 'strict'
+    settings.dictionaryType = 'strict' as any
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
@@ -114,7 +114,7 @@ describe('shared state', () => {
 
   test('throws on unsupported tileSystemType', () => {
     const settings = new Settings()
-    settings.tileSystemType = 'invalid'
+    settings.tileSystemType = 'invalid' as any
     expect(() => new SharedState(settings)).toThrow('Unsupported tileSystemType: invalid')
   })
 
@@ -147,7 +147,7 @@ describe('shared state', () => {
       const settings = new Settings()
       const sharedState = new SharedState(settings)
       const json = sharedState.toJSON()
-      json.settings.tileSystemType = 'invalid'
+      json.settings.tileSystemType = 'invalid' as any
       expect(() => SharedState.fromJSON(json)).toThrow('Invalid Settings serialization:')
     })
   })
