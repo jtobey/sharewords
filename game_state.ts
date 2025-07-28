@@ -252,11 +252,13 @@ class GameState {
       if (this.settings.bingoBonus !== defaults.bingoBonus) {
         params.set('bingo', String(this.settings.bingoBonus))
       }
-      if (!objectsEqual(this.settings.letterCounts, defaults.letterCounts)) {
-        // TODO
-      }
-      if (!objectsEqual(this.settings.letterValues, defaults.letterValues)) {
-        // TODO
+      if (!(
+        objectsEqual(this.settings.letterCounts, defaults.letterCounts) &&
+          objectsEqual(this.settings.letterValues, defaults.letterValues)
+      )) {
+        const bagParam = Object.entries(this.settings.letterCounts).map(
+          ([letter, count]) => `${letter}.${count}.${this.settings.letterValues[letter] ?? 0}`
+        ).join('.')
       }
       if (this.settings.tileSystemType !== defaults.tileSystemType) {
         // TODO
@@ -281,12 +283,28 @@ class GameState {
       const args = {id: String(index + 1), ...(name ? {name} : {})}
       return new Player(args)
     })
-    // TODO - Tile distribution and letter values.
+    const bagParam = params.get('bag')
+    if (bagParam) {
+      const letterCounts: {[key: string]: number} = {}
+      const letterValues: {[key: string]: number} = {}
+      const lettersCountsAndValues = bagParam.split('.').map((letterCountAndValue: string) => {
+        const parts = letterCountAndValue.split('-')
+        if (parts.length === 3) {
+          letterCounts[parts[0]!] = parseInt(parts[1]!)
+          letterValues[parts[0]!] = parseInt(parts[1]!)
+        } else {
+          // TODO
+        }
+      })
+      settings.letterCounts = letterCounts
+      settings.letterValues = letterValues
+    }
     const boardParam = params.get('board')
     if (boardParam) settings.boardLayout = boardParam.split('-')
     const bingoParam = params.get('bingo')
     if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
-    // TODO - Rack capacity.
+    const racksizeParam = params.get('racksize')
+    if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
     const tileSystemType: 'honor' = settings.tileSystemType
     if (tileSystemType === 'honor') {
       const seedParam = params.get('seed')
