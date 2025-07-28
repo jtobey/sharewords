@@ -1,4 +1,3 @@
-import type { Serializable } from './serializable.js'
 import type { TilePlacement } from './tile.js'
 
 export type TurnNumber = number & { '__brand': 'TurnNumber' }

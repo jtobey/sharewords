@@ -30,7 +30,6 @@
  * tile state.
  */
 
-import type { Serializable } from './serializable.js'
 import { arraysEqual } from './serializable.js'
 import { Settings } from './settings.js'
 import type { TilesState } from './tiles_state.js'

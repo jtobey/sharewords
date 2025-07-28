@@ -1,5 +1,3 @@
-import type { Serializable } from './serializable.js'
-
 export class Player {
   readonly id: string
   name: string

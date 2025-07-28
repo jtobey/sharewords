@@ -1,7 +1,5 @@
 /** Immutable objects representing tiles with `letter` and `value` properties. Empty string as letter represents blank. */
 
-import type { Serializable } from './serializable.js'
-
 const MIN_TILE_VALUE = 0
 const MAX_TILE_VALUE = 999999
 

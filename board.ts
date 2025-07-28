@@ -1,4 +1,3 @@
-import type { Serializable } from './serializable.js'
 import { arraysEqual } from './serializable.js'
 import { Tile } from './tile.js'
 import type { TilePlacement } from './tile.js'
