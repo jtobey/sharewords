@@ -98,6 +98,20 @@ describe('test support', () => {
     expect(parsed[0][0].headers).toEqual({'mlh': 'line 1\nline 2\nline 3'})
   })
 
+  it('should ignore a blank line after headers', () => {
+    const boardsStr = `
+
+        header-name: header-value
+
+        . . .
+        . . .
+        . . .
+
+    `
+    const parsed = parseBoards(boardsStr)
+    expect(parsed[0][0].headers).toEqual({'header-name': 'header-value'})
+  })
+
   it('should diff boards', () => {
     const boardsStr = `
     2 . .   2 Q9I0

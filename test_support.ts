@@ -65,12 +65,28 @@ const S = `
 `
 
 export function parseBoards(...strings: Array<string>) {
-  strings = strings
-    .join('\n')
-    .replace(/^\n+|\s+$/sg, '')
-    .replace(/\n\n\n+/g, '\n\n')
-    .split('\n\n')
-  return strings.map(parseRowOfBoards)
+  const headerLines = [] as Array<string>
+  const boardLines = [] as Array<string>
+  const result = [] as Array<Array<TestBoard>>
+  const nextRow = () => {
+    result.push(parseRowOfBoards(headerLines, boardLines))
+    headerLines.length = 0
+    boardLines.length = 0
+  }
+  strings.join('\n').split('\n').forEach((line: string) => {
+    if (!line.trim()) {
+      if (boardLines.length) nextRow()
+    } else if (boardLines.length || !line.includes(':')) {
+      boardLines.push(line)
+    } else {
+      headerLines.push(line)
+    }
+  })
+  if (boardLines.length) nextRow()
+  else if (headerLines.length) {
+    throw new Error(`Could not parse last lines:\n${headerLines.join('\n')}`)
+  }
+  return result
 }
 
 const SQUARE_PATTERN = /\S(?:.|$)/g
@@ -87,26 +103,11 @@ function getStartColumns(rowOfSquareRows: string) {
   return columns
 }
 
-function parseRowOfBoards(rowOfBoardsStr: string) {
-  const lines = rowOfBoardsStr.split('\n')
-  const header_lines = [] as Array<string>
-  const board_lines = [] as Array<string>
-  let line1 = ''
-  for (const line of lines) {
-    if (board_lines.length) {
-      board_lines.push(line)
-    } else if (line.includes(':')) {
-      header_lines.push(line)
-    } else {
-      line1 = line
-      board_lines.push(line)
-    }
-  }
-  if (!line1) throw new Error;
-  const startColumns = getStartColumns(line1)
+function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>) {
+  const startColumns = getStartColumns(boardLines[0]!)
   const startColumnsComma = `${startColumns},`
-  if (!board_lines.every(line => startColumnsComma.startsWith(`${getStartColumns(line)},`))) {
-    throw new Error(`Inconsistent spacing:\n${board_lines.join('\n')}\n`)
+  if (!boardLines.every(line => startColumnsComma.startsWith(`${getStartColumns(line)},`))) {
+    throw new Error(`Inconsistent spacing:\n${boardLines.join('\n')}\n`)
   }
   const boardStrings = new Map(startColumns.map(startColumn => [
     startColumn,
@@ -115,7 +116,7 @@ function parseRowOfBoards(rowOfBoardsStr: string) {
       body: [] as Array<string>,
     }
   ]))
-  board_lines.forEach(line => {
+  boardLines.forEach(line => {
     startColumns.forEach(startColumn => {
       if (startColumn < line.length) {
         const match = SQUARE_ROW_PATTERN.exec(line)
@@ -125,7 +126,7 @@ function parseRowOfBoards(rowOfBoardsStr: string) {
     })
     if (SQUARE_ROW_PATTERN.exec(line)) throw new Error
   })
-  header_lines.forEach(line => {
+  headerLines.forEach(line => {
     startColumns.forEach((startColumn, index) => {
       let header
       const endColumn = startColumns[index + 1]
