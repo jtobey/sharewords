@@ -1,6 +1,6 @@
 import { SharedState } from './shared_state.js'
-import type { GameId } from './shared_state.js'
 import { Settings } from './settings.js'
+import type { GameId } from './settings.js'
 import { Player } from './player.js'
 import { Board } from './board.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -23,6 +23,14 @@ describe('shared state', () => {
     const sharedState = new SharedState(settings, gameId, board, tilesState)
     expect(sharedState.gameId).toBe(gameId)
     expect(sharedState.nextTurnNumber).toBe(1 as TurnNumber)
+  })
+
+  test('can take gameId from settings', () => {
+    const settings = new Settings()
+    const gameId = 'settings gid' as GameId
+    settings.gameId = gameId
+    const sharedState = new SharedState(settings)
+    expect(sharedState.gameId).toEqual(gameId)
   })
 
   test('throws on bad player ID', () => {

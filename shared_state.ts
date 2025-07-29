@@ -32,8 +32,9 @@
 
 import { arraysEqual } from './serializable.js'
 import { Settings } from './settings.js'
-import type { TilesState } from './tiles_state.js'
+import type { GameId } from './settings.js'
 import { checkIndices } from './tiles_state.js'
+import type { TilesState } from './tiles_state.js'
 import { Turn } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -41,12 +42,10 @@ import { Board } from './board.ts'
 import type { TilePlacement } from './tile.ts'
 import { makeTiles } from './tile.js'
 
-export type GameId = string & { '__brand': 'GameId' }
-
 export class SharedState {
   constructor(
     readonly settings: Readonly<Settings>,
-    readonly gameId = `game-${Date.now()}` as GameId,
+    readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = 1 as TurnNumber,

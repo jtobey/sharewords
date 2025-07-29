@@ -7,6 +7,8 @@ import { arraysEqual } from './serializable.js'
 import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
 
+export type GameId = string & { '__brand': 'GameId' }
+
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
   new Player({id: '2'}),
@@ -46,6 +48,7 @@ const DEFAULT_BINGO_BONUS = 42
 const DEFAULT_RACK_CAPACITY = 7
 
 export class Settings {
+  gameId: GameId | undefined  // Not serialized with Settings.
   version = PROTOCOL_VERSION
   players = DEFAULT_PLAYER_LIST
   letterCounts = DEFAULT_LETTER_COUNTS
