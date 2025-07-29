@@ -35,8 +35,7 @@ import { Settings } from './settings.js'
 import type { GameId } from './settings.js'
 import { checkIndices } from './tiles_state.js'
 import type { TilesState } from './tiles_state.js'
-import { Turn, nextTurnNumber } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { Turn, toTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import type { TilePlacement } from './tile.ts'
@@ -48,7 +47,7 @@ export class SharedState {
     readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
-    public nextTurnNumber = 1 as TurnNumber,
+    public nextTurnNumber = toTurnNumber(1),
   ) {
     this.settings.players.forEach((player, index) => {
       const expected = String(index + 1)
@@ -145,7 +144,7 @@ export class SharedState {
       json.gameId as GameId,
       Board.fromJSON(json.board),
       rehydrateTilesState(settings.tileSystemType, json.tilesState),
-      json.nextTurnNumber as TurnNumber,
+      toTurnNumber(json.nextTurnNumber),
     )
   }
 }

@@ -16,7 +16,7 @@ import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
 import type { TilePlacement } from './tile.js'
 import { Player } from './player.js'
-import { Turn, nextTurnNumber } from './turn.js'
+import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
@@ -84,11 +84,11 @@ export class GameState {
     let wroteHistory = false
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
-      if (turn.turnNumber as number >= this.nextTurnNumber) {
+      if (fromTurnNumber(turn.turnNumber) >= this.nextTurnNumber) {
         // `this.shared.playTurns` must have returned early.
         break
       }
-      if (this.history.length && turn.turnNumber as number <= (this.history[this.history.length-1]!.turnNumber as number)) {
+      if (this.history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(this.history[this.history.length-1]!.turnNumber)) {
         continue
       }
       if (turn.playerId === this.playerId) iPlayed = true
@@ -179,7 +179,7 @@ export class GameState {
             `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${placements.length - 1}`
           )
         }
-        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {playTiles: placements}))
+        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {playTiles: placements}))
       } else if (exchangeIndicesStr != null) {
         if (wordPlayed || direction || wordLocationStr || blankTileAssignmentsStr) {
           throw new Error(
@@ -197,7 +197,7 @@ export class GameState {
             throw new RangeError(`Exchange tile index ${index} in URL is out of range 0-${numberOfTilesInRack - 1}`)
           }
         })
-        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {exchangeTileIndices: exchangeIndexStrs.map(s => parseInt(s, 10))}))
+        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {exchangeTileIndices: exchangeIndexStrs.map(s => parseInt(s, 10))}))
       } else {
         // Nothing to see here, don't bump the turn number.
         return
@@ -238,7 +238,7 @@ export class GameState {
     const turnHistory = this.history.slice(-this.players.length)
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
-    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === 1 as TurnNumber) {
+    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
       this.toParams(gameParams)
     }
     if (turnHistory.length) {

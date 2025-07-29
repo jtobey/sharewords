@@ -6,8 +6,7 @@ import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import type { TilePlacement } from './tile.ts'
 import { Player } from './player.ts'
-import { Turn } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { Turn, toTurnNumber } from './turn.js'
 
 const settings = new Settings
 settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
@@ -43,7 +42,7 @@ const HANDLERS = {
     const placements = turnJson.map(([rackIndex, row, col, ...rest]: [number, number, number, Array<string>]) =>
       ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TilePlacement>
     try {
-      await gameState.playTurns(new Turn('1', 1 as TurnNumber, {playTiles: placements}))
+      await gameState.playTurns(new Turn('1', toTurnNumber(1), {playTiles: placements}))
     } catch (e: any) {
       alert(e)
     }

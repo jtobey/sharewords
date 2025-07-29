@@ -4,8 +4,7 @@ import type { GameId } from './settings.js'
 import { Player } from './player.js'
 import { Board } from './board.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
-import { Turn } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { Turn, toTurnNumber } from './turn.js'
 import { makeTiles } from './tile.js'
 import { describe, test, expect } from 'bun:test'
 
@@ -22,7 +21,7 @@ describe('shared state', () => {
     })
     const sharedState = new SharedState(settings, gameId, board, tilesState)
     expect(sharedState.gameId).toBe(gameId)
-    expect(sharedState.nextTurnNumber).toBe(1 as TurnNumber)
+    expect(sharedState.nextTurnNumber).toBe(toTurnNumber(1))
   })
 
   test('can take gameId from settings', () => {
@@ -49,7 +48,7 @@ describe('shared state', () => {
     const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
     const turn = new Turn(
       player1Id,
-      1 as TurnNumber,
+      toTurnNumber(1),
       {
         playTiles: [
           { tile: player1Tiles[0]!, row: 7, col: 7 },
@@ -60,7 +59,7 @@ describe('shared state', () => {
 
     await sharedState.playTurns(turn)
 
-    expect(sharedState.nextTurnNumber).toBe(2 as TurnNumber)
+    expect(sharedState.nextTurnNumber).toBe(toTurnNumber(2))
     expect(sharedState.board.squares[7]![7]!.tile).toBe(player1Tiles[0]!)
     expect(sharedState.board.squares[7]![8]!.tile).toBe(player1Tiles[1]!)
     expect(sharedState.board.scores.get(player1Id)).toBe(2) // Assuming tile values are 1
@@ -70,8 +69,8 @@ describe('shared state', () => {
     const settings = new Settings()
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
-    const turn = new Turn(player1Id, 1 as TurnNumber, { exchangeTileIndices: [] })
-    const turn2 = new Turn(player1Id, 1 as TurnNumber, { exchangeTileIndices: [] })
+    const turn = new Turn(player1Id, toTurnNumber(1), { exchangeTileIndices: [] })
+    const turn2 = new Turn(player1Id, toTurnNumber(1), { exchangeTileIndices: [] })
     await expect(sharedState.playTurns(turn, turn2)).rejects.toThrow('playTurns received duplicate turn number 1.')
   })
 
@@ -79,7 +78,7 @@ describe('shared state', () => {
     const settings = new Settings()
     const sharedState = new SharedState(settings)
     const player2Id = settings.players[1]!.id
-    const turn = new Turn(player2Id, 1 as TurnNumber, { exchangeTileIndices: [] })
+    const turn = new Turn(player2Id, toTurnNumber(1), { exchangeTileIndices: [] })
     await expect(sharedState.playTurns(turn)).rejects.toThrow('Turn number 1 belongs to player "1", not "2".')
   })
 
@@ -91,7 +90,7 @@ describe('shared state', () => {
     const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
     const turn = new Turn(
       player1Id,
-      1 as TurnNumber,
+      toTurnNumber(1),
       {
         playTiles: [
           { tile: player1Tiles[0]!, row: 7, col: 7 },
@@ -108,7 +107,7 @@ describe('shared state', () => {
     settings.letterCounts = { 'A': 8 } // Player 1 gets 7 tiles, bag has 1
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
-    const turn = new Turn(player1Id, 1 as TurnNumber, { exchangeTileIndices: [0, 1, 2, 3, 4, 5, 6] })
+    const turn = new Turn(player1Id, toTurnNumber(1), { exchangeTileIndices: [0, 1, 2, 3, 4, 5, 6] })
     await expect(sharedState.playTurns(turn)).rejects.toThrow('Player 1 attempted to exchange 7 but the bag holds only 1.')
   })
 
@@ -116,7 +115,7 @@ describe('shared state', () => {
     const settings = new Settings()
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
-    const turn = new Turn(player1Id, 1 as TurnNumber, {} as any)
+    const turn = new Turn(player1Id, toTurnNumber(1), {} as any)
     await expect(sharedState.playTurns(turn)).rejects.toThrow('Turn number 1 is not a play or exchange.')
   })
 

@@ -2,8 +2,7 @@ import { expect, describe, it } from 'bun:test'
 import { Tile, makeTiles } from './tile.ts'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Player } from './player.js'
-import { Turn } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { Turn, toTurnNumber } from './turn.js'
 
 function makePlayers(...ids: Array<string>) {
   return ids.map(id => new Player({id}))
@@ -51,8 +50,8 @@ describe('honor system tiles state', () => {
     })
     const daveWord = makeTestTiles({A:3, B:1}).map((tile, col) => ({row:1, col, tile}))
     const stateId = await state.playTurns(
-      new Turn('John', 1 as TurnNumber, {exchangeTileIndices: []}),
-      new Turn('Dave', 2 as TurnNumber, {playTiles: daveWord}),
+      new Turn('John', toTurnNumber(1), {exchangeTileIndices: []}),
+      new Turn('Dave', toTurnNumber(2), {playTiles: daveWord}),
     )
     expect(stateId).toEqual(2)
     expect(state.numberOfTilesInBag).toEqual(0)
@@ -110,7 +109,7 @@ describe('honor system tiles state', () => {
       })
       const tileToPlay = new Tile({letter: 'B', value: 1})
       try {
-        await state.playTurns(new Turn('John', 1 as TurnNumber, {playTiles: [{row:0, col:0, tile:tileToPlay}]}))
+        await state.playTurns(new Turn('John', toTurnNumber(1), {playTiles: [{row:0, col:0, tile:tileToPlay}]}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe(`Player John does not hold tile ${tileToPlay.toString()}`)
@@ -126,19 +125,19 @@ describe('honor system tiles state', () => {
         tileSystemSettings: 1,
       })
       try {
-        await state.playTurns(new Turn('John', 1 as TurnNumber, {exchangeTileIndices: [0, 0]}))
+        await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [0, 0]}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe('exchangeTileIndices contains duplicates: 0,0')
       }
       try {
-        await state.playTurns(new Turn('John', 1 as TurnNumber, {exchangeTileIndices: [-1]}))
+        await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [-1]}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe('Index -1 is out of rack range 0..3.')
       }
       try {
-        await state.playTurns(new Turn('John', 1 as TurnNumber, {exchangeTileIndices: [4]}))
+        await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [4]}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe('Index 4 is out of rack range 0..3.')
@@ -154,7 +153,7 @@ describe('honor system tiles state', () => {
         tileSystemSettings: 1,
       })
       try {
-        await state.playTurns(new Turn('Dave', 1 as TurnNumber, {exchangeTileIndices: []}))
+        await state.playTurns(new Turn('Dave', toTurnNumber(1), {exchangeTileIndices: []}))
         expect.unreachable()
       } catch (e: any) {
         expect(e.message).toBe('Unknown playerId: Dave')

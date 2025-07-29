@@ -5,7 +5,7 @@ import type { GameId } from './settings.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
 import { Turn, nextTurnNumber } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { toTurnNumber } from './turn.js'
 
 describe('game state', () => {
   it('should take turns', async () => {
@@ -51,7 +51,7 @@ describe('game state', () => {
     settings.boardLayout = generateRowStrings(sharedBoard.squares)
     const player1GameState = new GameState('1', settings)
     let player2GameState: GameState | undefined
-    let turnNumber = 1 as TurnNumber
+    let turnNumber = toTurnNumber(1)
     for (const [player1Board, player2Board] of pairs) {
       const player1Tiles = diffBoards(sharedBoard, player1Board)
       for (const playerId of ['1', '2']) {
@@ -91,7 +91,7 @@ describe('game state', () => {
 
     // Exchange the first, third, and last tiles.
     const exchangeIndices = [0, 2, 6]
-    const turn = new Turn('1', 1 as TurnNumber, { exchangeTileIndices: exchangeIndices })
+    const turn = new Turn('1', toTurnNumber(1), { exchangeTileIndices: exchangeIndices })
     await player1GameState.playTurns(turn)
 
     // The rack should have new tiles.

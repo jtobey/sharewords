@@ -2,10 +2,16 @@ import type { TilePlacement } from './tile.js'
 
 export type TurnNumber = number & { '__brand': 'TurnNumber' }
 
+export function toTurnNumber(n: number) {
+  return n as TurnNumber
+}
+
+export function fromTurnNumber(turnNumber: TurnNumber) {
+  return turnNumber as number
+}
+
 export function nextTurnNumber(turnNumber: TurnNumber) {
-  let asNumber = turnNumber as number
-  asNumber += 1
-  return asNumber as TurnNumber
+  return toTurnNumber(1 + fromTurnNumber(turnNumber))
 }
 
 export class Turn {
