@@ -259,15 +259,16 @@ class GameState {
         const bagParam = Object.entries(this.settings.letterCounts).map(
           ([letter, count]) => `${letter}.${count}.${this.settings.letterValues[letter] ?? 0}`
         ).join('.')
-      }
-      if (this.settings.tileSystemType !== defaults.tileSystemType) {
-        // TODO
+        params.set('bag', bagParam)
       }
       if (this.settings.tileSystemType === 'honor') {
         params.set('seed', String(this.settings.tileSystemSettings))
       }
       if (this.settings.dictionaryType !== defaults.dictionaryType) {
-        // TODO
+        params.set('dt', this.settings.dictionaryType)
+      }
+      if (typeof this.settings.dictionarySettings === 'string') {
+        params.set('ds', this.settings.dictionarySettings)
       }
     }
   }
@@ -311,11 +312,15 @@ class GameState {
       if (!seedParam) throw new Error('No random seed in URL.')
       settings.tileSystemSettings = parseInt(seedParam)
     }
-    const dictionaryType = params.get('dt') || settings.dictionaryType
-    if (dictionaryType === 'permissive') {
-      // No dictionary settings - anything is a word.
+    const dictionaryType = params.get('dt')
+    if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
+      settings.dictionaryType = dictionaryType
     } else {
-      throw new Error(`Dictionary type unimplemented: ${dictionaryType}`)
+      throw new Error(`Unknown dictionary type: "${dictionaryType}".`)
+    }
+    const dictionarySettings = params.get('ds')
+    if (dictionaryType === 'custom') {
+      settings.dictionarySettings = dictionarySettings
     }
     if (!playerId) {
       if (settings.players.length === 2) {
