@@ -318,13 +318,12 @@ export class GameState extends EventTarget {
       const letterCounts: {[key: string]: number} = {}
       const letterValues: {[key: string]: number} = {}
       const lettersCountsAndValues = bagParam.split('.').map((letterCountAndValue: string) => {
-        const parts = letterCountAndValue.split('-')
-        if (parts.length === 3) {
-          letterCounts[parts[0]!] = parseInt(parts[1]!)
-          letterValues[parts[0]!] = parseInt(parts[1]!)
-        } else {
-          // TODO
+        if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
+          throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
         }
+        const parts = letterCountAndValue.split('-')
+        letterCounts[parts[0]!] = parseInt(parts[1]!)
+        letterValues[parts[0]!] = parseInt(parts[2]!)
       })
       settings.letterCounts = letterCounts
       settings.letterValues = letterValues
