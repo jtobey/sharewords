@@ -35,7 +35,7 @@ import { Settings } from './settings.js'
 import type { GameId } from './settings.js'
 import { checkIndices } from './tiles_state.js'
 import type { TilesState } from './tiles_state.js'
-import { Turn } from './turn.js'
+import { Turn, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
@@ -114,7 +114,7 @@ export class SharedState {
         throw new Error(`Turn number ${turn.turnNumber} is not a play or exchange.`)
       }
       turnsToPlayNow.push(turn)
-      this.nextTurnNumber += 1
+      this.nextTurnNumber = nextTurnNumber(this.nextTurnNumber)
     }
     return this.tilesState.playTurns(...turnsToPlayNow)
   }

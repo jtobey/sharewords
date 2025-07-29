@@ -9,6 +9,7 @@
  */
 
 import { Settings } from './settings.js'
+import type { GameId } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './serializable.js'
 import { SharedState } from './shared_state.js'
@@ -164,7 +165,7 @@ export class GameState {
             const assignedLetter = blankTileAssignments[placements.length] ?? ''
             const value = assignedLetter ? 0 : this.settings.letterValues[letter]
             if (value === undefined) { throw new Error(`Attempt to play an invalid letter: "${letter}"`) }
-            const placement = {tile: new Tile({letter, value}), row, col}
+            const placement: TilePlacement = {tile: new Tile({letter, value}), row, col}
             if (assignedLetter) placement.assignedLetter = assignedLetter
             placements.push(placement)
           } else if (square.letter !== letter) {
