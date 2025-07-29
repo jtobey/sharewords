@@ -7,7 +7,7 @@ const DIGITS = '0123456789' + SUBSCRIPTS
 // const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
 
 export class TestBoard extends Board {
-  headers = {} as {[key: string]: string}
+  headers = new URLSearchParams
 }
 
 /**
@@ -112,7 +112,7 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
   const boardStrings = new Map(startColumns.map(startColumn => [
     startColumn,
     {
-      headers: {} as {[key: string]: string},
+      headers: new URLSearchParams,
       body: [] as Array<string>,
     }
   ]))
@@ -143,10 +143,9 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
         }
         const headers = boardStrings.get(startColumn)?.headers
         if (headers) {
-          const header_name = header.substr(0, colon)
-          const header_value = header.substr(colon + 1).trim()
-          if (header_name in headers) headers[header_name] += '\n' + header_value
-          else headers[header_name] = header_value
+          const headerName = header.substr(0, colon)
+          const headerValue = header.substr(colon + 1).trim()
+          headers.append(headerName, headerValue)
         }
       }
     })
@@ -154,7 +153,7 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
   return [...boardStrings.values().map(parseBoard)]
 }
 
-function parseBoard({headers, body}: {headers: {[key: string]: string}, body: Array<string>}) {
+function parseBoard({headers, body}: {headers: URLSearchParams, body: Array<string>}) {
   const squares = body.map(parseRowOfSquares)
   const board = new TestBoard(...generateRowStrings(squares))
   squares.map((row, rowNumber) => {

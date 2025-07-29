@@ -60,13 +60,13 @@ describe('test support', () => {
     expect(parsed[0]).toHaveLength(3)
     expect(parsed[0][0].squares).toHaveLength(3)
     expect(parsed[0][0].squares[0]).toHaveLength(4)
-    expect(parsed[0][0].headers).toEqual({from:'me', to:'you'})
+    expect(parsed[0][0].headers).toEqual(new URLSearchParams('from=me&to=you'))
     expect(parsed[0][1].squares).toHaveLength(2)
     expect(parsed[0][1].squares[0]).toHaveLength(2)
-    expect(parsed[0][1].headers).toEqual({'long-header': 'hello there!'})
+    expect(parsed[0][1].headers).toEqual(new URLSearchParams([['long-header', 'hello there!']]))
     expect(parsed[0][2].squares).toHaveLength(1)
     expect(parsed[0][2].squares[0]).toHaveLength(2)
-    expect(parsed[0][2].headers).toEqual({disjoint:'header'})
+    expect(parsed[0][2].headers).toEqual(new URLSearchParams('disjoint=header'))
   })
 
   it('should parse a header on the second board', () => {
@@ -79,23 +79,23 @@ describe('test support', () => {
 
     `
     const parsed = parseBoards(boardsStr)
-    expect(parsed[0][0].headers).toEqual({})
-    expect(parsed[0][1].headers).toEqual({'long-header': 'hello there!'})
+    expect(parsed[0][0].headers).toEqual(new URLSearchParams)
+    expect(parsed[0][1].headers).toEqual(new URLSearchParams([['long-header', 'hello there!']]))
   })
 
-  it('should concatenate a multi-line header', () => {
+  it('should support multiples in headers', () => {
     const boardsStr = `
 
-        mlh: line 1
-        mlh: line 2
-        mlh: line 3
+        mh: value 1
+        mh: value 2
+        mh: value 3
         . ² Z₉.
         3 . A0.
         . 2 . ³
 
     `
     const parsed = parseBoards(boardsStr)
-    expect(parsed[0][0].headers).toEqual({'mlh': 'line 1\nline 2\nline 3'})
+    expect(parsed[0][0].headers.getAll('mh')).toEqual(['value 1', 'value 2', 'value 3'])
   })
 
   it('should ignore a blank line after headers', () => {
@@ -109,7 +109,7 @@ describe('test support', () => {
 
     `
     const parsed = parseBoards(boardsStr)
-    expect(parsed[0][0].headers).toEqual({'header-name': 'header-value'})
+    expect(parsed[0][0].headers).toEqual(new URLSearchParams('header-name=header-value'))
   })
 
   it('should diff boards', () => {
