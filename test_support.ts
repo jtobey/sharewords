@@ -196,7 +196,7 @@ function diffSquares(a: Square, b: Square): TilePlacement | null {
         a.tile.value !== b.tile.value ||
         a.assignedLetter !== b.assignedLetter
     ) {
-      throw new Error(`diffBoards: tile or assignment difference at ${a.row},${a.col}`)
+      throw new Error(`diffBoards: tile or assignment difference at ${a.row},${a.col}: ${JSON.stringify([a, b])}`)
     }
     return null
   }

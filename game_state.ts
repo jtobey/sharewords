@@ -28,10 +28,10 @@ export class GameState {
     settings?: Settings,
     public keepAllHistory = false,
     shared?: SharedState,
-    public rack = [] as Array<Tile>,
+    public rack = [] as Array<Tile>,  // TODO - Make Array<TilePlacement>.
     /**
-     * The last N turns played by any player, where N is at least one less
-     * than the number of players. Turn URLs should describe the last move
+     * The last N turns played, where N is at least
+     * the number of players minus one. Turn URLs should describe the last move
      * made by each player except the player whose turn it is.
      */
     readonly history = [] as Array<TurnData>,
@@ -50,7 +50,7 @@ export class GameState {
 
   async updateRack() {
     this.rack = await this.shared.tilesState.getTiles(this.playerId)
-    // TODO - Define and fire a rack-change event.
+    // TODO - Maybe define and fire a rack-change event?
     return this.rack
   }
 
@@ -113,7 +113,7 @@ export class GameState {
       // TODO - Define and fire a change event.
     }
     if (!this.keepAllHistory) {
-      this.history.splice(0, this.history.length - this.players.length)
+      this.history.splice(0, this.history.length - this.players.length + 1)
     }
     if (!promise) throw exception
     await promise
@@ -164,7 +164,9 @@ export class GameState {
             const assignedLetter = blankTileAssignments[placements.length] ?? ''
             const value = assignedLetter ? 0 : this.settings.letterValues[letter]
             if (value === undefined) { throw new Error(`Attempt to play an invalid letter: "${letter}"`) }
-            placements.push({tile: new Tile({letter, value}), assignedLetter, row, col})
+            const placement = {tile: new Tile({letter, value}), row, col}
+            if (assignedLetter) placement.assignedLetter = assignedLetter
+            placements.push(placement)
           } else if (square.letter !== letter) {
             throw new Error(`Attempt word requires "${letter}" at ${row},${col}, but "${square.letter}" is there.`)
           }
@@ -231,7 +233,7 @@ export class GameState {
   }
 
   get turnUrlParams() {
-    const gameParams = new URLSearchParams
+    const gameParams = new URLSearchParams([['gid', this.gameId]])
     const turnHistory = this.history.slice(-this.players.length)
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
@@ -252,7 +254,6 @@ export class GameState {
   }
 
   toParams(params: URLSearchParams) {
-    params.set('gid', this.gameId)
     if (this.nextTurnNumber <= this.settings.players.length) {
       // Not all players have played. Include any non-default game settings.
       const defaults = new Settings
@@ -295,8 +296,11 @@ export class GameState {
     if (verParam && verParam !== settings.version) {
       throw new Error(`Protocol version not supported: ${verParam}`)
     }
+    const gidParam = params.get('gid')
+    if (!gidParam) throw new Error('No Game ID in URL.')
+    settings.gameId = gidParam as GameId
     const pnParams = params.getAll('pn')
-    if (pnParams) settings.players = pnParams.map((name, index) => {
+    if (pnParams.length) settings.players = pnParams.map((name, index) => {
       const args = {id: String(index + 1), ...(name ? {name} : {})}
       return new Player(args)
     })
@@ -328,22 +332,24 @@ export class GameState {
       if (!seedParam) throw new Error('No random seed in URL.')
       settings.tileSystemSettings = parseInt(seedParam)
     }
-    const dictionaryType = params.get('dt')
-    if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-      settings.dictionaryType = dictionaryType
-    } else {
-      throw new Error(`Unknown dictionary type: "${dictionaryType}".`)
+    const dtParam = params.get('dt')
+    if (dtParam) {
+      if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
+        settings.dictionaryType = dtParam
+      } else {
+        throw new Error(`Unknown dictionary type: "${dtParam}".`)
+      }
     }
-    const dictionarySettings = params.get('ds')
-    if (dictionaryType === 'custom') {
-      settings.dictionarySettings = dictionarySettings
+    const dsParam = params.get('ds')
+    if (settings.dictionaryType === 'custom') {
+      settings.dictionarySettings = dsParam
     }
     if (!playerId) {
       if (settings.players.length === 2) {
         playerId = settings.players[1]!.id
         console.log(`Joining as player ${playerId}`)
       } else {
-        throw new Error(`No player ID provided. Who am I?`)
+        throw new Error(`No player ID provided. Who am I? ${JSON.stringify(settings.players)}`)
       }
     }
     const gameState = new GameState(playerId, settings)

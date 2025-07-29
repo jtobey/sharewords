@@ -114,7 +114,7 @@ export class SharedState {
         throw new Error(`Turn number ${turn.turnNumber} is not a play or exchange.`)
       }
       turnsToPlayNow.push(turn)
-      this.nextTurnNumber++
+      this.nextTurnNumber += 1
     }
     return this.tilesState.playTurns(...turnsToPlayNow)
   }
