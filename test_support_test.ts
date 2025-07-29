@@ -22,9 +22,9 @@ describe('test support', () => {
     const parsed = parseBoards(boardsStr)
     expect(parsed).toHaveLength(1)
     expect(parsed[0]).toHaveLength(1)
-    const board = parsed[0]?.[0]
+    const board = parsed[0][0]
     expect(board).toBeInstanceOf(TestBoard)
-    expect(board as unknown as TestBoard).toEqual(expected)
+    expect(board).toEqual(expected)
   })
 
   it('should parse rows of boards', () => {
@@ -58,15 +58,15 @@ describe('test support', () => {
     const parsed = parseBoards(boardsStr)
     expect(parsed).toHaveLength(1)
     expect(parsed[0]).toHaveLength(3)
-    expect(parsed[0][0]?.squares).toHaveLength(3)
-    expect(parsed[0][0]?.squares?.[0]).toHaveLength(4)
-    expect(parsed[0][0]?.headers).toEqual({from:'me', to:'you'})
-    expect(parsed[0][1]?.squares).toHaveLength(2)
-    expect(parsed[0][1]?.squares?.[0]).toHaveLength(2)
-    expect(parsed[0][1]?.headers).toEqual({'long-header': 'hello there!'})
-    expect(parsed[0][2]?.squares).toHaveLength(1)
-    expect(parsed[0][2]?.squares?.[0]).toHaveLength(2)
-    expect(parsed[0][2]?.headers).toEqual({disjoint:'header'})
+    expect(parsed[0][0].squares).toHaveLength(3)
+    expect(parsed[0][0].squares[0]).toHaveLength(4)
+    expect(parsed[0][0].headers).toEqual({from:'me', to:'you'})
+    expect(parsed[0][1].squares).toHaveLength(2)
+    expect(parsed[0][1].squares[0]).toHaveLength(2)
+    expect(parsed[0][1].headers).toEqual({'long-header': 'hello there!'})
+    expect(parsed[0][2].squares).toHaveLength(1)
+    expect(parsed[0][2].squares[0]).toHaveLength(2)
+    expect(parsed[0][2].headers).toEqual({disjoint:'header'})
   })
 
   it('should parse a header on the second board', () => {
@@ -80,9 +80,9 @@ describe('test support', () => {
 
     `
     const parsed = parseBoards(boardsStr)
-    expect(parsed[0][0]?.headers).toEqual({})
-    expect(parsed[0][1]?.headers).toEqual({'long-header': 'hello there!'})
-    expect(parsed[0][2]?.headers).toEqual({disjoint:'header'})
+    expect(parsed[0][0].headers).toEqual({})
+    expect(parsed[0][1].headers).toEqual({'long-header': 'hello there!'})
+    expect(parsed[0][2].headers).toEqual({disjoint:'header'})
   })
 
   it('should diff boards', () => {
