@@ -20,11 +20,14 @@ import type { TurnNumber } from './turn.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
-class GameState {
+export class GameState {
+  readonly shared: SharedState
+
   constructor(
     readonly playerId: string,  // The local player.
-    readonly shared: SharedState,
+    settings?: Settings,
     public keepAllHistory = false,
+    shared?: SharedState,
     public rack = [] as Array<Tile>,
     /**
      * The last N turns played by any player, where N is at least one less
@@ -33,7 +36,14 @@ class GameState {
      */
     readonly history = [] as Array<TurnData>,
   ) {
-    if (!shared.settings.players.some(p => p.id === playerId)) {
+    if (!shared) {
+      if (!settings) {
+        throw new Error('New GameState requires either a Settings or a SharedState.')
+      }
+      shared = new SharedState(settings)
+    }
+    this.shared = shared
+    if (!this.shared.settings.players.some(p => p.id === playerId)) {
       throw new Error(`Player ID "${playerId}" is not listed in settings.`)
     }
   }
@@ -41,13 +51,19 @@ class GameState {
   async updateRack() {
     this.rack = await this.shared.tilesState.getTiles(this.playerId)
     // TODO - Define and fire a rack-change event.
+    return this.rack
   }
 
-  get settings()       { return this.shared.settings }
-  get gameId()         { return this.shared.gameId }
-  get nextTurnNumber() { return this.shared.nextTurnNumber }
-  get players()        { return this.shared.players }
-  get board()          { return this.shared.board }
+  get gameId()             { return this.shared.gameId }
+  get settings()           { return this.shared.settings }
+  get nextTurnNumber()     { return this.shared.nextTurnNumber }
+  get players()            { return this.shared.players }
+  get board()              { return this.shared.board }
+  get numberOfTilesInBag() { return this.shared.tilesState.numberOfTilesInBag }
+
+  async getTiles(playerId: string) {
+    return await this.shared.tilesState.getTiles(playerId)
+  }
   
   async playTurns(...turns: Array<Turn>) {
     // `this.shared.playTurns` validates several turn properties before it awaits.
@@ -71,7 +87,7 @@ class GameState {
         // `this.shared.playTurns` must have returned early.
         break
       }
-      if (this.history.length && turn.turnNumber as number <= (this.history[-1]!.turnNumber as number)) {
+      if (this.history.length && turn.turnNumber as number <= (this.history[this.history.length-1]!.turnNumber as number)) {
         continue
       }
       if (turn.playerId === this.playerId) iPlayed = true
@@ -118,7 +134,7 @@ class GameState {
     let wordPlayed: string | null = null
     let exchangeIndicesStr: string | null = null
     const nextTurn = () => {
-      const playerId = this.players[urlTurnNumber % this.players.length]!.id
+      const playerId = this.players[(urlTurnNumber - 1) % this.players.length]!.id
       if (wordPlayed && direction && wordLocationStr) {
         if (exchangeIndicesStr) {
           throw new Error(`URL contains both word and exchange data for turn ${urlTurnNumber}`)
@@ -330,7 +346,7 @@ class GameState {
         throw new Error(`No player ID provided. Who am I?`)
       }
     }
-    const gameState = new GameState(playerId, new SharedState(settings))
+    const gameState = new GameState(playerId, settings)
     await gameState.applyTurnParams(params)
     return gameState
   }
@@ -363,8 +379,9 @@ class GameState {
 
     return new GameState(
       json.playerId,
-      SharedState.fromJSON(json.shared),
+      undefined,  // settings
       json.keepAllHistory,
+      SharedState.fromJSON(json.shared),
       json.rack.map(Tile.fromJSON),
       json.history,
     )

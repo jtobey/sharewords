@@ -1,5 +1,5 @@
 import { Settings } from './settings.js'
-import { SharedState } from './shared_state.js'
+import { GameState } from './game_state.js'
 import { makeTiles } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -10,10 +10,11 @@ import { Turn } from './turn.js'
 import type { TurnNumber } from './turn.js'
 
 const settings = new Settings
-settings.players=[new Player({id:'player1', name:'Player 1'})]
+settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
 settings.tileSystemSettings = 17  // random seed
-const sharedState = new SharedState(settings)
-console.log(sharedState)
+const gameState = new GameState('1', settings)
+await gameState.updateRack()
+console.log(gameState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 function subscript(n: number) {
@@ -21,28 +22,28 @@ function subscript(n: number) {
 }
 const HANDLERS = {
   'Show Board': () => alert(
-    sharedState.board.squares.map((squares, row) => squares.map(
+    gameState.board.squares.map((squares, row) => squares.map(
       sq => `${sq.letter || {
         '1,1': '.', '2,1': '²', '3,1': '³', '1,2': '2', '1,3': '3'
       }[String([sq.letterBonus, sq.wordBonus])]}${sq.value ? subscript(sq.value) : ' '}`
     ).join('   '))
       .join('\n')),
   'Show Stats': async () => {
-    const rack = (await sharedState.tilesState.getTiles('player1'))
-      .map(t => `${t.letter || '?'}${subscript(t.value)}`).join(' ')
+    const rack = gameState.rack.map(t => `${t.letter || '?'}${subscript(t.value)}`).join(' ')
     alert(`
-    Tiles in bag: ${sharedState.tilesState.numberOfTilesInBag}
+    Tiles in bag: ${gameState.numberOfTilesInBag}
     Rack: ${rack}
-    Score: ${sharedState.board.scores.get('player1') ?? 0}`)
+    Score: ${gameState.board.scores.get('1') ?? 0}
+    Turn URL params: ${gameState.turnUrlParams}`)
   },
   'Play Word': async () => {
     const turnStr = window.prompt('Enter one or more [rackIndex,row,col,assignedLetter?] tuples, separated by commas. Indices are zero-based.')
     const turnJson = JSON.parse(`[${turnStr}]`)
-    const rack = await sharedState.tilesState.getTiles('player1')
+    const rack = await gameState.getTiles('1')
     const placements = turnJson.map(([rackIndex, row, col, ...rest]: [number, number, number, Array<string>]) =>
       ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TilePlacement>
     try {
-      await sharedState.playTurns(new Turn('player1', 1 as TurnNumber, {playTiles: placements}))
+      await gameState.playTurns(new Turn('1', 1 as TurnNumber, {playTiles: placements}))
     } catch (e: any) {
       alert(e)
     }
