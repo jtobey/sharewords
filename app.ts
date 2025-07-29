@@ -4,7 +4,7 @@ import { makeTiles } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
-import type { TilePlacement } from './tile.ts'
+import type { BoardPlacement } from './tile.ts'
 import { Player } from './player.ts'
 import { Turn, toTurnNumber } from './turn.js'
 
@@ -12,7 +12,12 @@ const settings = new Settings
 settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
 settings.tileSystemSettings = 17  // random seed
 const gameState = new GameState('1', settings)
-await gameState.updateRack()
+for (const eventName of ['tilemove', 'boardchange']) {
+  gameState.addEventListener(eventName, (evt) => {
+    console.log(eventName, evt)
+  })
+}
+await gameState.initRack()
 console.log(gameState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
@@ -28,7 +33,7 @@ const HANDLERS = {
     ).join('   '))
       .join('\n')),
   'Show Stats': async () => {
-    const rack = gameState.rack.map(t => `${t.letter || '?'}${subscript(t.value)}`).join(' ')
+    const rack = gameState.tilesHeld.map(t => `${t.tile.letter || '?'}${subscript(t.tile.value)}`).join(' ')
     alert(`
     Tiles in bag: ${gameState.numberOfTilesInBag}
     Rack: ${rack}
@@ -40,7 +45,7 @@ const HANDLERS = {
     const turnJson = JSON.parse(`[${turnStr}]`)
     const rack = await gameState.getTiles('1')
     const placements = turnJson.map(([rackIndex, row, col, ...rest]: [number, number, number, Array<string>]) =>
-      ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<TilePlacement>
+      ({row, col, tile: rack[rackIndex], assignedLetter: rest[0] || ''})) as Array<BoardPlacement>
     try {
       await gameState.playTurns(new Turn('1', toTurnNumber(1), {playTiles: placements}))
     } catch (e: any) {

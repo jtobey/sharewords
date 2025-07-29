@@ -14,14 +14,14 @@ import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './serializable.js'
 import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
-import type { TilePlacement } from './tile.js'
+import type { TilePlacement, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
-export class GameState {
+export class GameState extends EventTarget {
   readonly shared: SharedState
 
   constructor(
@@ -29,7 +29,7 @@ export class GameState {
     settings?: Settings,
     public keepAllHistory = false,
     shared?: SharedState,
-    public rack = [] as Array<Tile>,  // TODO - Make Array<TilePlacement>.
+    public tilesHeld = [] as Array<TilePlacement>,
     /**
      * The last N turns played, where N is at least
      * the number of players minus one. Turn URLs should describe the last move
@@ -37,6 +37,7 @@ export class GameState {
      */
     readonly history = [] as Array<TurnData>,
   ) {
+    super()
     if (!shared) {
       if (!settings) {
         throw new Error('New GameState requires either a Settings or a SharedState.')
@@ -49,10 +50,17 @@ export class GameState {
     }
   }
 
-  async updateRack() {
-    this.rack = await this.shared.tilesState.getTiles(this.playerId)
-    // TODO - Maybe define and fire a rack-change event?
-    return this.rack
+  async initRack() {
+    const tiles = await this.shared.tilesState.getTiles(this.playerId)
+    this.tilesHeld = tiles.map((tile, index) => {
+      return {
+        tile,
+        row: 'rack',
+        col: index,
+      }
+    })
+    this.dispatchEvent(new CustomEvent('tilemove', {detail: this.tilesHeld}))
+    return this
   }
 
   get gameId()             { return this.shared.gameId }
@@ -96,7 +104,7 @@ export class GameState {
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
         const tileAssignments = [] as Array<string>
-        turn.move.playTiles.forEach((placement: TilePlacement, index) => {
+        turn.move.playTiles.forEach((placement: BoardPlacement, index) => {
           if (placement.tile.isBlank) {
             tileAssignments.push(`${index}-${placement.assignedLetter}`)
           }
@@ -111,14 +119,14 @@ export class GameState {
       wroteHistory = true
     }
     if (wroteHistory) {
-      // TODO - Define and fire a change event.
+      this.dispatchEvent(new CustomEvent('boardchange', {detail: this.board}))
     }
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
     }
     if (!promise) throw exception
     await promise
-    if (iPlayed) await this.updateRack()
+    if (iPlayed) await this.initRack()
   }
 
   async applyTurnParams(params: URLSearchParams) {
@@ -156,7 +164,7 @@ export class GameState {
         if (!match) { throw new Error(`Invalid wl parameter in URL: ${wordLocationStr}`) }
         let row = parseInt(match[1]!)
         let col = parseInt(match[2]!)
-        const placements = [] as Array<TilePlacement>
+        const placements = [] as Array<BoardPlacement>
         for (const letter of wordPlayed.split('')) {
           const square = this.board.squares[row]?.[col]
           if (!square) { throw new RangeError(`Attemted to play a word out of bounds: ${row},${col}.`) }
@@ -165,7 +173,7 @@ export class GameState {
             const assignedLetter = blankTileAssignments[placements.length] ?? ''
             const value = assignedLetter ? 0 : this.settings.letterValues[letter]
             if (value === undefined) { throw new Error(`Attempt to play an invalid letter: "${letter}"`) }
-            const placement: TilePlacement = {tile: new Tile({letter, value}), row, col}
+            const placement: BoardPlacement = {tile: new Tile({letter, value}), row, col}
             if (assignedLetter) placement.assignedLetter = assignedLetter
             placements.push(placement)
           } else if (square.letter !== letter) {
@@ -363,7 +371,15 @@ export class GameState {
       shared: this.shared.toJSON(),
       playerId: this.playerId,
       keepAllHistory: this.keepAllHistory,
-      rack: this.rack.map(t => t.toJSON()),
+      tilesHeld: this.tilesHeld.map((placement: TilePlacement) => {
+        const json = {
+          tile: placement.tile.toJSON(),
+          row: placement.row,
+          col: placement.col,
+        } as any
+        if (placement.assignedLetter) json.assignedLetter = placement.assignedLetter
+        return json
+      }),
       history: this.history,
     }
   }
@@ -375,21 +391,48 @@ export class GameState {
     if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual(
       [...Object.keys(json)],
-      ['shared', 'playerId', 'keepAllHistory', 'rack', 'history'])
-    ) {
+      ['shared', 'playerId', 'keepAllHistory', 'rack', 'history']
+    )) {
       fail('Wrong keys or key order')
     }
     if (typeof json.playerId !== 'string') fail('Player ID is not a string')
     if (typeof json.keepAllHistory !== 'boolean') fail('keepAllHistory is not a boolean')
-    if (!Array.isArray(json.rack)) fail('Rack is not an array')
+    if (!Array.isArray(json.tilesHeld)) fail('tilesHeld is not an array')
     if (!Array.isArray(json.history)) fail('History is not an array')
+
+    const tilesHeld = json.tilesHeld.map((tileJson: any) => {
+      if (typeof tileJson !== 'object') fail('tilesHeld element is not an object')
+      if (!arraysEqual(
+        [...Object.keys({...json, assignedLetter:'x'})],
+        ['tile', 'row', 'col', 'assignedLetter']
+      )) {
+        fail('Wrong tilesHeld element keys or key order')
+      }
+      if (typeof json.row !== 'number' && json.row !== 'rack' && json.row !== 'exchange') {
+        fail('Invalid tilesHeld[].row')
+      }
+      if (typeof json.col !== 'number') fail ('Invalid tilesHeld[].col')
+      if (json.assignedLetter !== undefined && typeof json.assignedLetter !== 'string') {
+        fail('Invalid tilesHeld[].assignedLetter')
+      }
+      const tile = Tile.fromJSON(json.tile)
+      if (tile.letter && json.assignedLetter) fail('Non-blank tile with an assigned letter')
+      const result: TilePlacement = {
+        tile,
+        row: json.row,
+        col: json.col,
+      }
+      if (json.assignedLetter) result.assignedLetter = json.assignedLetter
+      return result
+    })
+    // TODO - Check json.history element types.
 
     return new GameState(
       json.playerId,
       undefined,  // settings
       json.keepAllHistory,
       SharedState.fromJSON(json.shared),
-      json.rack.map(Tile.fromJSON),
+      tilesHeld,
       json.history,
     )
   }

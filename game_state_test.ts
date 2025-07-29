@@ -85,8 +85,8 @@ describe('game state', () => {
     settings.gameId = 'test' as GameId
     settings.tileSystemSettings = 2  // Random seed.
     const player1GameState = new GameState('1', settings)
-    await player1GameState.updateRack()
-    const initialRack = player1GameState.rack.map(t => t.letter)
+    await player1GameState.initRack()
+    const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter)
     expect(initialRack.join('')).toEqual('WTIUTNC')
 
     // Exchange the first, third, and last tiles.
@@ -95,7 +95,7 @@ describe('game state', () => {
     await player1GameState.playTurns(turn)
 
     // The rack should have new tiles.
-    const newRack = player1GameState.rack.map(t => t.letter)
+    const newRack = player1GameState.tilesHeld.map(t => t.tile.letter)
     expect(newRack.join('')).toEqual('TUTNKEE')
 
     // The turnUrlParams should contain the exchange.

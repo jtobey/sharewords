@@ -38,7 +38,6 @@ import type { TilesState } from './tiles_state.js'
 import { Turn, toTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
-import type { TilePlacement } from './tile.ts'
 import { makeTiles } from './tile.js'
 
 export class SharedState {

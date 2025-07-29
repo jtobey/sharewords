@@ -1,4 +1,4 @@
-import type { TilePlacement } from './tile.js'
+import type { BoardPlacement } from './tile.js'
 
 export type TurnNumber = number & { '__brand': 'TurnNumber' }
 
@@ -21,7 +21,7 @@ export class Turn {
   vertical?: boolean
 
   constructor(readonly playerId: string, readonly turnNumber: TurnNumber, readonly move: {
-    playTiles: ReadonlyArray<TilePlacement>
+    playTiles: ReadonlyArray<BoardPlacement>
   } | {
     exchangeTileIndices: ReadonlyArray<number>
   }) {

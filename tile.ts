@@ -36,12 +36,16 @@ export class Tile {
   }
 }
 
+// A Tile positioned on the rack, exchange pile, or game board.
 export interface TilePlacement {
-  row: number
+  row: number | 'rack' | 'exchange'
   col: number
   tile: Tile
-  assignedLetter?: string  // For when `tile` is a blank.
+  assignedLetter?: string  // For blank tiles on the board.
 }
+
+// A Tile positioned on the game board.
+export type BoardPlacement = TilePlacement & { row: number }
 
 interface StringNumbers { [key: string]: number }
 

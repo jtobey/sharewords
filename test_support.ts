@@ -1,5 +1,5 @@
 import { Square, generateRowStrings, Board } from './board.ts'
-import type { TilePlacement } from './tile.ts'
+import type { BoardPlacement } from './tile.ts'
 import { Tile } from './tile.ts'
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
@@ -176,10 +176,10 @@ function parseRowOfSquares(rowOfSquaresStr: string, row: number) {
   return squares
 }
 
-export function diffBoards(a: Board, b: Board): Array<TilePlacement> {
+export function diffBoards(a: Board, b: Board): Array<BoardPlacement> {
   if (a.squares.length !== b.squares.length) throw new Error(`Mismatched board heights.`)
   if (a.squares[0]?.length !== b.squares[0]?.length) throw new Error(`Mismatched board widths.`)
-  const result = [] as Array<TilePlacement>
+  const result = [] as Array<BoardPlacement>
   a.squares.forEach((rowOfSquares, row) => {
     rowOfSquares.forEach((square, col) => {
       const diff = diffSquares(square, b.squares[row]?.[col] as Square)
@@ -189,7 +189,7 @@ export function diffBoards(a: Board, b: Board): Array<TilePlacement> {
   return result
 }
 
-function diffSquares(a: Square, b: Square): TilePlacement | null {
+function diffSquares(a: Square, b: Square): BoardPlacement | null {
   if (a.tile && b.tile) {
     if (
       a.tile.letter !== b.tile.letter ||
@@ -207,7 +207,7 @@ function diffSquares(a: Square, b: Square): TilePlacement | null {
     }
     return null
   }
-  const diff: TilePlacement = {row: a.row, col: a.col, tile: b.tile}
+  const diff: BoardPlacement = {row: a.row, col: a.col, tile: b.tile}
   if (b.assignedLetter) diff.assignedLetter = b.assignedLetter
   return diff
 }

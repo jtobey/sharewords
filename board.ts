@@ -1,6 +1,6 @@
 import { arraysEqual } from './serializable.js'
 import { Tile } from './tile.js'
-import type { TilePlacement } from './tile.js'
+import type { BoardPlacement } from './tile.js'
 
 export class Square {
   readonly row: number
@@ -95,7 +95,7 @@ export class Board {
    * @throws {WordPlacementError} Will throw if only a single tiles is placed, not adjacent to any
    *         other, even if on the center square.
    */
-  checkWordPlacement(...placements: Array<TilePlacement>): {
+  checkWordPlacement(...placements: Array<BoardPlacement>): {
     wordsFormed: Array<string>,
     score: number,
     mainWord: string,
@@ -220,7 +220,7 @@ export class Board {
     }
   }
 
-  placeTiles(...tiles: Array<TilePlacement>): void {
+  placeTiles(...tiles: Array<BoardPlacement>): void {
     for (const tile of tiles) {
       const square = this.squares[tile.row]?.[tile.col]
       if (!square) throw new Error(`Invalid board coordinates: ${tile.row},${tile.col}.`)
