@@ -23,15 +23,15 @@ describe('game state', () => {
 
           gid: test
           ver: 0
-          seed: 1                             
+          seed: 1
           board: T.d.T-.t.t.-d.D.d-.t.t.-T.d.T  gid: test
           tn: 1                                 tn: 2
           wl: 2.0                               wl: 1.1
           wh: VET                               wh: HEN
 
           3 . ² . 3                             3 . ² . 3
-          . ³ . ³ .                             . H4E1N1.
-          V5E1T1. ²                             V5E1T1. ²
+          . ³ . ³ .                             . H₄E₁N₁.
+          V₅E₁T₁. ²                             V₅E₁T₁. ²
           . ³ . ³ .                             . ³ . ³ .
           3 . ² . 3                             3 . ² . 3
 
@@ -42,10 +42,10 @@ describe('game state', () => {
           wv: SIR                               wh: GLUE
 
           3 . ² . 3                             3 . ² . 3
-          . H4E1N1S1                            . H4E1N1S1
-          V5E1T1. I1                            V5E1T1. I1
-          . ³ . ³ R1                            . ³ . ³ R1
-          3 . ² . 3                             3 G3L1U2E1
+          . H₄E₁N₁S₁                            . H₄E₁N₁S₁
+          V₅E₁T₁. I₁                            V₅E₁T₁. I₁
+          . ³ . ³ R₁                            . ³ . ³ R₁
+          3 . ² . 3                             3 G₃L₁U₂E₁
 
       `) as any
     settings.boardLayout = generateRowStrings(sharedBoard.squares)
