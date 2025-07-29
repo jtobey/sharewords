@@ -68,7 +68,6 @@ describe('board', () => {
   })
 
   it('should score bridges', () => {
-    // @ts-ignore
     const [oldBoard, newBoard] = parseBoards(`
 
         . . . .     . . . .
@@ -76,9 +75,9 @@ describe('board', () => {
         N₁O₁T₁.     N₁O₁T₁.
         . . . .     . . . .
 
-    `)[0]
-    const diff = diffBoards(oldBoard, newBoard)
-    expect(oldBoard.checkWordPlacement(...diff)).toEqual({
+    `)[0]!
+    const diff = diffBoards(oldBoard!, newBoard!)
+    expect(oldBoard!.checkWordPlacement(...diff)).toEqual({
       score: 22,
       wordsFormed: ['AGED', 'GO'],
       mainWord: 'AGED',
@@ -95,15 +94,14 @@ describe('board', () => {
     })
 
     it('should throw if tiles are not in a line', () => {
-      // @ts-ignore
       const [oldBoard, newBoard] = parseBoards(`
 
           . . . .     A1. . .
           . . . .     . B1. .
 
-      `)[0]
-      const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff))
+      `)[0]!
+      const diff = diffBoards(oldBoard!, newBoard!)
+      expect(() => oldBoard!.checkWordPlacement(...diff))
         .toThrow('Tiles are not in a line.')
     })
 
@@ -119,9 +117,9 @@ describe('board', () => {
 
           . . .     A1. B2
 
-      `)[0]
-      const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff))
+      `)[0]!
+      const diff = diffBoards(oldBoard!, newBoard!)
+      expect(() => oldBoard!.checkWordPlacement(...diff))
         .toThrow('Tiles form a line with gaps between them.')
     })
 
@@ -132,9 +130,9 @@ describe('board', () => {
           . . .     . A1.
           . . .     . . .
 
-      `)[0]
-      const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff))
+      `)[0]!
+      const diff = diffBoards(oldBoard!, newBoard!)
+      expect(() => oldBoard!.checkWordPlacement(...diff))
         .toThrow('No single-letter words accepted.')
     })
 
@@ -145,9 +143,9 @@ describe('board', () => {
           . . .     A₁. .
           . . .     M₃. .
 
-      `)[0]
-      const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff))
+      `)[0]!
+      const diff = diffBoards(oldBoard!, newBoard!)
+      expect(() => oldBoard!.checkWordPlacement(...diff))
         .toThrow('Tiles must connect to existing words or cover the center square.')
     })
 
@@ -158,9 +156,9 @@ describe('board', () => {
           . A₁. .   . A₁. O₁
           . . . .   . . . H₃
 
-      `)[0]
-      const diff = diffBoards(oldBoard, newBoard)
-      expect(() => oldBoard.checkWordPlacement(...diff))
+      `)[0]!
+      const diff = diffBoards(oldBoard!, newBoard!)
+      expect(() => oldBoard!.checkWordPlacement(...diff))
         .toThrow('Tiles must connect to existing words or cover the center square.')
     })
 
