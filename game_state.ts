@@ -188,7 +188,7 @@ export class GameState {
         const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
         exchangeIndexStrs.forEach((s: string) => {
           let index: number
-          try { index = parseInt(s) }
+          try { index = parseInt(s, 10) }
           catch (e: any) {
             throw new Error(`Invalid exchange tile index in URL: "${s}".`)
           }
@@ -196,7 +196,7 @@ export class GameState {
             throw new RangeError(`Exchange tile index ${index} in URL is out of range 0-${numberOfTilesInRack - 1}`)
           }
         })
-        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {exchangeTileIndices: exchangeIndexStrs.map(parseInt)}))
+        turns.push(new Turn(playerId, urlTurnNumber as TurnNumber, {exchangeTileIndices: exchangeIndexStrs.map(s => parseInt(s, 10))}))
       } else {
         // Nothing to see here, don't bump the turn number.
         return

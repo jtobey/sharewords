@@ -79,4 +79,32 @@ describe('game state', () => {
       sharedBoard = player2Board
     }
   })
+
+  it('should exchange tiles', async () => {
+    const settings = new Settings
+    settings.gameId = 'test' as GameId
+    settings.tileSystemSettings = 2  // Random seed.
+    const player1GameState = new GameState('1', settings)
+    await player1GameState.updateRack()
+    const initialRack = player1GameState.rack.map(t => t.letter)
+    expect(initialRack.join('')).toEqual('WTIUTNC')
+
+    // Exchange the first, third, and last tiles.
+    const exchangeIndices = [0, 2, 6]
+    const turn = new Turn('1', 1 as TurnNumber, { exchangeTileIndices: exchangeIndices })
+    await player1GameState.playTurns(turn)
+
+    // The rack should have new tiles.
+    const newRack = player1GameState.rack.map(t => t.letter)
+    expect(newRack.join('')).toEqual('TUTNKEE')
+
+    // The turnUrlParams should contain the exchange.
+    const params = player1GameState.turnUrlParams
+    expect(params.get('ex')).toEqual('0.2.6')
+
+    // A new game state created from the params should have the same rack.
+    const player2GameState = await GameState.fromParams(params, '2')
+    const player2Rack = await player2GameState.getTiles('1')
+    expect(player2Rack.map(t => t.letter).join('')).toEqual('TUTNKEE')
+  })
 })
