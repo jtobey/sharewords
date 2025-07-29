@@ -141,7 +141,12 @@ function parseRowOfBoards(rowOfBoardsStr: string) {
           throw new Error(`Invalid TestBoard header: ${header}`)
         }
         const headers = boardStrings.get(startColumn)?.headers
-        if (headers) headers[header.substr(0, colon)] = header.substr(colon + 1).trim()
+        if (headers) {
+          const header_name = header.substr(0, colon)
+          const header_value = header.substr(colon + 1).trim()
+          if (header_name in headers) headers[header_name] += '\n' + header_value
+          else headers[header_name] = header_value
+        }
       }
     })
   })

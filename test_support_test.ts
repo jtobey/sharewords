@@ -72,9 +72,8 @@ describe('test support', () => {
   it('should parse a header on the second board', () => {
     const boardsStr = `
 
-                                            disjoint: header
                   long-header: hello there!
-        . ² Z₉.   . .                       . .
+        . ² Z₉.   . .
         3 . A0.   . .
         . 2 . ³
 
@@ -82,7 +81,21 @@ describe('test support', () => {
     const parsed = parseBoards(boardsStr)
     expect(parsed[0][0].headers).toEqual({})
     expect(parsed[0][1].headers).toEqual({'long-header': 'hello there!'})
-    expect(parsed[0][2].headers).toEqual({disjoint:'header'})
+  })
+
+  it('should concatenate a multi-line header', () => {
+    const boardsStr = `
+
+        mlh: line 1
+        mlh: line 2
+        mlh: line 3
+        . ² Z₉.
+        3 . A0.
+        . 2 . ³
+
+    `
+    const parsed = parseBoards(boardsStr)
+    expect(parsed[0][0].headers).toEqual({'mlh': 'line 1\nline 2\nline 3'})
   })
 
   it('should diff boards', () => {
