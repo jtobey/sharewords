@@ -81,7 +81,7 @@ export class GameState extends EventTarget {
 
   get turnUrlParams() {
     const gameParams = new URLSearchParams([['gid', this.gameId]])
-    const turnHistory = this.history.slice(-this.players.length)
+    const turnHistory = this.history.slice(1 - this.players.length)
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
     if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
@@ -275,7 +275,6 @@ export class GameState extends EventTarget {
       wroteHistory = true
     }
     if (tilePlacements.length) this.dispatchEvent(new BoardEvent('tilesplaced', {detail: {tilePlacements}}))
-    if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
     if (this.isGameOver) {
       // TODO: Transfer tile values to the winner.
       this.dispatchEvent(new GameEvent('gameover'))
@@ -283,6 +282,7 @@ export class GameState extends EventTarget {
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
     }
+    if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
     if (iPlayed) await this.initRack()
   }
 
