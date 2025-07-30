@@ -116,6 +116,10 @@ gameState.addEventListener('boardchange', (evt) => {
   renderBoard()
 })
 
+gameState.addEventListener('turnchange', () => {
+  window.location.hash = '#' + gameState.turnUrlParams.toString()
+})
+
 console.log(gameState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
