@@ -4,7 +4,7 @@
 
 import { Player } from './player.js'
 import type { TilesState } from './tiles_state.js'
-import { checkIndices } from './tiles_state.js'
+import { checkIndicesForExchange } from './tiles_state.js'
 import { Turn } from './turn.js'
 import { Tile } from './tile.js'
 import { HonorSystemBag } from './honor_system_bag.js'
@@ -65,7 +65,7 @@ export class HonorSystemTilesState implements TilesState {
       rackCopy.push(...this.bag.draw(numberOfTilesToDraw))
       if (rackCopy.length === 0) this.isGameOver = true
     } else if ('exchangeTileIndices' in turn.move) {
-      const indicesOfTilesToExchange = checkIndices(turn.move.exchangeTileIndices, rackCopy.length)
+      const indicesOfTilesToExchange = checkIndicesForExchange(rackCopy.length, ...turn.move.exchangeTileIndices)
       indicesOfTilesToExchange.sort((a, b) => b - a)  // Descending index order for splice.
       const tilesToExchange: Array<Tile> = []
       for (const indexOfTileToExchange of indicesOfTilesToExchange) {

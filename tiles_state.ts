@@ -9,6 +9,7 @@
 
 import { Tile } from './tile.js'
 import { Turn } from './turn.js'
+import { checkIndices } from './validation.ts'
 
 export interface TilesState {
   /**
@@ -65,14 +66,10 @@ export interface TilesState {
  * @throws Will throw if `indices` contains duplicates.
  * @throws {RangeError} Will throw if any index is a non-integer or out of range for an array of the given length.
  */
-export function checkIndices(indices: ReadonlyArray<number>, length: number) {
+export function checkIndicesForExchange(length: number, ...indices: ReadonlyArray<number>) {
   if ([...new Set(indices)].length !== indices.length) {
     throw new Error(`exchangeTileIndices contains duplicates: ${indices}`)
   }
-  for (const index of indices) {
-    if (index !== Math.floor(index) || index < 0 || index >= length) {
-      throw new RangeError(`Index ${index} is out of rack range 0..${length - 1}.`)
-    }
-  }
+  checkIndices(length, ...indices)
   return [...indices]
 }

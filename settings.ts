@@ -3,7 +3,7 @@
  */
 
 import type { Serializable } from './serializable.js'
-import { arraysEqual } from './serializable.js'
+import { arraysEqual } from './validation.js'
 import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
 

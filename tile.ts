@@ -36,9 +36,11 @@ export class Tile {
   }
 }
 
+export type TilePlacementRow = number | 'rack' | 'exchange'
+
 // A Tile positioned on the rack, exchange pile, or game board.
 export interface TilePlacement {
-  row: number | 'rack' | 'exchange'
+  row: TilePlacementRow
   col: number
   tile: Tile
   assignedLetter?: string  // For blank tiles on the board.

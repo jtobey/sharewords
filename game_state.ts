@@ -11,13 +11,14 @@
 import { Settings } from './settings.js'
 import type { GameId } from './settings.js'
 import { Board } from './board.js'
-import { arraysEqual, objectsEqual } from './serializable.js'
+import { arraysEqual, objectsEqual } from './validation.js'
 import { SharedState } from './shared_state.js'
 import { Tile } from './tile.js'
-import type { TilePlacement, BoardPlacement } from './tile.js'
+import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
+import { checkIndices } from './validation.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -74,7 +75,45 @@ export class GameState extends EventTarget {
   async getTiles(playerId: string) {
     return await this.shared.tilesState.getTiles(playerId)
   }
-  
+
+  get turnUrlParams() {
+    const gameParams = new URLSearchParams([['gid', this.gameId]])
+    const turnHistory = this.history.slice(-this.players.length)
+    const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
+    // Include game settings in the URL at the start of the game.
+    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
+      this.toParams(gameParams)
+    }
+    if (turnHistory.length) {
+      gameParams.append('tn', String(firstHistoryTurnNumber))
+      const turnParams = [] as Array<URLSearchParams>
+      turnHistory.forEach((turnData: TurnData) => {
+        turnParams.push(new URLSearchParams(turnData.params))
+      })
+      const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
+      return new URLSearchParams([...gameParams, ...flatTurnParams])
+    } else {
+      return gameParams
+    }
+  }
+
+  get playerWhoseTurnItIs() {
+    return this.players[(fromTurnNumber(this.nextTurnNumber) - 1) % this.players.length]
+  }
+
+  moveTile(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number) {
+    const placement = this.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
+    if (placement === undefined) throw new Error(`No held tile is at ${fromRow},${fromCol}.`)
+    const occupant = this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
+    if (toRow === 'rack' || toRow === 'exchange') {
+      checkIndices(this.settings.rackCapacity, toCol)
+      // XXX
+    } else {
+      // XXX
+    }
+    // XXX
+  }
+
   async playTurns(...turns: Array<Turn>) {
     // `this.shared.playTurns` validates several turn properties.
     // For example:
@@ -235,27 +274,6 @@ export class GameState extends EventTarget {
     }
     nextTurn()
     await this.playTurns(...turns)
-  }
-
-  get turnUrlParams() {
-    const gameParams = new URLSearchParams([['gid', this.gameId]])
-    const turnHistory = this.history.slice(-this.players.length)
-    const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
-    // Include game settings in the URL at the start of the game.
-    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      this.toParams(gameParams)
-    }
-    if (turnHistory.length) {
-      gameParams.append('tn', String(firstHistoryTurnNumber))
-      const turnParams = [] as Array<URLSearchParams>
-      turnHistory.forEach((turnData: TurnData) => {
-        turnParams.push(new URLSearchParams(turnData.params))
-      })
-      const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
-      return new URLSearchParams([...gameParams, ...flatTurnParams])
-    } else {
-      return gameParams
-    }
   }
 
   toParams(params: URLSearchParams) {

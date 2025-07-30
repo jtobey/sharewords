@@ -1,4 +1,4 @@
-import { arraysEqual } from './serializable.js'
+import { arraysEqual } from './validation.js'
 import { Tile } from './tile.js'
 import type { BoardPlacement } from './tile.js'
 

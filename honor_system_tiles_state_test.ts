@@ -134,13 +134,13 @@ describe('honor system tiles state', () => {
         await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [-1]}))
         expect.unreachable()
       } catch (e: any) {
-        expect(e.message).toBe('Index -1 is out of rack range 0..3.')
+        expect(e.message).toBe('Index -1 is out of range 0..3.')
       }
       try {
         await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [4]}))
         expect.unreachable()
       } catch (e: any) {
-        expect(e.message).toBe('Index 4 is out of rack range 0..3.')
+        expect(e.message).toBe('Index 4 is out of range 0..3.')
       }
     })
 

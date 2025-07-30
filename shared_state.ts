@@ -30,10 +30,10 @@
  * tile state.
  */
 
-import { arraysEqual } from './serializable.js'
+import { arraysEqual } from './validation.js'
 import { Settings } from './settings.js'
 import type { GameId, DictionaryType } from './settings.js'
-import { checkIndices } from './tiles_state.js'
+import { checkIndicesForExchange } from './tiles_state.js'
 import type { TilesState } from './tiles_state.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -99,7 +99,7 @@ export class SharedState {
         turn.vertical = vertical
         console.log(`Player ${playerId} plays ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
-        checkIndices(turn.move.exchangeTileIndices, this.tilesState.countTiles(playerId))
+        checkIndicesForExchange(this.tilesState.countTiles(playerId), ...turn.move.exchangeTileIndices)
         const numAttempted = turn.move.exchangeTileIndices.length
         const numInBag = this.tilesState.numberOfTilesInBag
         if (numAttempted > numInBag) {

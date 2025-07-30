@@ -4,7 +4,7 @@
 import { Bag } from './bag.js'
 import { Mulberry32Prng } from './mulberry32_prng.js'
 import { Tile } from './tile.js'
-import { arraysEqual } from './serializable.js'
+import { arraysEqual } from './validation.js'
 
 export class HonorSystemBag extends Bag {
   constructor(tiles: Iterable<Tile>, randomSeed: number, shuffle=true) {
