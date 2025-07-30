@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crossword Builder Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+    <div id="game-header-scores">
+        <div id="header-player1-info" class="header-player-info">
+            <span id="header-player1-name">Player 1</span>: <span id="header-player1-score">0</span>
+        </div>
+        <div id="header-player2-info" class="header-player-info">
+            <span id="header-player2-name">Player 2</span>: <span id="header-player2-score">0</span>
+        </div>
+    </div>
+    <div id="game-container">
+        <div id="board-container">
+            <!-- Game board will be rendered here by JavaScript -->
+        </div>
+        <div id="info-container">
+            <div id="local-player-rack-area">
+                <div class="rack" id="local-player-rack">
+                    <!-- Local player's rack tiles rendered here -->
+                </div>
+            </div>
+            <div id="game-status">
+                <p>Turn: <span id="turn-player">Player 1</span></p>
+                <p>Tiles in bag: <span id="tiles-in-bag">100</span></p>
+            </div>
+            <div id="controls-container">
+                <button id="play-word-btn">Play Word</button>
+                <button id="exchange-tiles-btn">Exchange Tiles</button>
+                <button id="pass-turn-btn">Pass Turn</button>
+                <button id="recall-tiles-btn">Recall Tiles</button>
+                <button id="new-game-btn">Setup New Game</button> <!-- Text changed -->
+                <button id="confirm-exchange-btn" style="display:none;">Confirm Exchange</button>
+                <button id="cancel-exchange-btn" style="display:none;">Cancel Exchange</button>
+            </div>
+
+            <!-- New Collapsible Section for Settings -->
+            <div id="custom-settings-section" style="display:none; border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
+                <h2>New Game Settings</h2>
+                <div id="player-name-settings" style="margin-bottom: 15px;">
+                    <h3>Player Names</h3>
+                    <label for="player1-name-input">Player 1 Name:</label>
+                    <input type="text" id="player1-name-input" placeholder="Player 1" style="margin-bottom: 5px;"><br>
+                    <label for="player2-name-input">Player 2 Name:</label>
+                    <input type="text" id="player2-name-input" placeholder="Player 2">
+                </div>
+                <div id="dictionary-settings">
+                    <h3>Dictionary Options</h3>
+                    <select id="dictionary-type-select">
+                        <option value="permissive" selected>Anything is a word (Default)</option>
+                        <option value="freeapi">Free Dictionary API</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
+                    <br>
+                    <input type="text" id="custom-dictionary-url" placeholder="Enter dictionary URL prefix" style="display:none; margin-top: 5px;">
+                </div>
+
+                <div id="custom-game-settings-inputs">
+                    <h3>Custom Game Rules (Optional)</h3>
+                    <p><small>Leave fields blank to use default game rules.</small></p>
+
+                    <label for="custom-tile-distribution">Tile Distribution (JSON format):</label><br>
+                    <textarea id="custom-tile-distribution" rows="5" cols="40" placeholder='Example: {"A": 9, "B": 2, ...}'></textarea><br>
+                    <small>Default: Standard distribution.</small><br><br>
+
+                    <label for="custom-tile-values">Tile Values (JSON format):</label><br>
+                    <textarea id="custom-tile-values" rows="5" cols="40" placeholder='Example: {"A": 1, "B": 3, "_": 0, ...}'></textarea><br>
+                    <small>Default: Default values. Use "_" for blank tile value.</small><br><br>
+
+                    <label for="custom-blank-tile-count">Number of Blank Tiles:</label><br>
+                    <input type="number" id="custom-blank-tile-count" min="0" placeholder="Default: 2"><br>
+                    <small>Default: 2.</small><br><br>
+
+                    <label for="custom-seven-tile-bonus">Seven-Tile Bonus ("Bingo"):</label><br>
+                    <input type="number" id="custom-seven-tile-bonus" min="0" placeholder="Default: 50"><br>
+                    <small>Default: 50 points.</small><br><br>
+
+                    <label for="custom-board-layout">Custom Board Layout (15x15 grid):</label><br>
+                    <textarea id="custom-board-layout" rows="8" cols="40" placeholder="Example: 15 lines, each 15 chars. T=TW, D=DW, t=TL, d=DL, .=Normal. E.g.,
+T..d...d..T....
+.D..t...t..D...
+(and 13 more lines)"></textarea><br>
+                    <small>Enter 15 lines, each 15 characters. Valid characters: T, D, t, d, . (period for normal). Leave blank for default layout.</small><br><br>
+                </div>
+                <button id="start-game-btn" style="margin-top:10px;">Start New Game with These Settings</button>
+            </div> <!-- End of custom-settings-section -->
+
+            <div id="turn-url-container">
+                <p>Turn URL: <input type="text" id="turn-url" readonly> <button id="copy-url-btn" title="Copy Game URL">Copy</button></p>
+            </div>
+        </div> <!-- This closes info-container -->
+    </div> <!-- This closes game-container -->
+    </div> <!-- This closes game-wrapper -->
+    <script type="module" src="types.mjs"></script>
+    <script type="module" src="main.mjs"></script>
+  <div id="post-move-modal" hidden>
+    <p>Points Earned: <span id="modal-points-earned">0</span></p>
+    <div><input type="checkbox" id="modal-copy-url-checkbox" checked> <label for="modal-copy-url-checkbox">Copy Turn URL</label></div>
+    <button id="modal-close-btn">Close</button>
+  </div>
+</body>
+</html>

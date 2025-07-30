@@ -1,0 +1,518 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column; /* Stack game and info vertically by default for mobile-first */
+    align-items: center; /* Center content */
+    padding: 10px; /* Add some padding for smaller screens */
+    background-color: #f0f0f0;
+    box-sizing: border-box;
+}
+
+#game-wrapper {
+    width: 100%;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column; /* Stack board and info container */
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Define CSS variables for tile size and font sizes for easier adjustments */
+:root {
+    --board-size: 90vw; /* Board width relative to viewport width */
+    --tile-size: calc(var(--board-size) / 15);
+    --tile-font-size: calc(var(--tile-size) * 0.5);
+    --value-font-size: calc(var(--tile-size) * 0.3);
+    --rack-tile-size: 35px; /* Keep rack tiles a bit more fixed or use different logic if needed */
+    --rack-tile-font-size: 18px;
+    --rack-value-font-size: 10px;
+}
+
+#board-container {
+    display: grid;
+    /* grid-template-columns will be set by JS */
+    /* grid-template-rows will be set by JS */
+    border: 2px solid #333;
+    width: var(--board-size);
+    height: var(--board-size); /* Maintain square aspect ratio */
+    max-width: 450px; /* Max size for larger screens */
+    max-height: 450px; /* Max size for larger screens */
+}
+
+.square {
+    width: var(--tile-size);
+    height: var(--tile-size);
+    border: 1px solid #999;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: var(--tile-font-size);
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #dda;
+    user-select: none;
+    position: relative;
+}
+
+/* Styles for the letter and value spans, shared by rack and board tiles */
+.tile-letter {
+    text-transform: uppercase;
+    line-height: 1;
+    font-weight: bold;
+}
+
+.tile-value {
+    position: absolute;
+    bottom: calc(var(--tile-size) * 0.05); /* Adjust based on tile size */
+    right: calc(var(--tile-size) * 0.1);  /* Adjust based on tile size */
+    line-height: 1;
+    font-weight: normal;
+    font-size: var(--value-font-size);
+}
+
+/* Specific font size for letters on rack vs board if needed */
+.tile-in-rack .tile-letter {
+    font-size: var(--rack-tile-font-size);
+}
+.tile-in-rack .tile-value {
+    font-size: var(--rack-value-font-size);
+    /* Position rack tile values differently if needed (absolute vs relative) */
+    position: absolute; /* Or adjust existing relative positioning */
+    bottom: 2px;
+    right: 3px;
+}
+
+.square.tile-on-board .tile-letter {
+    font-size: var(--tile-font-size);
+}
+.square.tile-on-board .tile-value {
+    font-size: var(--value-font-size);
+}
+
+
+.square.dl { background-color: #c99; }
+.square.tl { background-color: #bbb; }
+.square.dw { background-color: #ff3; }
+.square.tw { background-color: #f90; }
+.square.center { background-color: #6f9; }
+
+.tile-on-board {
+    /* background-color: #f5deb3; /* Moved to .square.tile-on-board for specificity */
+    border: 1px solid #8b4513;
+}
+
+/* Ensure tile background overrides bonus square background */
+.square.tile-on-board {
+    background-color: #f5deb3; /* Wheat */
+}
+
+#info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Reduced gap for smaller screens */
+    width: 100%;
+    max-width: 450px; /* Match board max width for alignment */
+}
+
+.rack {
+    display: flex;
+    gap: 5px;
+    border: 1px solid #666;
+    padding: 5px;
+    min-height: calc(var(--rack-tile-size) + 10px); /* Accommodate tile height + padding */
+    background-color: #e0e0e0;
+    flex-wrap: wrap; /* Allow tiles to wrap if rack is too narrow */
+    justify-content: center; /* Center tiles in rack */
+}
+
+.tile-on-board[draggable="true"], .tile-in-rack[draggable="true"] {
+    touch-action: none;
+}
+
+.tile-in-rack {
+    width: var(--rack-tile-size);
+    height: var(--rack-tile-size);
+    border: 1px solid #333;
+    background-color: #f5deb3;
+    display: flex; /* Using flex for centering letter/value */
+    flex-direction: column; /* Stack letter and value if needed, or use absolute for value */
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    cursor: grab;
+    position: relative; /* For absolute positioning of value */
+    box-sizing: border-box;
+}
+
+/*
+.tile-in-rack .letter {
+    text-transform: uppercase; // Handled by .tile-letter
+}
+
+.tile-in-rack .value { // This was causing issues, using the shared .tile-value now
+    font-size: 10px;
+    position: relative;
+    top: 8px;
+    left: 8px;
+}
+*/
+
+
+#controls-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: center; /* Center buttons */
+    gap: 5px;
+}
+
+#controls-container button {
+    /* margin-right: 5px; */ /* Replaced by gap */
+    padding: 8px 10px; /* Slightly smaller padding */
+    flex-grow: 1; /* Allow buttons to grow */
+    min-width: 100px; /* Minimum width for buttons */
+}
+
+#turn-url-container input {
+    width: 100%;
+    padding: 8px; /* Increased padding for easier touch */
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+#new-game-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    width: 80%;
+    max-width: 400px;
+}
+
+/* Basic styling for selected tiles or active elements if needed later */
+.selected {
+    border: 2px solid red !important;
+}
+
+/* Media Query for larger screens */
+@media (min-width: 768px) {
+    body {
+        /* flex-direction: row; /* Game and info side-by-side - game-container handles this */
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px; /* Restore some padding */
+    }
+
+    #game-container {
+        flex-direction: row; /* Board and info container side-by-side */
+        align-items: flex-start;
+        gap: 20px; /* Restore original gap */
+        /* width: auto; /* Allow it to size based on content up to a max */
+    }
+
+    /* :root {
+        /* On larger screens, we can let the board use its max-width/max-height
+           instead of being tied to viewport width if that's preferred.
+           The max-width: 450px on #board-container will take effect.
+           If we want it to be viewport-based but larger:
+           --board-size: 60vh; /* Example: 60% of viewport height */
+       /* Or rely on max-width on #board-container if that's sufficient */
+    /* } */
+
+    #info-container {
+        /* width: auto; Or a specific width like 300px */
+        min-width: 280px; /* Ensure it has some width */
+        max-width: 350px; /* Prevent it from becoming too wide */
+        /* flex-grow: 1; /* Allow info container to take available space if desired */
+    }
+
+    #board-container {
+        /* Ensure board doesn't shrink too much if info-container grows */
+        /* flex-shrink: 0; */ /* This might be needed depending on #info-container's flex properties */
+    }
+}
+
+#copy-url-btn {
+    padding: 3px 8px;
+    font-size: 12px;
+    margin-left: 5px;
+    vertical-align: middle; /* Align with the input field */
+}
+
+.player-score-area h2,
+.player-score-area p { /* h3 rule removed from here */
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+    padding: 0;
+    /* text-align: left; /* Let the container's align-items handle overall block centering */
+}
+
+/* Rule for #local-player-rack-area h3 is removed as the element is gone. */
+
+/* Minor adjustments for spacing within info-container sections */
+#info-container > div:not(.rack) { /* Apply to direct children that are sections */
+    padding: 5px 0; /* Add some vertical padding to sections */
+}
+
+.player-score-area {
+    border-bottom: 1px solid #eee; /* Separator line between player scores */
+    padding-bottom: 8px !important; /* Ensure padding is applied */
+    margin-bottom: 5px; /* Space below the score area */
+}
+.player-score-area:last-of-type { /* This might be too general if more divs are added */
+    /* border-bottom: none; */ /* No border for the last score area if needed */
+}
+
+#game-header-scores {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px; /* Vertical and horizontal padding */
+    margin-bottom: 10px; /* Space below the header and above the game board */
+    background-color: #e9e9e9; /* Light background to distinguish it */
+    border-bottom: 1px solid #ccc;
+    width: 100%; /* Span full width */
+    box-sizing: border-box; /* Include padding in width calculation */
+    max-width: var(--board-size); /* Align with board's max width on desktop */
+    /* If --board-size is vw, this might need adjustment on desktop, or use a fixed max-width */
+    /* For desktop, if board has max-width 450px, header could also have it */
+    /* margin-left: auto;  Removed */
+    /* margin-right: auto; Removed */
+}
+
+#post-move-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 90%; /* Ensure it's not overly wide on small screens */
+    text-align: center;
+    /* display: none; /* Will be controlled by JS by adding/removing 'hidden' attribute or inline style */
+}
+
+#post-move-modal p {
+    margin-bottom: 15px; /* Add some space below the points paragraph */
+}
+
+#modal-points-earned {
+    font-weight: bold;
+}
+
+#post-move-modal button {
+    padding: 8px 10px; /* Consistent with #controls-container button */
+    min-width: 100px;   /* Consistent with #controls-container button */
+    margin: 5px; /* Add some margin around buttons */
+    /* flex-grow: 1; /* Not needed here as buttons are centered */
+}
+
+/* Specific styling for buttons if needed, e.g., background colors, can be added here */
+/* For now, they will inherit browser default or general button styles if any */
+
+@media (min-width: 768px) {
+    #post-move-modal {
+        min-width: 300px; /* Can be more specific for larger screens if needed */
+        max-width: 400px; /* Or a fixed width like #new-game-modal */
+    }
+}
+
+.header-player-info {
+    font-size: 0.9em; /* Slightly smaller font */
+    font-weight: bold;
+}
+
+/* Media Query for larger screens */
+@media (min-width: 768px) {
+    #game-wrapper {
+        max-width: 820px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    body {
+        justify-content: center;
+        align-items: center; /* Center the whole game area (header + game-container) */
+        padding: 20px;
+    }
+
+    :root { /* Redefine --board-size for desktop */
+        --board-size: 450px;
+        /* --tile-size will automatically update based on this new --board-size if it's defined globally using it.
+           Let's check global :root for --tile-size definition.
+           Global is: --tile-size: calc(var(--board-size) / 15);
+           So this redefinition of --board-size is enough. Tiles will become 30px.
+        */
+    }
+
+    #game-header-scores {
+         /* max-width is already var(--board-size) which is now 450px here */
+         /* So, no change needed here if it correctly uses var(--board-size) or is already 450px */
+    }
+
+    #game-container {
+        flex-direction: row; /* Board and info container side-by-side */
+        align-items: flex-start;
+        gap: 20px;
+        /* width: auto; /* Let it size by content: board (450px) + info (max 350px) + gap */
+    }
+
+    #board-container {
+        /* width: var(--board-size); is already set globally. Now --board-size is 450px here. */
+        /* height: var(--board-size); is already set globally. */
+        /* max-width: 450px; is already set globally and matches. */
+        /* max-height: 450px; is already set globally and matches. */
+        flex-shrink: 0; /* Prevent board from shrinking if space is unexpectedly tight */
+    }
+
+    #info-container {
+        min-width: 280px;
+        max-width: 350px;
+        flex-shrink: 0; /* Prevent info panel from being squeezed */
+    }
+}
+
+/* New Styles for Custom Settings Section */
+#custom-settings-section {
+    background-color: #f9f9f9; /* Light background to distinguish from other info sections */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+#custom-settings-section h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+#custom-settings-section h3 {
+    font-size: 1.1em;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#custom-settings-section label {
+    display: block; /* Make labels take full width for better spacing */
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+#custom-settings-section input[type="text"],
+#custom-settings-section input[type="number"],
+#custom-settings-section textarea {
+    width: 95%; /* Make inputs and textareas take most of the width of the section */
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+#custom-settings-section textarea {
+    resize: vertical; /* Allow vertical resizing of textareas */
+    min-height: 60px;
+}
+
+#custom-settings-section input[type="radio"] {
+    margin-right: 5px;
+}
+
+#custom-settings-section small {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.85em;
+    color: #555;
+}
+
+#custom-settings-section button#start-game-btn {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 20px;
+    display: block; /* Make button take its own line */
+    width: auto; /* Adjust width based on content or set specific width */
+}
+
+#custom-settings-section button#start-game-btn:hover {
+    background-color: #45a049;
+}
+
+/* Responsive adjustments for the settings section if needed */
+@media (max-width: 600px) {
+    #custom-settings-section {
+        padding: 10px;
+        margin-left: 5px; /* Adjust margins if it's inside a flex/grid container */
+        margin-right: 5px;
+    }
+
+    #custom-settings-section input[type="text"],
+    #custom-settings-section input[type="number"],
+    #custom-settings-section textarea {
+        width: 100%; /* Full width on smaller screens */
+    }
+}
+
+/* Ensure info-container can accommodate the new section properly */
+#info-container {
+    /* display: flex; flex-direction: column; align-items: center; already there */
+    /* padding: 10px; already there */
+    /* width: 300px; already there, might need to be more flexible if settings make it too tall */
+    /* Consider max-height and overflow-y: auto for info-container if it can get too long */
+}
+
+.selected-for-exchange {
+    border: 2px solid #007bff !important; /* A distinct blue border, !important to override other borders */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* A subtle glow effect */
+    /* background-color: #cfe2ff; */ /* Example: a light blue background - commented out for now */
+}
+
+.bonus-label {
+    /* Centering is handled by the parent .square's flex properties.
+       This rule styles the text content of the label. */
+    font-size: calc(var(--tile-font-size) * 0.7); /* Smaller than tile letters */
+    color: #dda; /* Text color for the bonus label */
+    line-height: 1; /* Adjust for better vertical centering if needed */
+    font-weight: normal; /* Bonus labels are typically not as prominent as tile letters */
+    text-align: center; /* Ensures text is centered within the label element */
+    /* The .square (parent) handles background color.
+       No specific width, height, or position needed due to parent flex. */
+}
+
+#copy-game-container {
+    margin-top: 15px; /* Add some space above the container */
+    padding: 5px 0; /* Match other info-container sections */
+    text-align: center; /* Center the link within its container */
+}
+
+#copy-game-link {
+    font-size: 0.8em;
+    color: #555;
+    text-decoration: none; /* Optional: removing underline */
+}
+
+#copy-game-link:hover {
+    text-decoration: underline; /* Underline on hover for better affordance */
+}

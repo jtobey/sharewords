@@ -1,0 +1,14 @@
+{
+  "name": "sharewords",
+  "version": "1.0.0",
+  "description": "Crossword Building Game",
+  "main": "main.mjs",
+  "type": "module",
+  "scripts": {
+    "test": "node --test game_state.test.mjs scoring.test.mjs && node --import ./test-setup.mjs --test script.test.mjs"
+  },
+  "author": "",
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
