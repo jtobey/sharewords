@@ -139,7 +139,7 @@ export class SharedState {
   }
 
   static fromJSON(json: any) {
-    function fail(msg: string) {
+    function fail(msg: string): never {
       throw new TypeError(`${msg} in SharedState serialization: ${JSON.stringify(json)}`)
     }
     if (typeof json !== 'object') fail('Not an object')

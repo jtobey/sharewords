@@ -30,15 +30,16 @@ export class Bag {
   }
 
   exchange(tilesToExchange: ReadonlyArray<Tile>): Array<Tile> {
-    this.checkEnoughTiles(tilesToExchange.length)
-    const drawnTiles = this.tiles.splice(-tilesToExchange.length, tilesToExchange.length, ...tilesToExchange)
-    this.shuffle(this.size - tilesToExchange.length)
+    const numberOfTiles = tilesToExchange.length
+    this.checkEnoughTiles(numberOfTiles)
+    const drawnTiles = this.tiles.splice(-numberOfTiles, numberOfTiles, ...tilesToExchange)
+    this.shuffle(this.size - numberOfTiles)
     return drawnTiles
   }
 
   private checkEnoughTiles(numberOfTilesNeeded: number): void {
     if (numberOfTilesNeeded > this.size) {
-      throw new RangeError(`not enough tiles in bag: ${this.size} < ${numberOfTilesNeeded}`)
+      throw new RangeError(`Not enough tiles in bag: ${this.size} < ${numberOfTilesNeeded}`)
     }
   }
 
@@ -46,7 +47,7 @@ export class Bag {
     for (let i = Math.max(1, indexOfFirstNewTile); i <= this.size; ++i) {
       const j = Math.floor(this.randomGenerator.random() * i);
       // Fisher-Yates shuffle
-      [this.tiles[i-1], this.tiles[j]] = [this.tiles[j], this.tiles[i-1]] as [Tile, Tile];
+      [this.tiles[i-1], this.tiles[j]] = [this.tiles[j]!, this.tiles[i-1]!]
     }
   }
 
