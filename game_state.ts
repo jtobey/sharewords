@@ -196,6 +196,24 @@ export class GameState extends EventTarget {
   }
 
   /**
+   * Forms a `playTiles` turn from the `heldTiles` currently on the board.
+   * Passes the resulting `Turn` to `playTurns`.
+   */
+  async playWord() {
+    // TODO
+  }
+
+  /**
+   * Forms a `exchangeTileIndices` turn from the `heldTiles` currently in the exchange area.
+   * Passes the resulting `Turn` to `playTurns`.
+   */
+  async passOrExchange() {
+    // TODO
+  }
+
+  /**
+   * Commits turns to the board and players' racks.
+   * @todo Make private and move remaining usage to `playWord` and `passOrExchange`.
    * @fires TileEvent#tilemove
    * @fires BoardEvent#tilesplaced
    * @fires GameEvent#turnchange
