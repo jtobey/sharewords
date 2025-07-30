@@ -1,9 +1,14 @@
 # Tests
 
-Install Bun (https://bun.sh/) and TypeScript and run:
+Install Bun and TypeScript and run:
 
+    bun install
     bun tsc
     bun test
+
+# Submitting code
+
+Prefer to submit fixes on the feature branch that you created, since multiple levels of branches produce extra cleanup work.
 
 # Overview
 
