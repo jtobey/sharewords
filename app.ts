@@ -8,10 +8,17 @@ import type { BoardPlacement } from './tile.ts'
 import { Player } from './player.ts'
 import { Turn, toTurnNumber } from './turn.js'
 
-const settings = new Settings
-settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
-settings.tileSystemSettings = 17  // random seed
-const gameState = new GameState('1', settings)
+let gameState: GameState
+
+if (window.location.hash) {
+  const params = new URLSearchParams(window.location.hash.substring(1))
+  gameState = await GameState.fromParams(params)
+} else {
+  const settings = new Settings
+  settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
+  settings.tileSystemSettings = 17  // random seed
+  gameState = new GameState('1', settings)
+}
 await gameState.initRack()
 
 const boardContainer = document.getElementById('board-container')!
