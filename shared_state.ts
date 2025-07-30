@@ -32,15 +32,18 @@
 
 import { arraysEqual } from './serializable.js'
 import { Settings } from './settings.js'
-import type { GameId } from './settings.js'
+import type { GameId, DictionaryType } from './settings.js'
 import { checkIndices } from './tiles_state.js'
 import type { TilesState } from './tiles_state.js'
-import { Turn, toTurnNumber, nextTurnNumber } from './turn.js'
+import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import { makeTiles } from './tile.js'
+import type { BoardPlacement } from './tile.js'
 
 export class SharedState {
+  checkWords: ((...possibleWords: Array<string>) => Promise<void>)
+
   constructor(
     readonly settings: Readonly<Settings>,
     readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
@@ -54,6 +57,7 @@ export class SharedState {
         throw new Error(`players[${index}] should have ID "${expected}", not "${player.id}".`)
       }
     })
+    this.checkWords = makeDictionary(this.settings.dictionaryType, this.settings.dictionarySettings)
   }
 
   get players() { return this.settings.players }
@@ -70,32 +74,29 @@ export class SharedState {
       }
     }
     const turnsToPlayNow = [] as Array<Turn>
+    const boardChanges = [] as Array<{playerId: string, score: number, placements: ReadonlyArray<BoardPlacement>}>
+    const wordsToCheck = new Set<string>
+    let turnNumber = this.nextTurnNumber
     for (const turn of seen.filter(t => t)) {
-      if (turn.turnNumber !== this.nextTurnNumber) {
+      if (turn.turnNumber !== turnNumber) {
         // TODO: Remember the turn.
-        console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${this.nextTurnNumber}.`)
+        console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${turnNumber}.`)
         break
       }
-      const playerId = this.players[(this.nextTurnNumber - 1) % this.players.length]!.id
+      const playerId = this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!.id
       if (turn.playerId !== playerId) {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
       if ('playTiles' in turn.move) {
         const {score, wordsFormed, row, col, vertical} = this.board.checkWordPlacement(...turn.move.playTiles)
-        if (this.settings.dictionaryType === 'permissive') {
-          // Nothing to check - anything is a word.
-        } else {
-          // TODO - Validate words *after* the turn loop.
-          throw new Error(`${this.settings.dictionaryType} dictionary is not yet supported.`)
-        }
+        wordsFormed.forEach((w: string) => wordsToCheck.add(w))
         const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
-        this.board.placeTiles(...turn.move.playTiles)
-        this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score + bingoBonus)
+        boardChanges.push({playerId, score: score + bingoBonus, placements: turn.move.playTiles})
         turn.mainWord = wordsFormed[0]!
         turn.row = row
         turn.col = col
         turn.vertical = vertical
-        console.log(`Player ${playerId} played ${wordsFormed[0]} for ${score}`)
+        console.log(`Player ${playerId} plays ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
         checkIndices(turn.move.exchangeTileIndices, this.tilesState.countTiles(playerId))
         const numAttempted = turn.move.exchangeTileIndices.length
@@ -104,16 +105,25 @@ export class SharedState {
           throw new Error(`Player ${playerId} attempted to exchange ${numAttempted} but the bag holds only ${numInBag}.`)
         }
         if (numAttempted) {
-          console.log(`Player ${playerId} exchanged ${numAttempted} tiles.`)
+          console.log(`Player ${playerId} exchanges ${numAttempted} tiles.`)
         } else {
-          console.log(`Player ${playerId} passed.`)
+          console.log(`Player ${playerId} passes.`)
         }
       } else {
         throw new Error(`Turn number ${turn.turnNumber} is not a play or exchange.`)
       }
       turnsToPlayNow.push(turn)
-      this.nextTurnNumber = nextTurnNumber(this.nextTurnNumber)
+      turnNumber = nextTurnNumber(turnNumber)
     }
+    if (wordsToCheck.size) await this.checkWords(...wordsToCheck)
+    if (turnsToPlayNow.length === 0) return this.tilesState.playTurns()
+    console.log(`Turn validation success.`)
+    for (const {playerId, score, placements} of boardChanges) {
+      this.board.placeTiles(...placements)
+      this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
+    }
+    this.nextTurnNumber = turnNumber
+    // Draw/exchange tiles between bag and racks.
     return this.tilesState.playTurns(...turnsToPlayNow)
   }
 
@@ -158,4 +168,9 @@ function makeTilesState(settings: Settings): TilesState {
 function rehydrateTilesState(tileSystemType: string, tilesStateJson: any) {
   if (tileSystemType === 'honor') return HonorSystemTilesState.fromJSON(tilesStateJson)
   throw new TypeError(`Unknown tileSystemType: ${tileSystemType}`)
+}
+
+function makeDictionary(type: DictionaryType, settings: any) {
+  if (type === 'permissive') return async (...words: Array<string>) => {}
+  throw new Error(`dictionaryType ${type} is not currently supported.`)
 }

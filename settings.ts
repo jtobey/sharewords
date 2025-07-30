@@ -8,6 +8,7 @@ import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
 
 export type GameId = string & { '__brand': 'GameId' }
+export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
@@ -58,7 +59,7 @@ export class Settings {
   rackCapacity = DEFAULT_RACK_CAPACITY
   tileSystemType = 'honor' as 'honor'
   tileSystemSettings = 1 as Serializable
-  dictionaryType = 'permissive' as 'permissive' | 'freeapi' | 'custom'
+  dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
 
   toJSON() {

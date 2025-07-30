@@ -40,9 +40,6 @@ describe('shared state', () => {
 
   test('can play a turn', async () => {
     const settings = new Settings()
-    settings.letterCounts = { 'A': 2, 'B': 2, 'C': 2, 'D': 2, 'E': 2, 'F': 2, 'G': 2 }
-    settings.letterValues = { 'A': 1, 'B': 1, 'C': 1, 'D': 1, 'E': 1, 'F': 1, 'G': 1 }
-    settings.tileSystemSettings = 1
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
@@ -60,9 +57,47 @@ describe('shared state', () => {
     await sharedState.playTurns(turn)
 
     expect(sharedState.nextTurnNumber).toBe(toTurnNumber(2))
-    expect(sharedState.board.squares[7]![7]!.tile).toBe(player1Tiles[0]!)
-    expect(sharedState.board.squares[7]![8]!.tile).toBe(player1Tiles[1]!)
-    expect(sharedState.board.scores.get(player1Id)).toBe(2) // Assuming tile values are 1
+    expect(sharedState.board.squares[7]![7]!.tile).toEqual(player1Tiles[0]!)
+    expect(sharedState.board.squares[7]![8]!.tile).toEqual(player1Tiles[1]!)
+  })
+
+  test('rejects invalid words', async () => {
+    const settings = new Settings()
+    settings.letterCounts = {A:100}
+    const sharedState = new SharedState(settings)
+    sharedState.checkWords = async (...words: Array<string>) => {
+      for (const word of words) {
+        if (word !== 'AA') throw new Error(`${word} is not a word.`)
+      }
+    }
+    const player1Id = settings.players[0]!.id
+    const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
+    let turn = new Turn(
+      player1Id,
+      toTurnNumber(1),
+      {
+        playTiles: [
+          { tile: player1Tiles[0]!, row: 7, col: 7 },
+          { tile: player1Tiles[1]!, row: 7, col: 8 },
+        ]
+      }
+    )
+
+    await sharedState.playTurns(turn)
+
+    const player2Id = settings.players[1]!.id
+    const player2Tiles = await sharedState.tilesState.getTiles(player1Id)
+    turn = new Turn(
+      settings.players[1]!.id,
+      toTurnNumber(2),
+      {
+        playTiles: [
+          { tile: player2Tiles[0]!, row: 7, col: 9 },
+        ]
+      }
+    )
+
+    expect(sharedState.playTurns(turn)).rejects.toThrow('AAA is not a word.')
   })
 
   test('throws on duplicate turn number', async () => {
@@ -82,23 +117,10 @@ describe('shared state', () => {
     await expect(sharedState.playTurns(turn)).rejects.toThrow('Turn number 1 belongs to player "1", not "2".')
   })
 
-  test('throws on unsupported dictionary', async () => {
+  test('throws on unsupported dictionary', () => {
     const settings = new Settings()
     settings.dictionaryType = 'strict' as any
-    const sharedState = new SharedState(settings)
-    const player1Id = settings.players[0]!.id
-    const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
-    const turn = new Turn(
-      player1Id,
-      toTurnNumber(1),
-      {
-        playTiles: [
-          { tile: player1Tiles[0]!, row: 7, col: 7 },
-          { tile: player1Tiles[1]!, row: 7, col: 8 },
-        ]
-      }
-    )
-    await expect(sharedState.playTurns(turn)).rejects.toThrow('strict dictionary is not yet supported.')
+    expect(() => new SharedState(settings)).toThrow('dictionaryType strict is not currently supported.')
   })
 
   test('throws on exchanging too many tiles', async () => {

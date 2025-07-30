@@ -40,7 +40,7 @@ export interface TilesState {
    * stateId = tilesState.stateId
    * ```
    *
-   * When a `playTiles` turn succeeds, tiles are trasferred from the bag to the player's rack
+   * When a `playTiles` turn succeeds, tiles are transferred from the bag to the player's rack
    * until either the rack reaches capacity or the bag empties.
    *
    * When an `exchangeTileIndices` turn succeeds, replacement tiles are drawn from the bag to

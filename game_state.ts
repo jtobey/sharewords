@@ -75,20 +75,17 @@ export class GameState extends EventTarget {
   }
   
   async playTurns(...turns: Array<Turn>) {
-    // `this.shared.playTurns` validates several turn properties before it awaits.
+    // `this.shared.playTurns` validates several turn properties.
     // For example:
     // * It rejects turns whose `playerId` does not line up with the order of play.
     // * It rejects invalid tile placement combinations.
     // * It updates the board and scores.
     // * It updates nextTurnNumber after each successfully processed turn.
-    // It may or may not update tiles state (i.e., racks).
-    let exception: any = null
-    let promise: Promise<void> | null = null
-    let iPlayed = false
-    try { promise = this.shared.playTurns(...turns) }
-    catch (e: any) { exception = e }
+    // On success, it updates tiles state (i.e., racks) and the board.
+    await this.shared.playTurns(...turns)
 
-    // Update history. Try not to throw exceptions in this loop.
+    // Update history.
+    let iPlayed = false
     let wroteHistory = false
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
@@ -96,7 +93,7 @@ export class GameState extends EventTarget {
         // `this.shared.playTurns` must have returned early.
         break
       }
-      if (this.history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(this.history[this.history.length-1]!.turnNumber)) {
+      if (this.history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(this.history.slice(-1)[0]!.turnNumber)) {
         continue
       }
       if (turn.playerId === this.playerId) iPlayed = true
@@ -124,8 +121,6 @@ export class GameState extends EventTarget {
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
     }
-    if (!promise) throw exception
-    await promise
     if (iPlayed) await this.initRack()
   }
 
