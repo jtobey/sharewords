@@ -1,0 +1,51 @@
+#game-container {
+  display: flex;
+  flex-direction: row;
+}
+
+#board-container {
+  display: grid;
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
+  gap: 1px;
+  border: 1px solid #ccc;
+  width: 602px; /* 15 * 40 + 1 * 14 + 2 * 1 */
+  height: 602px; /* 15 * 40 + 1 * 14 + 2 * 1 */
+}
+
+.square {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 40px;
+  font-size: 24px;
+}
+
+#controls-container {
+  margin-left: 20px;
+}
+
+#rack-container {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 10px;
+}
+
+.tile {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #999;
+  background-color: #eee;
+  margin-right: 5px;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.placed {
+  background-color: #lightgreen;
+}
