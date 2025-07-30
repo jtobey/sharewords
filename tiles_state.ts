@@ -20,6 +20,9 @@ export interface TilesState {
   readonly stateId: any
   /** The number of unheld tiles remaining in the bag, for example 86. */
   readonly numberOfTilesInBag: number
+  /** True whenever the bag and any rack are empty. */
+  readonly isGameOver: boolean
+
   /**
    * @returns The number of tiles currently in the given player's rack.
    */

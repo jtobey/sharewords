@@ -61,6 +61,7 @@ export class SharedState {
   }
 
   get players() { return this.settings.players }
+  get isGameOver() { return this.tilesState.isGameOver }
 
   async playTurns(...turns: Array<Turn>) {
     const seen = []

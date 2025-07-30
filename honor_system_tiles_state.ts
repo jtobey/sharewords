@@ -11,6 +11,7 @@ import { HonorSystemBag } from './honor_system_bag.js'
 
 export class HonorSystemTilesState implements TilesState {
   readonly rackCapacity: number
+  isGameOver: boolean = false
   private numberOfTurnsPlayed: number
   private readonly bag: HonorSystemBag
   private readonly racks: ReadonlyMap<string, Array<Tile>>
@@ -62,6 +63,7 @@ export class HonorSystemTilesState implements TilesState {
       }
       const numberOfTilesToDraw = Math.min(rack.length - rackCopy.length, this.bag.size)
       rackCopy.push(...this.bag.draw(numberOfTilesToDraw))
+      if (rackCopy.length === 0) this.isGameOver = true
     } else if ('exchangeTileIndices' in turn.move) {
       const indicesOfTilesToExchange = checkIndices(turn.move.exchangeTileIndices, rackCopy.length)
       indicesOfTilesToExchange.sort((a, b) => b - a)  // Descending index order for splice.
@@ -82,33 +84,44 @@ export class HonorSystemTilesState implements TilesState {
     return rack
   }
   toJSON() {
+    const racks = [...this.racks.entries().map(
+      ([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]
+    )]
     return {
       rackCapacity: this.rackCapacity,
       numberOfTurnsPlayed: this.numberOfTurnsPlayed,
       bag: this.bag.toJSON(),
-      racks: Object.fromEntries(this.racks.entries().map(([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]))
+      racks,
     }
   }
   static fromJSON(json: any) {
-    if (!(typeof json === 'object'
-      && typeof json.rackCapacity === 'number'
-      && typeof json.numberOfTurnsPlayed === 'number'
-      && typeof json.racks === 'object'  // TODO: Make it an array of entries.
-      && Object.values(json.racks).every(Array.isArray)
-      && typeof json.bag === 'object'
-    )) {
-      throw new TypeError(`invalid HonorSystemTileState serialization: ${JSON.stringify(json)}`)
+    function fail(msg: string): never {
+      throw new TypeError(`${msg} in HonorSystemTileState serialization: ${JSON.stringify(json)}`)
     }
+    if (!(typeof json === 'object')) fail('Not an object')
+    if (typeof json.rackCapacity !== 'number') fail('rackCapacity is not a number')
+    if (typeof json.numberOfTurnsPlayed !== 'number') fail('numberOfTurnsPlayed is not a number')
+    if (!Array.isArray(json.racks)) fail('Racks are not in an array.')
     const bag = HonorSystemBag.fromJSON(json.bag)
     const racks = new Map<string, Array<Tile>>
-    for (const [playerId, rackJson] of Object.entries(json.racks)) {
-      racks.set(playerId, (rackJson as Array<any>).map(Tile.fromJSON))
+    let isGameOver = false
+    for (const racksEntry of json.racks) {
+      if (!Array.isArray(racksEntry)) fail('Rack list entry is not an array')
+      if (racksEntry.length !== 2) fail('Rack list entry length is not 2')
+      const [playerId, rackJson] = racksEntry
+      if (typeof playerId !== 'string') fail('Rack list playerId is not a string')
+      if (!Array.isArray(rackJson)) fail('Rack is not an array')
+      if (rackJson.length > json.rackCapacity) fail('Rack length is over capacity')
+      if (rackJson.length === 0) isGameOver = true
+      racks.set(playerId, rackJson.map(Tile.fromJSON))
     }
-    const state = Object.create(HonorSystemTilesState.prototype);
-    (state as any).rackCapacity = json.rackCapacity;
-    (state as any).numberOfTurnsPlayed = json.numberOfTurnsPlayed;
-    (state as any).bag = bag;
-    (state as any).racks = racks;
-    return state;
+    // TODO - Redo this.
+    const state = Object.create(HonorSystemTilesState.prototype) as any
+    state.rackCapacity = json.rackCapacity
+    state.numberOfTurnsPlayed = json.numberOfTurnsPlayed
+    state.bag = bag
+    state.racks = racks
+    state.isGameOver = isGameOver
+    return state as HonorSystemTilesState
   }
 }

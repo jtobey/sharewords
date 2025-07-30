@@ -36,7 +36,6 @@ export class GameState extends EventTarget {
      * made by each player except the player whose turn it is.
      */
     readonly history = [] as Array<TurnData>,
-    public isGameOver = false,  // TODO: Update.
   ) {
     super()
     if (!shared) {
@@ -70,6 +69,7 @@ export class GameState extends EventTarget {
   get players()            { return this.shared.players }
   get board()              { return this.shared.board }
   get numberOfTilesInBag() { return this.shared.tilesState.numberOfTilesInBag }
+  get isGameOver()         { return this.shared.tilesState.isGameOver }
 
   async getTiles(playerId: string) {
     return await this.shared.tilesState.getTiles(playerId)
@@ -376,7 +376,6 @@ export class GameState extends EventTarget {
         return json
       }),
       history: this.history,
-      isGameOver: this.isGameOver,
     }
   }
 
@@ -395,7 +394,6 @@ export class GameState extends EventTarget {
     if (typeof json.keepAllHistory !== 'boolean') fail('keepAllHistory is not a boolean')
     if (!Array.isArray(json.tilesHeld)) fail('tilesHeld is not an array')
     if (!Array.isArray(json.history)) fail('History is not an array')
-    if (typeof json.isGameOver !== 'boolean') fail('isGameOver is not a boolean')
 
     const tilesHeld = json.tilesHeld.map((tileJson: any) => {
       if (typeof tileJson !== 'object') fail('tilesHeld element is not an object')
@@ -431,7 +429,6 @@ export class GameState extends EventTarget {
       SharedState.fromJSON(json.shared),
       tilesHeld,
       json.history,
-      json.isGameOver,
     )
   }
 }
