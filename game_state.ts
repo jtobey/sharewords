@@ -200,7 +200,12 @@ export class GameState extends EventTarget {
    * Passes the resulting `Turn` to `playTurns`.
    */
   async playWord() {
-    // TODO
+    const placements = this.tilesHeld.filter(p => typeof p.row === 'number') as BoardPlacement[]
+    if (placements.length === 0) {
+      throw new Error('No tiles on board.')
+    }
+    const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
+    await this.playTurns(turn)
   }
 
   /**
@@ -208,7 +213,10 @@ export class GameState extends EventTarget {
    * Passes the resulting `Turn` to `playTurns`.
    */
   async passOrExchange() {
-    // TODO
+    const placements = this.tilesHeld.filter(p => p.row === 'exchange')
+    const exchangeTileIndices = placements.map(p => p.col)
+    const turn = new Turn(this.playerId, this.nextTurnNumber, { exchangeTileIndices })
+    await this.playTurns(turn)
   }
 
   /**
@@ -342,19 +350,15 @@ export class GameState extends EventTarget {
           throw new Error(
             `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileAssignmentsStr}`)
         }
-        const exchangeIndexStrs = exchangeIndicesStr.split('.')
+        const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
         const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
-        exchangeIndexStrs.forEach((s: string) => {
-          let index: number
-          try { index = parseInt(s, 10) }
-          catch (e: any) {
-            throw new Error(`Invalid exchange tile index in URL: "${s}".`)
-          }
-          if (index < 0 || index >= numberOfTilesInRack) {
+        const exchangeTileIndices = exchangeIndexStrs.map(s => parseInt(s, 10))
+        exchangeTileIndices.forEach((index: number) => {
+          if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
             throw new RangeError(`Exchange tile index ${index} in URL is out of range 0-${numberOfTilesInRack - 1}`)
           }
         })
-        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {exchangeTileIndices: exchangeIndexStrs.map(s => parseInt(s, 10))}))
+        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {exchangeTileIndices}))
       } else {
         // Nothing to see here, don't bump the turn number.
         return

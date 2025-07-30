@@ -131,4 +131,36 @@ describe('game state', () => {
     expect(gameState.turnUrlParams.get('wh')).toEqual('AAAAAAA')
     expect(gameState.board.scores.get('1')).toEqual(17)
   })
+
+  it('should play a word', async () => {
+    const settings = new Settings
+    settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
+    settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
+    const gameState = new GameState('1', settings)
+    await gameState.initRack()
+
+    // Move tiles to the board
+    gameState.moveTile('rack', 0, 7, 7)
+    gameState.moveTile('rack', 1, 7, 8)
+
+    await gameState.playWord()
+
+    expect(gameState.board.squares[7]?.[7]?.tile?.letter).toBe('B')
+    expect(gameState.board.squares[7]?.[8]?.tile?.letter).toBe('A')
+    expect(gameState.board.scores.get('1')).toEqual(4)
+  })
+
+  it('should pass or exchange', async () => {
+    const settings = new Settings
+    settings.tileSystemSettings = 3
+    const player1GameState = new GameState('1', settings)
+    await player1GameState.initRack()
+    const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
+    expect(initialRack).toBe('ESOQTSI')
+
+    // Pass (exchange no tiles)
+    await player1GameState.passOrExchange()
+    const rackAfterPass = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
+    expect(rackAfterPass).toBe('ESOQTSI')
+  })
 })
