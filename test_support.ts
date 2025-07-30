@@ -27,9 +27,9 @@ function parseSquare(squareStr: string, row: number, col: number) {
   let tile: Tile | undefined
   let assignedLetter: string | undefined
 
-  const char0 = squareStr[0] as string
-  const char1 = squareStr[1] as string
-  const index = DIGITS.indexOf(char1 as string)
+  const char0 = squareStr[0]!
+  const char1 = squareStr[1]!
+  const index = DIGITS.indexOf(char1)
   if (index !== -1) {
     const value = index % 10
     const letter = char0
@@ -49,7 +49,7 @@ function parseSquare(squareStr: string, row: number, col: number) {
     else if (char0 === '2' || char0 === '₂') wordBonus = 2
     else if (char0 === '3' || char0 === '₃') wordBonus = 3
     else if (char0 !== '.') {
-      throw new Error(`Unknown bonus type in square: "${squareStr}".`)
+      throw new Error(`Missing tile value in square: "${squareStr}".`)
     }
   }
 
@@ -95,10 +95,11 @@ const SQUARE_ROW_PATTERN = /( +)((?:\S(?:.|$))+)/g
 function getStartColumns(rowOfSquareRows: string) {
   const columns: Array<number> = []
   let col = 0, match
+  SQUARE_ROW_PATTERN.lastIndex = 0
   while ((match = SQUARE_ROW_PATTERN.exec(rowOfSquareRows)) !== null) {
-    col += (match[1] as string).length
+    col += match[1]!.length
     columns.push(col)
-    col += (match[2] as string).length
+    col += match[2]!.length
   }
   return columns
 }
@@ -117,11 +118,12 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
     }
   ]))
   boardLines.forEach(line => {
+    SQUARE_ROW_PATTERN.lastIndex = 0
     startColumns.forEach(startColumn => {
       if (startColumn < line.length) {
         const match = SQUARE_ROW_PATTERN.exec(line)
         if (!match) throw new Error
-        boardStrings.get(startColumn)?.body.push(match[2] as string)
+        boardStrings.get(startColumn)?.body.push(match[2]!)
       }
     })
     if (SQUARE_ROW_PATTERN.exec(line)) throw new Error
@@ -158,7 +160,7 @@ function parseBoard({headers, body}: {headers: URLSearchParams, body: Array<stri
   const board = new TestBoard(...generateRowStrings(squares))
   squares.map((row, rowNumber) => {
     row.map((square, colNumber) => {
-      const boardSquare = board.squares[rowNumber]?.[colNumber] as Square
+      const boardSquare = board.squares[rowNumber]?.[colNumber]!
       if (square.tile) boardSquare.tile = square.tile
       if (square.assignedLetter) boardSquare.assignedLetter = square.assignedLetter
     })
@@ -170,6 +172,7 @@ function parseBoard({headers, body}: {headers: URLSearchParams, body: Array<stri
 function parseRowOfSquares(rowOfSquaresStr: string, row: number) {
   const squares: Array<Square> = []
   let match
+  SQUARE_PATTERN.lastIndex = 0
   while ((match = SQUARE_PATTERN.exec(rowOfSquaresStr)) !== null) {
     squares.push(parseSquare(match[0], row, squares.length))
   }
@@ -182,7 +185,7 @@ export function diffBoards(a: Board, b: Board): Array<BoardPlacement> {
   const result = [] as Array<BoardPlacement>
   a.squares.forEach((rowOfSquares, row) => {
     rowOfSquares.forEach((square, col) => {
-      const diff = diffSquares(square, b.squares[row]?.[col] as Square)
+      const diff = diffSquares(square, b.squares[row]?.[col]!)
       if (diff) result.push(diff)
     })
   })
