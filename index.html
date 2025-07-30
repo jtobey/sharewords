@@ -2,10 +2,20 @@
 <html>
   <head>
     <script src="./app.ts" type="module"></script>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <button>Show Board</button>
-    <button>Show Stats</button>
-    <button>Play Word</button>
+    <h1>Crossword Builder</h1>
+    <div id="game-container">
+      <div id="board-container"></div>
+      <div id="controls-container">
+        <div id="rack-container"></div>
+        <div id="buttons-container">
+          <button id="play-word">Play Word</button>
+          <button id="pass-exchange">Pass/Exchange</button>
+          <button id="show-stats">Show Stats</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
