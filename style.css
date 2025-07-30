@@ -51,3 +51,9 @@
 .placed {
   background-color: #lightgreen;
 }
+
+.square.dl { background-color: #c99; }
+.square.tl { background-color: #bbb; }
+.square.dw { background-color: #ff3; }
+.square.tw { background-color: #f90; }
+.square.center { background-color: #6f9; }

@@ -31,6 +31,11 @@ function renderBoard() {
       const square = gameState.board.squares[r][c]
       const squareDiv = document.createElement('div')
       squareDiv.className = 'square'
+      if (square.letterBonus === 2) squareDiv.classList.add('dl')
+      if (square.letterBonus === 3) squareDiv.classList.add('tl')
+      if (square.wordBonus === 2) squareDiv.classList.add('dw')
+      if (square.wordBonus === 3) squareDiv.classList.add('tw')
+      if (r === 7 && c === 7) squareDiv.classList.add('center')
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
