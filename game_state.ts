@@ -18,7 +18,7 @@ import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
-import { checkIndices } from './validation.js'
+import { indicesOk } from './validation.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -30,7 +30,7 @@ export class GameState extends EventTarget {
     settings?: Settings,
     public keepAllHistory = false,
     shared?: SharedState,
-    public tilesHeld = [] as Array<TilePlacement>,
+    public tilesHeld = [] as ReadonlyArray<TilePlacement>,
     /**
      * The last N turns played, where N is at least
      * the number of players minus one. Turn URLs should describe the last move
@@ -60,7 +60,9 @@ export class GameState extends EventTarget {
         col: index,
       }
     })
-    this.dispatchEvent(new CustomEvent('tilemove', {detail: this.tilesHeld}))
+    this.tilesHeld.forEach(p => {
+      this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: p}}))
+    })
     return this
   }
 
@@ -102,16 +104,86 @@ export class GameState extends EventTarget {
   }
 
   moveTile(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number) {
-    const placement = this.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
-    if (placement === undefined) throw new Error(`No held tile is at ${fromRow},${fromCol}.`)
-    const occupant = this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
-    if (toRow === 'rack' || toRow === 'exchange') {
-      checkIndices(this.settings.rackCapacity, toCol)
-      // XXX
-    } else {
-      // XXX
+    const preparation = this.prepareTileMove(fromRow, fromCol, toRow, toCol)
+    if (!preparation.success) throw new RangeError(preparation.message)
+    for (const pushed of preparation.toPush) {
+      pushed.col += preparation.pushDirection
+      this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: pushed}}))
     }
-    // XXX
+    preparation.placement.row = preparation.toRow
+    preparation.placement.col = preparation.toCol
+    this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: preparation.placement}}))
+  }
+
+  prepareTileMove(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number): {
+    success: true
+    placement: TilePlacement      // The tile to move.
+    toRow: TilePlacementRow       // The `toRow` argument, possibly adjusted.
+    toCol: number                 // The `toCol` argument, possibly adjusted.
+    toPush: Array<TilePlacement>  // The tiles, if any, that would move to make space.
+    pushDirection: -1 | 1         // The direction of `toPush` tiles motion, left (-1) or right (1).
+  } | {
+    success: false
+    message: string
+  } {
+    const placement = this.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
+    if (placement === undefined) return {success: false, message: `No tile at ${fromRow},${fromCol}.`}
+    let pushDirection: 1 | -1 = (toRow !== fromRow || toCol < fromCol ? 1 : -1)
+    let toPush: Array<TilePlacement> = []
+    const occupant = this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
+
+    // In the rack and exchange area, provided that there is room (which there will be, barring a bug),
+    // we can always drop the tile at the specified position, but we may have to move other tiles.
+    if (toRow === 'rack' || toRow === 'exchange') {
+      const capacity = this.settings.rackCapacity
+      if (!indicesOk(capacity, toCol)) return { success: false, message: `Invalid toCol: ${toCol}` }
+      if (occupant) {
+        const newRowmates = new Map(
+          this.tilesHeld
+            .filter(p => p.row === toRow && !(p.row === fromRow && p.col === fromCol))
+            .map(p => [p.col, p])
+        )
+        if (toRow === fromRow && toCol > fromCol) pushDirection = -1
+
+        function tryPush() {
+          const newToPush: Array<TilePlacement> = []
+          for (let col = toCol; true; col += pushDirection) {
+            if (col < 0 || col >= capacity) return null
+            const rowmate = newRowmates.get(col)
+            if (rowmate) newToPush.push(rowmate)
+            else return newToPush
+          }
+        }
+
+        let newToPush = tryPush()
+        if (!newToPush) {
+          pushDirection = -pushDirection as typeof pushDirection
+          newToPush = tryPush()
+          if (!newToPush) return {
+            success: false,
+            message: `${toRow === 'rack' ? 'Rack' : 'Exchange area'} is full.`,
+          }
+        }
+        toPush = newToPush
+      }
+    } else {
+      // Moving to the board. We won't move anything out of the way.
+      const square = this.board.squares[toRow]?.[toCol]
+      if (!square) return { success: false, message: `Tile destination ${toRow},${toCol} is off the board.` }
+      if (occupant || square.tile) {
+        // Try to substitute a good nearby open square.
+        for (const [deltaRow, deltaCol] of [[0,1], [1,0], [-1,0], [0,-1]]) {
+          const [row, col] = [toRow + deltaRow!, toCol + deltaCol!]
+          const nearbySquare = this.board.squares[row]?.[col]
+          if (!nearbySquare) continue
+          if (nearbySquare.tile) continue
+          if (this.tilesHeld.some(p => p.row === toRow && p.col === toCol)) continue
+          return { success: true, placement, toRow: row, toCol: row, pushDirection, toPush }
+        }
+        return { success: false, message: `Square ${toRow},${toCol} is occupied` }
+      }
+    }
+    return { success: true, placement, toRow, toCol, pushDirection, toPush }
   }
 
   async playTurns(...turns: Array<Turn>) {
