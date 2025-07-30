@@ -5,7 +5,7 @@ import type { RandomGenerator } from './random_generator.js'
 
 function checkUint32(n: number) {
   if (n >>> 0 !== n) {
-    throw new RangeError(`seed must be a uint32, not ${n}`)
+    throw new RangeError(`Seed must be a uint32, not ${n}.`)
   }
 }
 
@@ -26,7 +26,7 @@ export class Mulberry32Prng implements RandomGenerator {
 
   static fromJSON(json: any) {
     if (typeof json !== 'number') {
-      throw new TypeError(`Invalid serialized Mulberry32Prng: ${json}`)
+      throw new TypeError(`Invalid serialized Mulberry32Prng: ${JSON.stringify(json)}`)
     }
     return new Mulberry32Prng(json)
   }

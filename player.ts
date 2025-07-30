@@ -22,7 +22,7 @@ export class Player {
     if (!(typeof json === 'object'
       && typeof json.id === 'string'
       && typeof json.name === 'string')) {
-        throw new TypeError(`invalid Player serialization: ${json}`)
+        throw new TypeError(`Invalid Player serialization: ${JSON.stringify(json)}`)
       }
     return new Player(json)
   }

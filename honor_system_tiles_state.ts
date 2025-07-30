@@ -97,8 +97,8 @@ export class HonorSystemTilesState implements TilesState {
       && Object.values(json.racks).every(Array.isArray)
       && typeof json.bag === 'object'
     )) {
-        throw new TypeError(`invalid HonorSystemTileState serialization: ${json}`)
-      }
+      throw new TypeError(`invalid HonorSystemTileState serialization: ${JSON.stringify(json)}`)
+    }
     const bag = HonorSystemBag.fromJSON(json.bag)
     const racks = new Map<string, Array<Tile>>
     for (const [playerId, rackJson] of Object.entries(json.racks)) {
