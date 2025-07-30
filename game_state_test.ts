@@ -11,7 +11,6 @@ describe('game state', () => {
   it('should take turns', async () => {
     const settings = new Settings
     settings.gameId = 'test' as GameId
-    settings.tileSystemSettings = 1  // Random seed.
     let [[sharedBoard], ...pairs] = parseBoards(`
 
           3 . ² . 3
@@ -106,5 +105,30 @@ describe('game state', () => {
     const player2GameState = await GameState.fromParams(params, '2')
     const player2Rack = await player2GameState.getTiles('1')
     expect(player2Rack.map(t => t.letter).join('')).toEqual('TUTNKEE')
+  })
+
+  it('should apply the bingo bonus', async () => {
+    const settings = new Settings
+    settings.letterCounts = {A: 20}
+    settings.letterValues = {A: 1}
+    settings.bingoBonus = 10
+    let [[before, after]] = parseBoards(`
+
+          . . . . . . .        . . . . . . .
+          . . . . . . .        . . . . . . .
+          . . . . . . .        . . . . . . .
+          . . . . . . .        A₁A₁A₁A₁A₁A₁A₁
+          . . . . . . .        . . . . . . .
+          . . . . . . .        . . . . . . .
+          . . . . . . .        . . . . . . .
+
+      `) as any
+    settings.boardLayout = generateRowStrings(before.squares)
+    console.log(settings.boardLayout)
+    const gameState = new GameState('1', settings)
+    const placements = diffBoards(before, after)
+    await gameState.playTurns(new Turn('1', toTurnNumber(1), {playTiles: placements}))
+    expect(gameState.turnUrlParams.get('wh')).toEqual('AAAAAAA')
+    expect(gameState.board.scores.get('1')).toEqual(17)
   })
 })
