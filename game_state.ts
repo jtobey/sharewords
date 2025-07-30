@@ -85,7 +85,7 @@ export class GameState extends EventTarget {
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
     if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      this.toParams(gameParams)
+      this.addGameParams(gameParams)
     }
     if (turnHistory.length) {
       gameParams.append('tn', String(firstHistoryTurnNumber))
@@ -394,41 +394,40 @@ export class GameState extends EventTarget {
     await this.playTurns(...turns)
   }
 
-  toParams(params: URLSearchParams) {
-    if (this.nextTurnNumber <= this.settings.players.length) {
-      // Not all players have played. Include any non-default game settings.
-      const defaults = new Settings
-      params.set('ver', this.settings.version)
-      if (!playersEqual(this.settings.players, defaults.players)) {
-        this.settings.players.forEach((p, index) => {
-          params.append('pn', p.name)
-        })
-      }
-      if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
-        params.set('board', this.settings.boardLayout.join('-'))
-      }
-      if (this.settings.bingoBonus !== defaults.bingoBonus) {
-        params.set('bingo', String(this.settings.bingoBonus))
-      }
-      if (!(
-        objectsEqual(this.settings.letterCounts, defaults.letterCounts) &&
-          objectsEqual(this.settings.letterValues, defaults.letterValues)
-      )) {
-        const bagParam = Object.entries(this.settings.letterCounts).map(
-          ([letter, count]) => `${letter}.${count}.${this.settings.letterValues[letter] ?? 0}`
-        ).join('.')
-        params.set('bag', bagParam)
-      }
-      if (this.settings.tileSystemType === 'honor') {
-        params.set('seed', String(this.settings.tileSystemSettings))
-      }
-      if (this.settings.dictionaryType !== defaults.dictionaryType) {
-        params.set('dt', this.settings.dictionaryType)
-      }
-      if (typeof this.settings.dictionarySettings === 'string') {
-        params.set('ds', this.settings.dictionarySettings)
-      }
+  private addGameParams(params: URLSearchParams) {
+    // Not all players have played. Include any non-default game settings.
+    const defaults = new Settings
+    params.set('ver', this.settings.version)
+    if (!playersEqual(this.settings.players, defaults.players)) {
+      this.settings.players.forEach((p, index) => {
+        params.append('pn', p.name)
+      })
     }
+    if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
+      params.set('board', this.settings.boardLayout.join('-'))
+    }
+    if (this.settings.bingoBonus !== defaults.bingoBonus) {
+      params.set('bingo', String(this.settings.bingoBonus))
+    }
+    if (!(
+      objectsEqual(this.settings.letterCounts, defaults.letterCounts) &&
+        objectsEqual(this.settings.letterValues, defaults.letterValues)
+    )) {
+      const bagParam = Object.entries(this.settings.letterCounts).map(
+        ([letter, count]) => `${letter}.${count}.${this.settings.letterValues[letter] ?? 0}`
+      ).join('.')
+      params.set('bag', bagParam)
+    }
+    if (this.settings.tileSystemType === 'honor') {
+      params.set('seed', String(this.settings.tileSystemSettings))
+    }
+    if (this.settings.dictionaryType !== defaults.dictionaryType) {
+      params.set('dt', this.settings.dictionaryType)
+    }
+    if (typeof this.settings.dictionarySettings === 'string') {
+      params.set('ds', this.settings.dictionarySettings)
+    }
+    params.set('tn', 1)
   }
 
   static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
@@ -485,12 +484,17 @@ export class GameState extends EventTarget {
       settings.dictionarySettings = dsParam
     }
     if (!playerId) {
-      if (settings.players.length === 2) {
-        playerId = settings.players[1]!.id
-        console.log(`Joining as player ${playerId}`)
-      } else {
+      let urlTurnNumber = 0
+      try {
+        urlTurnNumber = parseInt(params.get('tn'))
+        const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
+        playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
+      }
+      catch {}
+      if (!playerId) {
         throw new Error(`No player ID provided. Who am I? ${JSON.stringify(settings.players)}`)
       }
+      console.log(`Joining as player ${playerId}`)
     }
     const gameState = new GameState(playerId, settings)
     await gameState.applyTurnParams(params)

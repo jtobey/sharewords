@@ -112,12 +112,17 @@ gameState.addEventListener('tilemove', (evt) => {
   renderBoard()
 })
 
-gameState.addEventListener('boardchange', (evt) => {
+gameState.addEventListener('tilesplaced', (evt) => {
   renderBoard()
 })
 
 gameState.addEventListener('turnchange', () => {
   window.location.hash = '#' + gameState.turnUrlParams.toString()
+})
+
+window.addEventListener('hashchange', () => {
+  const params = new URLSearchParams(window.location.hash.substring(1))
+  gameState.applyTurnParams(params)
 })
 
 console.log(gameState)
