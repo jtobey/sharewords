@@ -19,6 +19,7 @@ import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { indicesOk } from './validation.js'
+import { TileEvent, BoardEvent, GameEvent } from './events.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -61,7 +62,7 @@ export class GameState extends EventTarget {
       }
     })
     this.tilesHeld.forEach(p => {
-      this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: p}}))
+      this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: p}}))
     })
     return this
   }
@@ -103,18 +104,26 @@ export class GameState extends EventTarget {
     return this.players[(fromTurnNumber(this.nextTurnNumber) - 1) % this.players.length]
   }
 
+  /**
+   * Moves a held tile to an open board, rack, or exchange area location.
+   * @throws {RangeError} if either location is invalid or the destination is full.
+   * @fires TileEvent#tilemove
+   */
   moveTile(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number) {
     const preparation = this.prepareTileMove(fromRow, fromCol, toRow, toCol)
     if (!preparation.success) throw new RangeError(preparation.message)
     for (const pushed of preparation.toPush) {
       pushed.col += preparation.pushDirection
-      this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: pushed}}))
+      this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: pushed}}))
     }
     preparation.placement.row = preparation.toRow
     preparation.placement.col = preparation.toCol
-    this.dispatchEvent(new CustomEvent('tilemove', {detail: {tilePlacement: preparation.placement}}))
+    this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: preparation.placement}}))
   }
 
+  /**
+   * Checks whether a tile at the given `from` location can move to the `to` location.
+   */
   prepareTileMove(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number): {
     success: true
     placement: TilePlacement      // The tile to move.
@@ -186,7 +195,17 @@ export class GameState extends EventTarget {
     return { success: true, placement, toRow, toCol, pushDirection, toPush }
   }
 
+  /**
+   * @fires TileEvent#tilemove
+   * @fires BoardEvent#tilesplaced
+   * @fires GameEvent#turnchange
+   * @fires GameEvent#gameover
+   */
   async playTurns(...turns: Array<Turn>) {
+    if (this.isGameOver) {
+      throw new Error('Game Over.')
+    }
+
     // `this.shared.playTurns` validates several turn properties.
     // For example:
     // * It rejects turns whose `playerId` does not line up with the order of play.
@@ -199,6 +218,7 @@ export class GameState extends EventTarget {
     // Update history.
     let iPlayed = false
     let wroteHistory = false
+    const tilePlacements: Array<BoardPlacement> = []
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
       if (fromTurnNumber(turn.turnNumber) >= this.nextTurnNumber) {
@@ -214,6 +234,7 @@ export class GameState extends EventTarget {
         params.set('wl', `${turn.row}.${turn.col}`)
         const tileAssignments = [] as Array<string>
         turn.move.playTiles.forEach((placement: BoardPlacement, index) => {
+          tilePlacements.push(placement)
           if (placement.tile.isBlank) {
             tileAssignments.push(`${index}-${placement.assignedLetter}`)
           }
@@ -227,8 +248,11 @@ export class GameState extends EventTarget {
       this.history.push({turnNumber: turn.turnNumber, params: String(params)})
       wroteHistory = true
     }
-    if (wroteHistory) {
-      this.dispatchEvent(new CustomEvent('boardchange', {detail: this.board}))
+    if (tilePlacements.length) this.dispatchEvent(new BoardEvent('tilesplaced', {detail: {tilePlacements}}))
+    if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
+    if (this.isGameOver) {
+      // TODO: Transfer tile values to the winner.
+      this.dispatchEvent(new GameEvent('gameover'))
     }
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
