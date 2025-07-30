@@ -7,16 +7,18 @@
   display: grid;
   grid-template-columns: repeat(15, 40px);
   grid-template-rows: repeat(15, 40px);
-  gap: 1px;
   border: 1px solid #ccc;
-  width: 602px; /* 15 * 40 + 1 * 14 + 2 * 1 */
-  height: 602px; /* 15 * 40 + 1 * 14 + 2 * 1 */
+  width: 601px;
+  height: 601px;
+  background-color: #ccc;
 }
 
 .square {
   width: 40px;
   height: 40px;
-  border: 1px solid #ccc;
+  background-color: white;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
   box-sizing: border-box;
   text-align: center;
   line-height: 40px;
