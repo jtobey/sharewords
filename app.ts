@@ -16,14 +16,8 @@ if (window.location.hash) {
   if (gid) {
     const savedGame = localStorage.getItem(`sharewords_${gid}`)
     if (savedGame) {
-      try {
-        gameState = GameState.fromJSON(JSON.parse(savedGame))
-        await gameState.applyTurnParams(params)
-      } catch (e) {
-        console.error('Failed to load saved game:', e)
-        // Fall back to creating from params
-        gameState = await GameState.fromParams(params)
-      }
+      gameState = GameState.fromJSON(JSON.parse(savedGame))
+      await gameState.applyTurnParams(params)
     } else {
       gameState = await GameState.fromParams(params)
     }
@@ -46,10 +40,10 @@ function renderBoard() {
   boardContainer.innerHTML = ''
   for (let r = 0; r < gameState.board.squares.length; r++) {
     const row = gameState.board.squares[r]
-    if (!row) continue
+    if (!row) throw new Error(`Invalid board: Row ${r} is missing.`)
     for (let c = 0; c < row.length; c++) {
       const square = row[c]
-      if (!square) continue
+      if (!square) throw new Error(`Invalid board: Square ${r},${c} is missing.`)
       const squareDiv = document.createElement('div')
       squareDiv.className = 'square'
       if (square.letterBonus === 2) squareDiv.classList.add('dl')

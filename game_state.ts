@@ -469,7 +469,7 @@ export class GameState extends EventTarget {
     if (tileSystemType === 'honor') {
       const seedParam = params.get('seed')
       if (!seedParam) throw new Error('No random seed in URL.')
-      settings.tileSystemSettings = parseInt(seedParam, 10)
+      settings.tileSystemSettings = parseInt(seedParam)
     }
     const dtParam = params.get('dt')
     if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
@@ -478,8 +478,9 @@ export class GameState extends EventTarget {
       throw new Error(`Unknown dictionary type: "${dtParam}".`)
     }
     const dsParam = params.get('ds')
-    if (settings.dictionaryType === 'custom') {
-      settings.dictionarySettings = dsParam || ''
+    if (dsParam) settings.dictionarySettings = dsParam
+    else if (settings.dictionaryType === 'custom') {
+      throw new Error('Custom dictionary requires a URL.')
     }
     if (!playerId) {
       let urlTurnNumber = 0
