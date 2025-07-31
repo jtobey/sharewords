@@ -524,7 +524,7 @@ export class GameState extends EventTarget {
     if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual(
       [...Object.keys(json)],
-      ['shared', 'playerId', 'keepAllHistory', 'rack', 'history']
+      ['shared', 'playerId', 'keepAllHistory', 'tilesHeld', 'history']
     )) {
       fail('Wrong keys or key order')
     }
@@ -536,26 +536,26 @@ export class GameState extends EventTarget {
     const tilesHeld = json.tilesHeld.map((tileJson: any) => {
       if (typeof tileJson !== 'object') fail('tilesHeld element is not an object')
       if (!arraysEqual(
-        [...Object.keys({...json, assignedLetter:'x'})],
+        [...Object.keys({...tileJson, assignedLetter:'x'})],
         ['tile', 'row', 'col', 'assignedLetter']
       )) {
         fail('Wrong tilesHeld element keys or key order')
       }
-      if (typeof json.row !== 'number' && json.row !== 'rack' && json.row !== 'exchange') {
+      if (typeof tileJson.row !== 'number' && tileJson.row !== 'rack' && tileJson.row !== 'exchange') {
         fail('Invalid tilesHeld[].row')
       }
-      if (typeof json.col !== 'number') fail ('Invalid tilesHeld[].col')
-      if (json.assignedLetter !== undefined && typeof json.assignedLetter !== 'string') {
+      if (typeof tileJson.col !== 'number') fail ('Invalid tilesHeld[].col')
+      if (tileJson.assignedLetter !== undefined && typeof tileJson.assignedLetter !== 'string') {
         fail('Invalid tilesHeld[].assignedLetter')
       }
-      const tile = Tile.fromJSON(json.tile)
-      if (tile.letter && json.assignedLetter) fail('Non-blank tile with an assigned letter')
+      const tile = Tile.fromJSON(tileJson.tile)
+      if (tile.letter && tileJson.assignedLetter) fail('Non-blank tile with an assigned letter')
       const result: TilePlacement = {
         tile,
-        row: json.row,
-        col: json.col,
+        row: tileJson.row,
+        col: tileJson.col,
       }
-      if (json.assignedLetter) result.assignedLetter = json.assignedLetter
+      if (tileJson.assignedLetter) result.assignedLetter = tileJson.assignedLetter
       return result
     })
     // TODO - Check json.history element types.

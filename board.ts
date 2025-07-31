@@ -116,7 +116,12 @@ export class Board {
     // Find the direction of a line along which all placements lie.
     // Order the tiles by their position along this line.
     const mainDir = {x: 0, y: 0}
-    if (placements.every(tile => tile.row === anyPlacement.row)) {
+    const tilesInOneRow = placements.every(tile => tile.row === anyPlacement.row)
+    if (tilesInOneRow && (
+      placements.length > 1 ||
+        this.squares[anyPlacement.row]?.[anyPlacement.col - 1]?.tile ||
+        this.squares[anyPlacement.row]?.[anyPlacement.col + 1]?.tile
+    )) {
       mainDir.x = 1  // Left to right.
       placements.sort((a, b) => a.col - b.col)
     } else if (placements.every(tile => tile.col === anyPlacement.col)) {
