@@ -207,6 +207,7 @@ export class GameState extends EventTarget {
     }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     await this.playTurns(turn)
+    await this.initRack()
   }
 
   /**
@@ -214,21 +215,21 @@ export class GameState extends EventTarget {
    * Passes the resulting `Turn` to `playTurns`.
    */
   async passOrExchange() {
-    const placements = this.tilesHeld.filter(p => p.row === 'exchange')
-    const exchangeTileIndices = placements.map(p => p.col)
+    const placements = this.tilesHeld.map((p, index) => ({p, index})).filter(({p}) => p.row === 'exchange')
+    const exchangeTileIndices = placements.map(({index}) => index)
     const turn = new Turn(this.playerId, this.nextTurnNumber, { exchangeTileIndices })
     await this.playTurns(turn)
+    if (placements.length) await this.initRack()
   }
 
   /**
    * Commits turns to the board and players' racks.
-   * @todo Make private and move remaining usage to `playWord` and `passOrExchange`.
    * @fires TileEvent#tilemove
    * @fires BoardEvent#tilesplaced
    * @fires GameEvent#turnchange
    * @fires GameEvent#gameover
    */
-  async playTurns(...turns: Array<Turn>) {
+  private async playTurns(...turns: Array<Turn>) {
     if (this.isGameOver) {
       throw new Error('Game Over.')
     }

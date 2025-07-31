@@ -60,7 +60,7 @@ describe('game state', () => {
         const tilesStr = tiles.map(t => `${t.letter}(${t.value})`).join(' ')
         console.log(`player ${playerId} tiles: ${tilesStr}`)
       }
-      await player1GameState.playTurns(new Turn('1', turnNumber, {playTiles: player1Tiles}))
+      await player1GameState['playTurns'](new Turn('1', turnNumber, {playTiles: player1Tiles}))
       expect(player1GameState.turnUrlParams).toEqual(player1Board.headers)
       expect(diffBoards(player1GameState.board, player1Board)).toHaveLength(0)
       if (player2GameState) {
@@ -71,7 +71,7 @@ describe('game state', () => {
       expect(diffBoards(player2GameState.board, player1Board)).toHaveLength(0)
       turnNumber = nextTurnNumber(turnNumber)
       const player2Tiles = diffBoards(player1Board, player2Board)
-      await player2GameState.playTurns(new Turn('2',turnNumber, {playTiles: player2Tiles}))
+      await player2GameState['playTurns'](new Turn('2',turnNumber, {playTiles: player2Tiles}))
       expect(player2GameState.turnUrlParams).toEqual(player2Board.headers)
       expect(diffBoards(player2GameState.board, player2Board)).toHaveLength(0)
       await player1GameState.applyTurnParams(player2GameState.turnUrlParams)
@@ -91,9 +91,10 @@ describe('game state', () => {
     expect(initialRack.join('')).toEqual('WTIUTNC')
 
     // Exchange the first, third, and last tiles.
-    const exchangeIndices = [0, 2, 6]
-    const turn = new Turn('1', toTurnNumber(1), { exchangeTileIndices: exchangeIndices })
-    await player1GameState.playTurns(turn)
+    player1GameState.moveTile('rack', 0, 'exchange', 0)
+    player1GameState.moveTile('rack', 2, 'exchange', 0)
+    player1GameState.moveTile('rack', 6, 'exchange', 0)
+    await player1GameState.passOrExchange()
 
     // The rack should have new tiles.
     const newRack = player1GameState.tilesHeld.map(t => t.tile.letter)
@@ -126,10 +127,16 @@ describe('game state', () => {
 
       `) as any
     settings.boardLayout = generateRowStrings(before.squares)
-    console.log(settings.boardLayout)
     const gameState = new GameState('1', settings)
-    const placements = diffBoards(before, after)
-    await gameState.playTurns(new Turn('1', toTurnNumber(1), {playTiles: placements}))
+    await gameState.initRack()
+    for (const placement of diffBoards(before, after)) {
+      const fromCol = gameState.tilesHeld.findIndex(p => p.row === 'rack' && p.tile.equals(placement.tile))
+      gameState.moveTile(
+        'rack', fromCol,
+        placement.row, placement.col
+      )
+    }
+    await gameState.playWord()
     expect(gameState.turnUrlParams.get('wh')).toEqual('AAAAAAA')
     expect(gameState.board.scores.get('1')).toEqual(17)
   })
