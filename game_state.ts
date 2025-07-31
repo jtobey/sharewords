@@ -96,6 +96,7 @@ export class GameState extends EventTarget {
       const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
       return new URLSearchParams([...gameParams, ...flatTurnParams])
     } else {
+      gameParams.set('tn', '1')
       return gameParams
     }
   }
@@ -427,7 +428,6 @@ export class GameState extends EventTarget {
     if (typeof this.settings.dictionarySettings === 'string') {
       params.set('ds', this.settings.dictionarySettings)
     }
-    params.set('tn', 1)
   }
 
   static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
@@ -469,24 +469,22 @@ export class GameState extends EventTarget {
     if (tileSystemType === 'honor') {
       const seedParam = params.get('seed')
       if (!seedParam) throw new Error('No random seed in URL.')
-      settings.tileSystemSettings = parseInt(seedParam)
+      settings.tileSystemSettings = parseInt(seedParam, 10)
     }
     const dtParam = params.get('dt')
-    if (dtParam) {
-      if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
-        settings.dictionaryType = dtParam
-      } else {
-        throw new Error(`Unknown dictionary type: "${dtParam}".`)
-      }
+    if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
+      settings.dictionaryType = dtParam
+    } else if (dtParam) {
+      throw new Error(`Unknown dictionary type: "${dtParam}".`)
     }
     const dsParam = params.get('ds')
     if (settings.dictionaryType === 'custom') {
-      settings.dictionarySettings = dsParam
+      settings.dictionarySettings = dsParam || ''
     }
     if (!playerId) {
       let urlTurnNumber = 0
       try {
-        urlTurnNumber = parseInt(params.get('tn'))
+        urlTurnNumber = parseInt(params.get('tn')!)
         const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
         playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
       }
