@@ -141,6 +141,7 @@ function saveGameState() {
 }
 
 gameState.addEventListener('tilemove', (evt) => {
+  // TODO - Add "from" coordinates to evt.detail, and render only the necessary.
   renderRack()
   renderBoard()
   saveGameState()
