@@ -12,12 +12,24 @@ let gameState: GameState
 
 if (window.location.hash) {
   const params = new URLSearchParams(window.location.hash.substring(1))
-  gameState = await GameState.fromParams(params)
+  const gid = params.get('gid')
+  if (gid) {
+    const savedGame = localStorage.getItem(`sharewords_${gid}`)
+    if (savedGame) {
+      gameState = GameState.fromJSON(JSON.parse(savedGame))
+      await gameState.applyTurnParams(params)
+    } else {
+      gameState = await GameState.fromParams(params)
+    }
+  } else {
+    gameState = await GameState.fromParams(params)
+  }
 } else {
   const settings = new Settings
   settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
   settings.tileSystemSettings = 17  // random seed
   gameState = new GameState('1', settings)
+  saveGameState()
 }
 await gameState.initRack()
 
@@ -27,8 +39,11 @@ const rackContainer = document.getElementById('rack-container')!
 function renderBoard() {
   boardContainer.innerHTML = ''
   for (let r = 0; r < gameState.board.squares.length; r++) {
-    for (let c = 0; c < gameState.board.squares[r].length; c++) {
-      const square = gameState.board.squares[r][c]
+    const row = gameState.board.squares[r]
+    if (!row) throw new Error(`Invalid board: Row ${r} is missing.`)
+    for (let c = 0; c < row.length; c++) {
+      const square = row[c]
+      if (!square) throw new Error(`Invalid board: Square ${r},${c} is missing.`)
       const squareDiv = document.createElement('div')
       squareDiv.className = 'square'
       if (square.letterBonus === 2) squareDiv.classList.add('dl')
@@ -107,9 +122,17 @@ boardContainer.addEventListener('click', (evt) => {
   }
 })
 
+function saveGameState() {
+  const gid = gameState.gameId
+  if (gid) {
+    localStorage.setItem(`sharewords_${gid}`, JSON.stringify(gameState.toJSON()))
+  }
+}
+
 gameState.addEventListener('tilemove', (evt) => {
   renderRack()
   renderBoard()
+  saveGameState()
 })
 
 gameState.addEventListener('tilesplaced', (evt) => {
@@ -118,6 +141,11 @@ gameState.addEventListener('tilesplaced', (evt) => {
 
 gameState.addEventListener('turnchange', () => {
   window.location.hash = '#' + gameState.turnUrlParams.toString()
+  saveGameState()
+})
+
+gameState.addEventListener('gameover', () => {
+  saveGameState()
 })
 
 window.addEventListener('hashchange', () => {

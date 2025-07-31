@@ -96,6 +96,7 @@ export class GameState extends EventTarget {
       const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
       return new URLSearchParams([...gameParams, ...flatTurnParams])
     } else {
+      gameParams.set('tn', '1')
       return gameParams
     }
   }
@@ -427,7 +428,6 @@ export class GameState extends EventTarget {
     if (typeof this.settings.dictionarySettings === 'string') {
       params.set('ds', this.settings.dictionarySettings)
     }
-    params.set('tn', 1)
   }
 
   static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
@@ -472,21 +472,20 @@ export class GameState extends EventTarget {
       settings.tileSystemSettings = parseInt(seedParam)
     }
     const dtParam = params.get('dt')
-    if (dtParam) {
-      if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
-        settings.dictionaryType = dtParam
-      } else {
-        throw new Error(`Unknown dictionary type: "${dtParam}".`)
-      }
+    if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
+      settings.dictionaryType = dtParam
+    } else if (dtParam) {
+      throw new Error(`Unknown dictionary type: "${dtParam}".`)
     }
     const dsParam = params.get('ds')
-    if (settings.dictionaryType === 'custom') {
-      settings.dictionarySettings = dsParam
+    if (dsParam) settings.dictionarySettings = dsParam
+    else if (settings.dictionaryType === 'custom') {
+      throw new Error('Custom dictionary requires a URL.')
     }
     if (!playerId) {
       let urlTurnNumber = 0
       try {
-        urlTurnNumber = parseInt(params.get('tn'))
+        urlTurnNumber = parseInt(params.get('tn')!)
         const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
         playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
       }
@@ -526,7 +525,7 @@ export class GameState extends EventTarget {
     if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual(
       [...Object.keys(json)],
-      ['shared', 'playerId', 'keepAllHistory', 'rack', 'history']
+      ['shared', 'playerId', 'keepAllHistory', 'tilesHeld', 'history']
     )) {
       fail('Wrong keys or key order')
     }
@@ -538,26 +537,26 @@ export class GameState extends EventTarget {
     const tilesHeld = json.tilesHeld.map((tileJson: any) => {
       if (typeof tileJson !== 'object') fail('tilesHeld element is not an object')
       if (!arraysEqual(
-        [...Object.keys({...json, assignedLetter:'x'})],
+        [...Object.keys({...tileJson, assignedLetter:'x'})],
         ['tile', 'row', 'col', 'assignedLetter']
       )) {
         fail('Wrong tilesHeld element keys or key order')
       }
-      if (typeof json.row !== 'number' && json.row !== 'rack' && json.row !== 'exchange') {
+      if (typeof tileJson.row !== 'number' && tileJson.row !== 'rack' && tileJson.row !== 'exchange') {
         fail('Invalid tilesHeld[].row')
       }
-      if (typeof json.col !== 'number') fail ('Invalid tilesHeld[].col')
-      if (json.assignedLetter !== undefined && typeof json.assignedLetter !== 'string') {
+      if (typeof tileJson.col !== 'number') fail ('Invalid tilesHeld[].col')
+      if (tileJson.assignedLetter !== undefined && typeof tileJson.assignedLetter !== 'string') {
         fail('Invalid tilesHeld[].assignedLetter')
       }
-      const tile = Tile.fromJSON(json.tile)
-      if (tile.letter && json.assignedLetter) fail('Non-blank tile with an assigned letter')
+      const tile = Tile.fromJSON(tileJson.tile)
+      if (tile.letter && tileJson.assignedLetter) fail('Non-blank tile with an assigned letter')
       const result: TilePlacement = {
         tile,
-        row: json.row,
-        col: json.col,
+        row: tileJson.row,
+        col: tileJson.col,
       }
-      if (json.assignedLetter) result.assignedLetter = json.assignedLetter
+      if (tileJson.assignedLetter) result.assignedLetter = tileJson.assignedLetter
       return result
     })
     // TODO - Check json.history element types.

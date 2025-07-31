@@ -87,6 +87,24 @@ describe('board', () => {
     })
   })
 
+  it('should score a single-tile extension below', () => {
+    const [oldBoard, newBoard] = parseBoards(`
+
+        C3A1T1    C3A1T1
+        . . .     . N1.
+
+    `)[0]!
+    const diff = diffBoards(oldBoard!, newBoard!)
+    expect(oldBoard!.checkWordPlacement(...diff)).toEqual({
+      score: 2,
+      wordsFormed: ['AN'],
+      mainWord: 'AN',
+      row: 0,
+      col: 1,
+      vertical: true,
+    })
+  })
+
   describe('validation', () => {
     it('should throw if no tiles are provided', () => {
       const board = new Board('.')
