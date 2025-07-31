@@ -16,11 +16,11 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 -   Special "seven-tile bonus".
 -   Blank tiles assignable when placed on the board by players.
 -   Player actions: play word, exchange tiles, pass turn.
--   Game state managed in local storage. (PLANNED)
+-   Game state managed in local storage.
 -   Turn progression via sharable "turn URLs".
 -   Customizable game settings for new games (board layout, letter values, dictionary, etc.).
 -   Pseudorandom Number Generator (PRNG) for consistent shuffling based on a seed.
--   Support for multiple active games. (PLANNED)
+-   Support for multiple active games.
 
 ## How to Play
 
