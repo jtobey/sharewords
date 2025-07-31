@@ -53,6 +53,7 @@ export class GameState extends EventTarget {
   }
 
   async initRack() {
+    // TODO - Don't rearrange existing rack placements.
     const tiles = await this.shared.tilesState.getTiles(this.playerId)
     this.tilesHeld = tiles.map((tile, index) => {
       return {
