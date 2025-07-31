@@ -61,7 +61,7 @@ function renderBoard() {
       if (square.letterBonus === 3) squareDiv.classList.add('tl')
       if (square.wordBonus === 2) squareDiv.classList.add('dw')
       if (square.wordBonus === 3) squareDiv.classList.add('tw')
-      if (r === 7 && c === 7) squareDiv.classList.add('center')
+      if (r === 7 && c === 7) squareDiv.classList.add('center')  // TODO - Use board size.
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
@@ -167,15 +167,6 @@ const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 function subscript(n: number) {
   return String(n).split('').map((c: any) => SUBSCRIPTS[c]).join('')
 }
-
-document.getElementById('show-stats')!.addEventListener('click', async () => {
-  const rack = gameState.tilesHeld.map(t => `${t.tile.letter || '?'}${subscript(t.tile.value)}`).join(' ')
-  alert(`
-  Tiles in bag: ${gameState.numberOfTilesInBag}
-  Rack: ${rack}
-  Score: ${gameState.board.scores.get('1') ?? 0}
-  Turn URL params: ${gameState.turnUrlParams}`)
-})
 
 document.getElementById('play-word')!.addEventListener('click', async () => {
   try {
