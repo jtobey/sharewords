@@ -154,7 +154,11 @@ export class GameState extends EventTarget {
             .filter(p => p.row === toRow && !(p.row === fromRow && p.col === fromCol))
             .map(p => [p.col, p])
         )
-        if (toRow === fromRow && toCol > fromCol) pushDirection = -1
+        if (toRow === fromRow && toCol > fromCol) {
+          pushDirection = -1
+        } else {
+          pushDirection = 1
+        }
 
         function tryPush() {
           const newToPush: Array<TilePlacement> = []

@@ -35,7 +35,7 @@
   margin-bottom: 10px;
 }
 
-.tile {
+.tile, .tile-spot {
   width: 40px;
   height: 40px;
   border: 1px solid #999;
@@ -46,6 +46,12 @@
   line-height: 40px;
   font-size: 24px;
   cursor: pointer;
+}
+
+.tile-spot {
+  background-color: #dda;
+  border-color: #ccc;
+  cursor: default;
 }
 
 .placed {
