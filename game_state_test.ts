@@ -6,6 +6,7 @@ import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
 import { Turn, nextTurnNumber } from './turn.js'
 import { toTurnNumber } from './turn.js'
+import { Player } from './player.js'
 
 describe('game state', () => {
   it('should take turns', async () => {
@@ -162,5 +163,80 @@ describe('game state', () => {
     await player1GameState.passOrExchange()
     const rackAfterPass = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
     expect(rackAfterPass).toBe('ESOQTSI')
+  })
+
+  describe('params', () => {
+    it('should be added for non-default settings', () => {
+      const settings = new Settings
+      settings.players = [new Player({id: '1', name: 'player1'}), new Player({id: '2', name: 'player2'})]
+      settings.boardLayout = ['T..', '.d.', '..T']
+      settings.bingoBonus = 100
+      settings.letterCounts = {'A': 10, 'B': 10}
+      settings.letterValues = {'A': 1, 'B': 2}
+      settings.tileSystemType = 'honor'
+      settings.tileSystemSettings = 123
+      settings.dictionaryType = 'permissive'
+      settings.dictionarySettings = 'http://example.com'
+      const gameState = new GameState('1', settings)
+      const params = new URLSearchParams
+      gameState['addGameParams'](params)
+      expect(params.get('ver')).toEqual(settings.version)
+      expect(params.getAll('pn')).toEqual(['player1', 'player2'])
+      expect(params.get('board')).toEqual('T..-.d.-..T')
+      expect(params.get('bingo')).toEqual('100')
+      expect(params.get('bag')).toEqual('A.10.1.B.10.2')
+      expect(params.get('seed')).toEqual('123')
+      expect(params.get('ds')).toEqual('http://example.com')
+    })
+
+    it('should be parsed for non-default settings', async () => {
+      const params = new URLSearchParams
+      params.set('ver', '0')
+      params.append('pn', 'player1')
+      params.append('pn', 'player2')
+      params.set('board', 'T..-.d.-..T')
+      params.set('bingo', '100')
+      params.set('bag', 'A-10-1.B-10-2')
+      params.set('seed', '123')
+      params.set('dt', 'permissive')
+      params.set('ds', 'http://example.com')
+      params.set('tn', '1')
+
+      const gameState = await GameState.fromParams(params, '1')
+      const settings = gameState.settings
+
+      expect(settings.version).toEqual('0')
+      expect(settings.players.map(p => p.name)).toEqual(['player1', 'player2'])
+      expect(settings.boardLayout).toEqual(['T..', '.d.', '..T'])
+      expect(settings.bingoBonus).toEqual(100)
+      expect(settings.letterCounts).toEqual({'A': 10, 'B': 10})
+      expect(settings.letterValues).toEqual({'A': 1, 'B': 2})
+      expect(settings.tileSystemType).toEqual('honor')
+      expect(settings.tileSystemSettings).toEqual(123)
+      expect(settings.dictionaryType).toEqual('permissive')
+      expect(settings.dictionarySettings).toEqual('http://example.com')
+    })
+
+    it('should throw on invalid bag param', async () => {
+      const params = new URLSearchParams
+      params.set('bag', 'A-10')
+      params.set('seed', '123')
+      params.set('tn', '1')
+      await expect(GameState.fromParams(params, '1')).rejects.toThrow('Invalid letter configuration in URL: A-10')
+    })
+
+    it('should throw on missing seed param', async () => {
+      const params = new URLSearchParams
+      params.set('tn', '1')
+      await expect(GameState.fromParams(params, '1')).rejects.toThrow('No random seed in URL.')
+    })
+
+    it('should throw on custom dictionary without URL', async () => {
+      const params = new URLSearchParams
+      params.set('dt', 'custom')
+      params.set('seed', '123')
+      params.set('tn', '1')
+      await expect(GameState.fromParams(params, '1')).rejects.toThrow('Custom dictionary requires a URL.')
+    })
   })
 })
