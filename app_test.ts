@@ -12,10 +12,10 @@ describe('app', () => {
       <button id="play-word"></button>
       <button id="pass-exchange"></button>
     `
-    global.window = window
-    global.document = document
-    global.localStorage = window.localStorage
-    global.URLSearchParams = window.URLSearchParams
+    global.window = window as any
+    global.document = document as any
+    global.localStorage = window.localStorage as any
+    global.URLSearchParams = window.URLSearchParams as any
   })
 
   it('should render the board', async () => {
