@@ -11,6 +11,7 @@ function checkUint32(n: number) {
 
 export class Mulberry32Prng implements RandomGenerator {
   constructor(private seed: number) {
+    // TODO - Accept a bigint seed and truncate to 32 bits.
     checkUint32(seed)
   }
 
