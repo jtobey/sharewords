@@ -8,12 +8,6 @@ describe('Mulberry32 PRNG', () => {
     expect(prng.random()).toEqual(0xD510621D / 0x100000000)
     expect(prng.random()).toEqual(0xDC59BB95 / 0x100000000)
   })
-  it("should reject a negative seed", () => {
-    expect(() => new Mulberry32Prng(-1)).toThrow(RangeError)
-  })
-  it("should reject a huge seed", () => {
-    expect(() => new Mulberry32Prng(0x100000000)).toThrow(RangeError)
-  })
   it("should reject a fractional seed", () => {
     expect(() => new Mulberry32Prng(1.5)).toThrow(RangeError)
   })

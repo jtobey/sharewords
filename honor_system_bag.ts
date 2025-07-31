@@ -7,8 +7,8 @@ import { Tile } from './tile.js'
 import { arraysEqual } from './validation.js'
 
 export class HonorSystemBag extends Bag {
-  constructor(tiles: Iterable<Tile>, randomSeed: number, shuffle=true) {
-    super(tiles, new Mulberry32Prng(randomSeed), shuffle)
+  constructor(tiles: Iterable<Tile>, randomSeed: string, shuffle=true) {
+    super(tiles, new Mulberry32Prng(BigInt(randomSeed)), shuffle)
   }
   static fromJSON(json: any) {
     if (!(
@@ -21,7 +21,7 @@ export class HonorSystemBag extends Bag {
     }
     return new HonorSystemBag(
       json.tiles.map(Tile.fromJSON),
-      json.prng,
+      String(json.prng),
       false,
     )
   }

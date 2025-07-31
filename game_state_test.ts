@@ -49,6 +49,7 @@ describe('game state', () => {
 
       `) as any
     settings.boardLayout = generateRowStrings(sharedBoard.squares)
+    settings.tileSystemSettings = {seed: '1'}
     const player1GameState = new GameState('1', settings)
     let player2GameState: GameState | undefined
     let turnNumber = toTurnNumber(1)
@@ -83,7 +84,7 @@ describe('game state', () => {
   it('should exchange tiles', async () => {
     const settings = new Settings
     settings.gameId = 'test' as GameId
-    settings.tileSystemSettings = 2  // Random seed.
+    settings.tileSystemSettings = {seed: '2'}  // Random seed.
     const player1GameState = new GameState('1', settings)
     await player1GameState.initRack()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter)
@@ -153,7 +154,7 @@ describe('game state', () => {
 
   it('should pass or exchange', async () => {
     const settings = new Settings
-    settings.tileSystemSettings = 3
+    settings.tileSystemSettings = {seed: '3'}
     const player1GameState = new GameState('1', settings)
     await player1GameState.initRack()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
@@ -174,7 +175,7 @@ describe('game state', () => {
       settings.letterCounts = {'A': 10, 'B': 10}
       settings.letterValues = {'A': 1, 'B': 2}
       settings.tileSystemType = 'honor'
-      settings.tileSystemSettings = 123
+      settings.tileSystemSettings = {seed: '123'}
       settings.dictionaryType = 'permissive'
       settings.dictionarySettings = 'http://example.com'
       const gameState = new GameState('1', settings)
@@ -212,7 +213,7 @@ describe('game state', () => {
       expect(settings.letterCounts).toEqual({'A': 10, 'B': 10})
       expect(settings.letterValues).toEqual({'A': 1, 'B': 2})
       expect(settings.tileSystemType).toEqual('honor')
-      expect(settings.tileSystemSettings).toEqual(123)
+      expect(settings.tileSystemSettings).toEqual({seed: '123'})
       expect(settings.dictionaryType).toEqual('permissive')
       expect(settings.dictionarySettings).toEqual('http://example.com')
     })
