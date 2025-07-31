@@ -415,7 +415,7 @@ export class GameState extends EventTarget {
         objectsEqual(this.settings.letterValues, defaults.letterValues)
     )) {
       const bagParam = Object.entries(this.settings.letterCounts).map(
-        ([letter, count]) => `${letter}.${count}.${this.settings.letterValues[letter] ?? 0}`
+        ([letter, count]) => `${letter}-${count}-${this.settings.letterValues[letter] ?? 0}`
       ).join('.')
       params.set('bag', bagParam)
     }

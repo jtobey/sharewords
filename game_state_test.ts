@@ -184,7 +184,7 @@ describe('game state', () => {
       expect(params.getAll('pn')).toEqual(['player1', 'player2'])
       expect(params.get('board')).toEqual('T..-.d.-..T')
       expect(params.get('bingo')).toEqual('100')
-      expect(params.get('bag')).toEqual('A.10.1.B.10.2')
+      expect(params.get('bag')).toEqual('A-10-1.B-10-2')
       expect(params.get('seed')).toEqual('123')
       expect(params.get('ds')).toEqual('http://example.com')
     })
