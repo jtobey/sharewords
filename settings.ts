@@ -66,7 +66,7 @@ export class Settings {
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
   tileSystemType = 'honor' as 'honor'
-  tileSystemSettings = 1 as Serializable
+  tileSystemSettings = {seed: '1'} as {seed: string}
   dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
 
@@ -100,6 +100,8 @@ export class Settings {
       && typeof json.bingoBonus === 'number'
       && typeof json.rackCapacity === 'number'
       && json.tileSystemType === 'honor'
+      && typeof json.tileSystemSettings === 'object'
+      && typeof json.tileSystemSettings.seed === 'string'
       && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
         throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
       }

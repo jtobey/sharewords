@@ -3,16 +3,10 @@
  */
 import type { RandomGenerator } from './random_generator.js'
 
-function checkUint32(n: number) {
-  if (n >>> 0 !== n) {
-    throw new RangeError(`Seed must be a uint32, not ${n}.`)
-  }
-}
-
 export class Mulberry32Prng implements RandomGenerator {
-  constructor(private seed: number) {
-    // TODO - Accept a bigint seed and truncate to 32 bits.
-    checkUint32(seed)
+  private seed: number
+  constructor(seed: number | bigint) {
+    this.seed = Number(BigInt(seed) & 0xFFFFFFFFn)
   }
 
   random(): number {

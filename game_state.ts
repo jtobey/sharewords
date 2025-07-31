@@ -420,7 +420,7 @@ export class GameState extends EventTarget {
       params.set('bag', bagParam)
     }
     if (this.settings.tileSystemType === 'honor') {
-      params.set('seed', String(this.settings.tileSystemSettings))
+      params.set('seed', this.settings.tileSystemSettings.seed)
     }
     if (this.settings.dictionaryType !== defaults.dictionaryType) {
       params.set('dt', this.settings.dictionaryType)
@@ -468,8 +468,7 @@ export class GameState extends EventTarget {
     const tileSystemType: 'honor' = settings.tileSystemType
     const seedParam = params.get('seed')
     if (!seedParam) throw new Error('No random seed in URL.')
-    // TODO - Make this {randomSeed: BigInt(seedParam)}.
-    settings.tileSystemSettings = parseInt(seedParam)
+    settings.tileSystemSettings = {seed: seedParam}
     const dtParam = params.get('dt')
     if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
       settings.dictionaryType = dtParam

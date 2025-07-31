@@ -161,7 +161,12 @@ export class SharedState {
 
 function makeTilesState(settings: Settings): TilesState {
   if (settings.tileSystemType === 'honor') {
-    return new HonorSystemTilesState({...settings, tiles: makeTiles(settings)})
+    return new HonorSystemTilesState({
+      players: settings.players,
+      rackCapacity: settings.rackCapacity,
+      tiles: makeTiles(settings),
+      tileSystemSettings: settings.tileSystemSettings,
+    })
   }
   throw new Error(`Unsupported tileSystemType: ${settings.tileSystemType}`)
 }

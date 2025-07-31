@@ -30,7 +30,7 @@ describe('honor system tiles state', () => {
       players: makePlayers('John', 'Dave'),
       rackCapacity: 4,
       tiles,
-      tileSystemSettings: 1,
+      tileSystemSettings: {seed: '1'},
     })
     expect(state.rackCapacity).toEqual(4)
     expect(state.numberOfTilesInBag).toEqual(3)
@@ -46,7 +46,7 @@ describe('honor system tiles state', () => {
       players: makePlayers('John', 'Dave'),
       rackCapacity: 4,
       tiles,
-      tileSystemSettings: 1,
+      tileSystemSettings: {seed: '1'},
     })
     const daveWord = makeTestTiles({A:3, B:1}).map((tile, col) => ({row:1, col, tile}))
     const stateId = await state.playTurns(
@@ -68,7 +68,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John', 'John'),
         rackCapacity: 1,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })).toThrow('The player IDs are not unique: John,John')
     })
 
@@ -78,7 +78,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       expect(() => state.countTiles('Dave')).toThrow('Unknown playerId: Dave')
     })
@@ -89,7 +89,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       try {
         await state.getTiles('Dave')
@@ -105,7 +105,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John'),
         rackCapacity: 4,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       const tileToPlay = new Tile({letter: 'B', value: 1})
       try {
@@ -122,7 +122,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John'),
         rackCapacity: 4,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       try {
         await state.playTurns(new Turn('John', toTurnNumber(1), {exchangeTileIndices: [0, 0]}))
@@ -150,7 +150,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John'),
         rackCapacity: 1,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       try {
         await state.playTurns(new Turn('Dave', toTurnNumber(1), {exchangeTileIndices: []}))
@@ -168,7 +168,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John', 'Dave'),
         rackCapacity: 4,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       const stateAsJson = JSON.parse(JSON.stringify(state))
       const stateFromJson = HonorSystemTilesState.fromJSON(stateAsJson)
@@ -186,7 +186,7 @@ describe('honor system tiles state', () => {
         players: makePlayers('John', 'Dave'),
         rackCapacity: 4,
         tiles,
-        tileSystemSettings: 1,
+        tileSystemSettings: {seed: '1'},
       })
       const stateAsJson = JSON.parse(JSON.stringify(state))
       expect(() => HonorSystemTilesState.fromJSON('frob')).toThrow(TypeError)

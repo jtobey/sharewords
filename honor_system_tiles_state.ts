@@ -25,12 +25,12 @@ export class HonorSystemTilesState implements TilesState {
     if ([...new Set(playerIds)].length !== playerIds.length) {
       throw new Error(`The player IDs are not unique: ${playerIds}`)
     }
-    if (typeof tileSystemSettings !== 'number') {
-      throw new TypeError('tileSystemSettings should be a number used as a random seed.')
+    if (typeof tileSystemSettings !== 'object' || typeof tileSystemSettings.seed !== 'string') {
+      throw new TypeError(`tileSystemSettings should be an object with a seed string, not ${JSON.stringify(tileSystemSettings)}`)
     }
     this.rackCapacity = rackCapacity
     this.numberOfTurnsPlayed = 0
-    this.bag = new HonorSystemBag(tiles, tileSystemSettings)
+    this.bag = new HonorSystemBag(tiles, tileSystemSettings.seed)
     this.racks = new Map(playerIds.map(playerId => [playerId, []]))
     if (this.bag.size > 0) {
       for (const rack of this.racks.values()) {
