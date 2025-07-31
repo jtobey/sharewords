@@ -1,4 +1,4 @@
-import { Settings } from './settings.js'
+import { Settings, toGameId } from './settings.js'
 import { GameState } from './game_state.js'
 import { makeTiles } from './tile.js'
 import type { TilesState } from './tiles_state.js'
@@ -10,28 +10,38 @@ import { Turn, toTurnNumber } from './turn.js'
 
 let gameState: GameState
 
-if (window.location.hash) {
-  const params = new URLSearchParams(window.location.hash.substring(1))
-  const gid = params.get('gid')
-  if (gid) {
-    const savedGame = localStorage.getItem(`sharewords_${gid}`)
+async function updateGameStateFromUrlOrStorage() {
+  const params = new URLSearchParams(window.location.hash?.substring(1) || [])
+  const gidParam = params.get('gid')
+  const gameId = gidParam ? toGameId(gidParam) : `game-${Date.now()}`
+  if (gameState?.gameId === gameId) {
+    await gameState.applyTurnParams(params)
+  } else {
+    const savedGame = gidParam && localStorage.getItem(`sharewords_${gidParam}`)
     if (savedGame) {
-      gameState = GameState.fromJSON(JSON.parse(savedGame))
-      await gameState.applyTurnParams(params)
+      // TODO - Recover if fromJSON fails.
+      const newGameState = GameState.fromJSON(JSON.parse(savedGame))
+      console.log(`Loaded ${gameId} from local storage${gameState ? ' and switched from ' + gameState.gameId + ' to it' : ''}.`)
+      gameState = newGameState
     } else {
+      if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * Math.random())))
       gameState = await GameState.fromParams(params)
     }
-  } else {
-    gameState = await GameState.fromParams(params)
   }
-} else {
-  const settings = new Settings
-  settings.players=[new Player({id: '1', name: 'Elmo'}), new Player({id: '2', name: 'Abby'})]
-  settings.tileSystemSettings = 17  // random seed
-  gameState = new GameState('1', settings)
+  await gameState.initRack()
   saveGameState()
+  updateUrl()
 }
-await gameState.initRack()
+
+await updateGameStateFromUrlOrStorage()
+console.log(gameState)
+
+function updateUrl() {
+  const paramsStr = gameState.turnUrlParams.toString()
+  if (window.location.hash.substr(1) !== paramsStr) {
+    window.location.hash = '#' + paramsStr
+  }
+}
 
 const boardContainer = document.getElementById('board-container')!
 const rackContainer = document.getElementById('rack-container')!
@@ -140,7 +150,7 @@ gameState.addEventListener('tilesplaced', (evt) => {
 })
 
 gameState.addEventListener('turnchange', () => {
-  window.location.hash = '#' + gameState.turnUrlParams.toString()
+  updateUrl()
   saveGameState()
 })
 
@@ -148,12 +158,9 @@ gameState.addEventListener('gameover', () => {
   saveGameState()
 })
 
-window.addEventListener('hashchange', () => {
-  const params = new URLSearchParams(window.location.hash.substring(1))
-  gameState.applyTurnParams(params)
+window.addEventListener('hashchange', async () => {
+  await updateGameStateFromUrlOrStorage()
 })
-
-console.log(gameState)
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 function subscript(n: number) {

@@ -10,6 +10,14 @@ import { PROTOCOL_VERSION } from './version.js'
 export type GameId = string & { '__brand': 'GameId' }
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 
+export function toGameId(gameIdStr: string) {
+  return gameIdStr as GameId
+}
+
+export function fromGameId(gameId: GameId) {
+  return gameId as string
+}
+
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
   new Player({id: '2'}),

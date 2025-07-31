@@ -8,7 +8,7 @@
  * players. The game must parse and apply turn URLs received.
  */
 
-import { Settings } from './settings.js'
+import { Settings, toGameId } from './settings.js'
 import type { GameId } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './validation.js'
@@ -437,8 +437,8 @@ export class GameState extends EventTarget {
       throw new Error(`Protocol version not supported: ${verParam}`)
     }
     const gidParam = params.get('gid')
-    if (!gidParam) throw new Error('No Game ID in URL.')
-    settings.gameId = gidParam as GameId
+    if (gidParam) settings.gameId = toGameId(gidParam)
+    // TODO - Consider using p1n, p2n, ... and letting URLs update names mid-game.
     const pnParams = params.getAll('pn')
     if (pnParams.length) settings.players = pnParams.map((name, index) => {
       const args = {id: String(index + 1), ...(name ? {name} : {})}
@@ -466,11 +466,10 @@ export class GameState extends EventTarget {
     const racksizeParam = params.get('racksize')
     if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
     const tileSystemType: 'honor' = settings.tileSystemType
-    if (tileSystemType === 'honor') {
-      const seedParam = params.get('seed')
-      if (!seedParam) throw new Error('No random seed in URL.')
-      settings.tileSystemSettings = parseInt(seedParam)
-    }
+    const seedParam = params.get('seed')
+    if (!seedParam) throw new Error('No random seed in URL.')
+    // TODO - Make this {randomSeed: BigInt(seedParam)}.
+    settings.tileSystemSettings = parseInt(seedParam)
     const dtParam = params.get('dt')
     if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
       settings.dictionaryType = dtParam
@@ -483,17 +482,10 @@ export class GameState extends EventTarget {
       throw new Error('Custom dictionary requires a URL.')
     }
     if (!playerId) {
-      let urlTurnNumber = 0
-      try {
-        urlTurnNumber = parseInt(params.get('tn')!)
-        const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
-        playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
-      }
-      catch {}
-      if (!playerId) {
-        throw new Error(`No player ID provided. Who am I? ${JSON.stringify(settings.players)}`)
-      }
-      console.log(`Joining as player ${playerId}`)
+      const urlTurnNumber = parseInt(params.get('tn')!) || 1
+      const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
+      playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
+      console.log(`Joining as Player ${playerId}.`)
     }
     const gameState = new GameState(playerId, settings)
     await gameState.applyTurnParams(params)
