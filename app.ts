@@ -127,30 +127,23 @@ function select(row: 'rack' | 'exchange' | number, col: number) {
 
 rackContainer.addEventListener('click', (evt) => {
   const target = evt.target as HTMLElement
-  const colStr = target.dataset.col
-  if (colStr === undefined) {
-    if (selectedTile) {
-      // Find an empty spot on the rack.
-      const rackCols = gameState.tilesHeld.filter(p => p.row === 'rack').map(p => p.col)
-      for (let col = 0; col < gameState.settings.rackCapacity; col++) {
-        if (!rackCols.includes(col)) {
-          gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
-          deselect()
-          break
-        }
-      }
-    }
-    return
-  }
-  const col = parseInt(colStr, 10)
-
+  let col: number
   if (target.classList.contains('tile')) {
+    col = parseInt(target.dataset.col!, 10)
     const row = target.dataset.row!
     if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
       deselect()
     } else {
       select(row as 'rack', col)
     }
+    return
+  } else if (selectedTile) {
+    const rackRect = rackContainer.getBoundingClientRect()
+    const x = evt.clientX - rackRect.left
+    const tileWidth = rackRect.width / gameState.settings.rackCapacity
+    col = Math.floor(x / tileWidth)
+    gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+    deselect()
   }
 })
 
