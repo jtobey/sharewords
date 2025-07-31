@@ -96,40 +96,90 @@ renderRack()
 
 let selectedTile: { row: 'rack' | 'exchange' | number, col: number } | null = null
 
+function deselect() {
+  if (!selectedTile) return
+  const prevSelected = document.querySelector(
+    `[data-row="${selectedTile.row}"][data-col="${selectedTile.col}"]`
+  ) as HTMLElement
+  if (prevSelected) {
+    prevSelected.style.border = ''
+    if (prevSelected.classList.contains('square')) {
+      prevSelected.style.backgroundColor = ''
+    }
+  }
+  selectedTile = null
+}
+
+function select(row: 'rack' | 'exchange' | number, col: number) {
+  deselect()
+  selectedTile = { row, col }
+  const element = document.querySelector(
+    `[data-row="${row}"][data-col="${col}"]`
+  ) as HTMLElement
+  if (element) {
+    if (element.classList.contains('square')) {
+      element.style.backgroundColor = '#f0f0c0'
+    } else {
+      element.style.border = '2px solid blue'
+    }
+  }
+}
+
 rackContainer.addEventListener('click', (evt) => {
   const target = evt.target as HTMLElement
-  if (target.classList.contains('tile')) {
-    const row = target.dataset.row!
-    const col = parseInt(target.dataset.col!, 10)
-    if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
-      selectedTile = null
-      target.style.border = '1px solid #999'
-    } else {
-      if (selectedTile) {
-        const prevSelected = document.querySelector(`.tile[data-row="${selectedTile.row}"][data-col="${selectedTile.col}"]`) as HTMLElement
-        if (prevSelected) {
-          prevSelected.style.border = '1px solid #999'
+  const colStr = target.dataset.col
+  if (colStr === undefined) {
+    if (selectedTile) {
+      // Find an empty spot on the rack.
+      const rackCols = gameState.tilesHeld.filter(p => p.row === 'rack').map(p => p.col)
+      for (let col = 0; col < gameState.settings.rackCapacity; col++) {
+        if (!rackCols.includes(col)) {
+          gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+          deselect()
+          break
         }
       }
-      selectedTile = { row: row as 'rack', col }
-      target.style.border = '2px solid blue'
+    }
+    return
+  }
+  const col = parseInt(colStr, 10)
+
+  if (target.classList.contains('tile')) {
+    const row = target.dataset.row!
+    if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
+      deselect()
+    } else {
+      select(row as 'rack', col)
     }
   }
 })
 
 boardContainer.addEventListener('click', (evt) => {
+  const target = evt.target as HTMLElement
+  if (!target.classList.contains('square')) return
+  const toRow = parseInt(target.dataset.row!, 10)
+  const toCol = parseInt(target.dataset.col!, 10)
+  const placedTile = gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
   if (selectedTile) {
-    const target = evt.target as HTMLElement
-    if (target.classList.contains('square')) {
-      const toRow = parseInt(target.dataset.row!, 10)
-      const toCol = parseInt(target.dataset.col!, 10)
+    if (placedTile) {
+      // A tile is here. If it's the one selected, deselect it. Otherwise, select this one.
+      if (selectedTile.row === toRow && selectedTile.col === toCol) {
+        deselect()
+      } else {
+        select(toRow, toCol)
+      }
+    } else {
+      // This square is open. Move the selected tile here.
       try {
         gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol)
-        selectedTile = null
+        deselect()
       } catch (e) {
         alert(e)
       }
     }
+  } else if (placedTile) {
+    // No tile selected, and a tile is here. Select it.
+    select(toRow, toCol)
   }
 })
 
