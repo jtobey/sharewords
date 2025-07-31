@@ -31,9 +31,10 @@ async function updateGameStateFromUrlOrStorage() {
   await gameState.initRack()
   saveGameState()
   updateUrl()
+  return gameState
 }
 
-await updateGameStateFromUrlOrStorage()
+gameState = await updateGameStateFromUrlOrStorage()
 console.log(gameState)
 
 function updateUrl() {
