@@ -14,7 +14,7 @@ We test the app using `bun index.html`. app.ts is the main TypeScript entry poin
 
 # Overview
 
-`bun index.html` serves ShareWords, a Scrabble-like game. We are working first on the game logic and unit tests. Once that settles down, we plan to add a drag-and-drop HTML interface. As of this writing, we have only a very incomplete DOM-based UI (index.html, style.css, app.js).
+`bun index.html` serves ShareWords, a Scrabble-like game. We are working first on the game logic and unit tests. Once that settles down, we plan to add a drag-and-drop HTML interface. As of this writing, we have only a bare-bones, keyboard-based UI.
 
 Apart from loading static HTML, JavaScript, and CSS, the game has no communication with the origin server. Players exchange moves by external chat or other means. The logic in game_state.ts generates and expects these moves in the form of `URLSearchParams`. Much design work goes into keeping the URLs short for pasting and copying in messaging apps. The URLs will contain only deltas, not the whole game state or history. We store game states in localStorage to prevent data loss when the page reloads.
 
