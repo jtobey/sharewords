@@ -167,13 +167,17 @@ function clearDropTarget() {
   dropTarget = null
 }
 
-function setDropTarget(row: TilePlacementRow, col: number) {
+export function setDropTarget(row: TilePlacementRow, col: number) {
   clearDropTarget()
   const el = getElementByLocation(row, col)
   if (el) {
     el.classList.add('drop-target')
     dropTarget = { row, col }
   }
+}
+
+export function getDropTarget() {
+  return dropTarget
 }
 
 function deselect() {
@@ -184,7 +188,7 @@ function deselect() {
   clearDropTarget()
 }
 
-function select(row: TilePlacementRow, col: number) {
+export function select(row: TilePlacementRow, col: number) {
   deselect()
   selectedTile = { row, col }
   const element = getElementByLocation(row, col)
