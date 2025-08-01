@@ -44,8 +44,9 @@ function updateUrl() {
   }
 }
 
-const boardContainer = document.getElementById('board-container')!
-const rackContainer = document.getElementById('rack-container')!
+const gameContainer = document.getElementById('game-container')!
+const boardContainer = gameContainer.querySelector<HTMLElement>('#board-container')!
+const rackContainer = gameContainer.querySelector<HTMLElement>('#rack-container')!
 
 function addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
   element.textContent = '' // Clear previous content
@@ -86,6 +87,7 @@ function renderBoard() {
         if (placedTile) {
           addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
           squareDiv.classList.add('placed')
+          squareDiv.tabIndex = 0
         }
       }
       boardContainer.appendChild(squareDiv)
@@ -103,6 +105,7 @@ function renderRack() {
     addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
     tileDiv.dataset.row = String(tilePlacement.row)
     tileDiv.dataset.col = String(tilePlacement.col)
+    tileDiv.tabIndex = 0
     rackTileElements[tilePlacement.col] = tileDiv
   }
   for (let i = 0; i < gameState.settings.rackCapacity; i++) {
@@ -112,6 +115,8 @@ function renderRack() {
     } else {
       const emptySpot = document.createElement('div')
       emptySpot.className = 'tile-spot'
+      emptySpot.dataset.row = 'rack'
+      emptySpot.dataset.col = String(i)
       rackContainer.appendChild(emptySpot)
     }
   }
@@ -121,34 +126,43 @@ renderBoard()
 renderRack()
 
 let selectedTile: { row: 'rack' | 'exchange' | number, col: number } | null = null
+let dropTarget: { row: 'rack' | number, col: number } | null = null
+
+function getElementByLocation(row: 'rack' | 'exchange' | number, col: number): HTMLElement | null {
+  if (row === 'exchange') return null
+  return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
+}
+
+function clearDropTarget() {
+  if (dropTarget) {
+    const el = getElementByLocation(dropTarget.row, dropTarget.col)
+    el?.classList.remove('drop-target')
+  }
+  dropTarget = null
+}
+
+function setDropTarget(row: 'rack' | number, col: number) {
+  clearDropTarget()
+  const el = getElementByLocation(row, col)
+  if (el) {
+    el.classList.add('drop-target')
+    dropTarget = { row, col }
+  }
+}
 
 function deselect() {
   if (!selectedTile) return
-  const prevSelected = document.querySelector(
-    `[data-row="${selectedTile.row}"][data-col="${selectedTile.col}"]`
-  ) as HTMLElement
-  if (prevSelected) {
-    prevSelected.style.border = ''
-    if (prevSelected.classList.contains('square')) {
-      prevSelected.style.backgroundColor = ''
-    }
-  }
+  const prevSelected = getElementByLocation(selectedTile.row, selectedTile.col)
+  prevSelected?.classList.remove('selected')
   selectedTile = null
+  clearDropTarget()
 }
 
 function select(row: 'rack' | 'exchange' | number, col: number) {
   deselect()
   selectedTile = { row, col }
-  const element = document.querySelector(
-    `[data-row="${row}"][data-col="${col}"]`
-  ) as HTMLElement
-  if (element) {
-    if (element.classList.contains('square')) {
-      element.style.backgroundColor = '#f0f0c0'
-    } else {
-      element.style.border = '2px solid blue'
-    }
-  }
+  const element = getElementByLocation(row, col)
+  element?.classList.add('selected')
 }
 
 rackContainer.addEventListener('click', (evt) => {
@@ -214,6 +228,205 @@ boardContainer.addEventListener('click', (evt) => {
   } else if (placedTile) {
     // No tile selected, and a tile is here. Select it.
     select(toRow, toCol)
+  }
+})
+
+gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
+  const target = evt.target as HTMLElement
+  if (!target.dataset.col || !target.dataset.row) return
+
+  const col = parseInt(target.dataset.col, 10)
+  const rowStr = target.dataset.row
+  const row: 'rack' | number = rowStr === 'rack' ? 'rack' : parseInt(rowStr, 10)
+
+  switch (evt.key) {
+    case ' ':
+    case 'Enter': {
+      evt.preventDefault()
+      if (selectedTile) {
+        if (!dropTarget) return
+
+        const { row: toRow, col: toCol } = dropTarget
+
+        if (typeof toRow === 'number') {
+          const boardSquare = gameState.board.squares[toRow]?.[toCol]
+          if (boardSquare?.tile) return // Occupied by permanent tile
+        }
+
+        const placedTileAtTarget = gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
+        if (placedTileAtTarget) return // Occupied by uncommitted tile
+
+        try {
+          const selectedPlacement = gameState.tilesHeld.find(
+            p => p.row === selectedTile!.row && p.col === selectedTile!.col
+          )
+          let assignedLetter: string | undefined
+          if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
+            const letter = prompt('Enter a letter for the blank tile:')
+            if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
+              alert('Invalid letter. Please enter a single letter.')
+              return
+            }
+            assignedLetter = letter.toUpperCase()
+          }
+          gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol, assignedLetter)
+          deselect()
+        } catch (e) {
+          alert(e)
+        }
+      } else {
+        // A tile must have been focused to get here.
+        select(row, col)
+        setDropTarget(row, col)
+      }
+      break
+    }
+    case 'Escape': {
+      evt.preventDefault()
+      if (selectedTile) {
+        const previouslySelected = getElementByLocation(selectedTile.row, selectedTile.col)
+        deselect()
+        previouslySelected?.focus()
+      }
+      break
+    }
+    case 'ArrowUp':
+    case 'ArrowDown':
+    case 'ArrowLeft':
+    case 'ArrowRight': {
+      evt.preventDefault()
+      if (!selectedTile || !dropTarget) return
+
+      let { row: r, col: c } = dropTarget
+      const boardWidth = gameState.board.squares[0]?.length ?? 15
+      const boardHeight = gameState.board.squares.length ?? 15
+      const rackCapacity = gameState.settings.rackCapacity
+
+      const boardCenterCol = Math.ceil((boardWidth - 1) / 2)
+      const rackCenter = Math.ceil((rackCapacity - 1) / 2)
+      const boardCenterRow = Math.ceil((boardHeight - 1) / 2)
+
+      switch (evt.key) {
+        case 'ArrowUp':
+          if (r === 'rack') {
+            const offset = c - rackCenter
+            c = boardCenterCol + offset
+            c = Math.max(0, Math.min(boardWidth - 1, c))
+            r = boardHeight - 1
+          } else if (r > 0) {
+            r--
+          }
+          break
+        case 'ArrowDown':
+          if (r !== 'rack') {
+            if (r === boardHeight - 1) {
+              const offset = c - boardCenterCol
+              c = rackCenter + offset
+              c = Math.max(0, Math.min(rackCapacity - 1, c))
+              r = 'rack'
+            } else if (r < boardHeight - 1) {
+              r++
+            }
+          }
+          break
+        case 'ArrowLeft':
+          if (r === 'rack') {
+            if (c === 0) {
+              r = boardCenterRow
+              c = boardWidth - 1
+            } else {
+              c--
+            }
+          } else {
+            if (c > 0) {
+              c--
+            }
+          }
+          break
+        case 'ArrowRight':
+          if (r === 'rack') {
+            if (c < rackCapacity - 1) {
+              c++
+            }
+          } else {
+            if (c === boardWidth - 1) {
+              r = 'rack'
+              c = 0
+            } else {
+              c++
+            }
+          }
+          break
+      }
+      setDropTarget(r, c)
+      break
+    }
+    case 'Tab': {
+      if (selectedTile) {
+        evt.preventDefault()
+
+        if (!dropTarget) {
+          deselect() // Should not happen, but as a fallback
+        } else {
+          const { row: toRow, col: toCol } = dropTarget
+          let isOccupied = false
+          if (typeof toRow === 'number') {
+            if (gameState.board.squares[toRow]?.[toCol]?.tile) {
+              isOccupied = true
+            }
+          }
+          if (!isOccupied) {
+            if (gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)) {
+              isOccupied = true
+            }
+          }
+
+          if (isOccupied) {
+            // Esc logic
+            const previouslySelected = getElementByLocation(selectedTile.row, selectedTile.col)
+            deselect()
+            previouslySelected?.focus()
+          } else {
+            // Space logic
+            try {
+              const selectedPlacement = gameState.tilesHeld.find(
+                p => p.row === selectedTile!.row && p.col === selectedTile!.col
+              )
+              let assignedLetter: string | undefined
+              if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
+                const letter = prompt('Enter a letter for the blank tile:')
+                if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
+                  alert('Invalid letter. Please enter a single letter.')
+                  // If cancelled, treat as Esc.
+                  const previouslySelected = getElementByLocation(selectedTile.row, selectedTile.col)
+                  deselect()
+                  previouslySelected?.focus()
+                } else {
+                  assignedLetter = letter.toUpperCase()
+                  gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol, assignedLetter)
+                  deselect()
+                }
+              } else {
+                gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol, assignedLetter)
+                deselect()
+              }
+            } catch (e) {
+              alert(e)
+            }
+          }
+        }
+
+        // Manual focus cycling
+        const focusable = Array.from(gameContainer.querySelectorAll<HTMLElement>('[tabindex="0"]'))
+        if (focusable.length === 0) break
+        const currentIndex = focusable.indexOf(target)
+        const nextIndex = evt.shiftKey ?
+          (currentIndex - 1 + focusable.length) % focusable.length :
+          (currentIndex + 1) % focusable.length
+        focusable[nextIndex]?.focus()
+      }
+      break
+    }
   }
 })
 
