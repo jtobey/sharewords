@@ -63,6 +63,7 @@ function addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: str
 
 function renderBoard() {
   boardContainer.innerHTML = ''
+  const centerSquare = gameState.board.centerSquare
   for (let r = 0; r < gameState.board.squares.length; r++) {
     const row = gameState.board.squares[r]
     if (!row) throw new Error(`Invalid board: Row ${r} is missing.`)
@@ -75,7 +76,7 @@ function renderBoard() {
       if (square.letterBonus === 3) squareDiv.classList.add('tl')
       if (square.wordBonus === 2) squareDiv.classList.add('dw')
       if (square.wordBonus === 3) squareDiv.classList.add('tw')
-      if (r === 7 && c === 7) squareDiv.classList.add('center')  // TODO - Use board size.
+      if (r === centerSquare.row && c === centerSquare.col) squareDiv.classList.add('center')
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
