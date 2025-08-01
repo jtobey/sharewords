@@ -97,59 +97,38 @@ function renderBoard() {
   }
 }
 
+function renderRacklike(container: HTMLElement, name: 'rack' | 'exchange') {
+  container.innerHTML = ''
+  const tiles = gameState.tilesHeld.filter(p => p.row === name)
+
+  const tileElements = [] as (HTMLDivElement | null)[]
+  for (const tilePlacement of tiles) {
+    const tileDiv = document.createElement('div')
+    tileDiv.className = 'tile'
+    addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
+    tileDiv.dataset.row = String(tilePlacement.row)
+    tileDiv.dataset.col = String(tilePlacement.col)
+    tileDiv.tabIndex = 0
+    tileElements[tilePlacement.col] = tileDiv
+  }
+
+  for (let i = 0; i < gameState.settings.rackCapacity; i++) {
+    const tileDiv = tileElements[i]
+    if (tileDiv) {
+      container.appendChild(tileDiv)
+    } else {
+      const emptySpot = document.createElement('div')
+      emptySpot.className = 'tile-spot'
+      emptySpot.dataset.row = name
+      emptySpot.dataset.col = String(i)
+      container.appendChild(emptySpot)
+    }
+  }
+}
+
 function renderRack() {
-  rackContainer.innerHTML = ''
-  exchangeContainer.innerHTML = ''
-  const rackTiles = gameState.tilesHeld.filter(p => p.row === 'rack')
-  const exchangeTiles = gameState.tilesHeld.filter(p => p.row === 'exchange')
-
-  const rackTileElements = [] as (HTMLDivElement | null)[]
-  for (const tilePlacement of rackTiles) {
-    const tileDiv = document.createElement('div')
-    tileDiv.className = 'tile'
-    addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
-    tileDiv.dataset.row = String(tilePlacement.row)
-    tileDiv.dataset.col = String(tilePlacement.col)
-    tileDiv.tabIndex = 0
-    rackTileElements[tilePlacement.col] = tileDiv
-  }
-
-  for (let i = 0; i < gameState.settings.rackCapacity; i++) {
-    const tileDiv = rackTileElements[i]
-    if (tileDiv) {
-      rackContainer.appendChild(tileDiv)
-    } else {
-      const emptySpot = document.createElement('div')
-      emptySpot.className = 'tile-spot'
-      emptySpot.dataset.row = 'rack'
-      emptySpot.dataset.col = String(i)
-      rackContainer.appendChild(emptySpot)
-    }
-  }
-
-  const exchangeTileElements = [] as (HTMLDivElement | null)[]
-  for (const tilePlacement of exchangeTiles) {
-    const tileDiv = document.createElement('div')
-    tileDiv.className = 'tile'
-    addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
-    tileDiv.dataset.row = String(tilePlacement.row)
-    tileDiv.dataset.col = String(tilePlacement.col)
-    tileDiv.tabIndex = 0
-    exchangeTileElements[tilePlacement.col] = tileDiv
-  }
-
-  for (let i = 0; i < gameState.settings.rackCapacity; i++) {
-    const tileDiv = exchangeTileElements[i]
-    if (tileDiv) {
-      exchangeContainer.appendChild(tileDiv)
-    } else {
-      const emptySpot = document.createElement('div')
-      emptySpot.className = 'tile-spot'
-      emptySpot.dataset.row = 'exchange'
-      emptySpot.dataset.col = String(i)
-      exchangeContainer.appendChild(emptySpot)
-    }
-  }
+  renderRacklike(rackContainer, 'rack')
+  renderRacklike(exchangeContainer, 'exchange')
 }
 
 renderBoard()
@@ -447,7 +426,7 @@ function saveGameState() {
 }
 
 gameState.addEventListener('tilemove', (evt: any) => {
-  if (evt.detail.fromRow === 'rack' || evt.detail.placement.row === 'rack' || evt.detail.fromRow === 'exchange' || evt.detail.placement.row === 'exchange') {
+  if (typeof evt.detail.fromRow !== 'number' || typeof evt.detail.placement.row !== 'number') {
     renderRack()
   }
   if (typeof evt.detail.fromRow === 'number' || typeof evt.detail.placement.row === 'number') {
