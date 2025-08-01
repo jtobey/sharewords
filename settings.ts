@@ -66,7 +66,7 @@ export class Settings {
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
   tileSystemType = 'honor' as 'honor'
-  tileSystemSettings = {seed: '1'} as {seed: string}
+  tileSystemSettings = {seed: '1'}
   dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
 
