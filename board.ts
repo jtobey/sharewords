@@ -78,15 +78,22 @@ class WordPlacementError extends Error {
 export class Board {
   readonly squares: ReadonlyArray<ReadonlyArray<Square>>
   readonly scores = new Map<string, number>
+  readonly centerSquare: Square
+
   constructor(...rowStrings: Array<string>) {
     this.squares = parseRowStrings(rowStrings)
+    const centerRow = this.squares[this.squares.length >> 1]
+    const centerSquare = centerRow?.[centerRow.length >> 1]
+    if (!centerSquare) throw new Error(`Board lacks a center square: ${rowStrings}`)
+    this.centerSquare = centerSquare
   }
 
   /**
    * @param placements - A list of tiles to play this turn, their locations, and
    *        any blank-tile letter assigments.
-   * @returns An object containing the `score` for the turn (excluding any seven-tile bonus)
-   *          and an array `wordsFormed` of words to check in the dictionary.
+   * @returns An object containing the `score` for the turn (excluding any bingo bonus),
+   *          an array `wordsFormed` of words to check in the dictionary, a `mainWord`
+   *          that includes all 
    * @throws {WordPlacementError} Will throw if called with an empty list of tiles.
    * @throws {WordPlacementError} Will throw if attempting to place a tile on an occupied square.
    * @throws {WordPlacementError} Will throw if the new tiles are not placed in a straight, unbroken line.
@@ -102,6 +109,7 @@ export class Board {
     row: number,
     col: number,
     vertical: boolean,
+    blanks: Array<number>,  // Zero-based index within `mainWord` of any blank tiles placed.
   } {
     const anyPlacement = placements[0]
     if (!anyPlacement) throw new WordPlacementError('No tiles.')
@@ -133,7 +141,7 @@ export class Board {
     const crossDir = {x: mainDir.y, y: mainDir.x}  // Flip along the main diagonal.
 
     // Find the start of the new word along the direction chosen above.
-    // Adjacent old tiles are part of the word.
+    // Adjacent old tiles in the line are part of the word.
     const firstPlacement = placements[0]
     if (!firstPlacement) throw new Error('Lost a tile.')
     let mainRow = firstPlacement.row, mainCol = firstPlacement.col
@@ -143,7 +151,9 @@ export class Board {
     }
     const mainStartRow = mainRow
     const mainStartCol = mainCol
-    let mainWord = '', crossWords: Array<string> = []
+
+    // Find and score the word identified above, along with any cross words formed.
+    let mainWord = '', crossWords: Array<string> = [], blanks: Array<number> = []
     let placementIndex = 0
     let mainWordMultiplier = 1, mainWordScore = 0, crossWordsScore = 0
     while (true) {
@@ -156,7 +166,12 @@ export class Board {
           throw new WordPlacementError(`Square ${mainRow},${mainCol} is occupied.`)
         }
         placementIndex += 1
-        mainLetter = placement.assignedLetter || placement.tile.letter
+        if (placement.assignedLetter) {
+          blanks.push(mainWord.length)
+          mainLetter = placement.assignedLetter
+        } else {
+          mainLetter = placement.tile.letter
+        }
         mainValue = mainSquare.letterBonus * placement.tile.value
         wordMultiplier = mainSquare.wordBonus
         mainWordMultiplier *= wordMultiplier
@@ -201,6 +216,9 @@ export class Board {
       mainRow += mainDir.y
       mainCol += mainDir.x
     }
+    mainWordScore *= mainWordMultiplier
+
+    // Enforce placement rules.
     if (placementIndex < placements.length) {
       throw new WordPlacementError('Tiles form a line with gaps between them.')
     }
@@ -208,13 +226,11 @@ export class Board {
       throw new WordPlacementError('No single-letter words accepted.')
     }
     if (!crossWords.length && mainWord.length === placements.length) {
-      const centerRow = this.squares.length >> 1
-      const centerCol = (this.squares[0]?.length || 0) >> 1
-      if (!placements.some(tile => tile.row === centerRow && tile.col === centerCol)) {
+      if (!placements.some(tile => tile.row === this.centerSquare.row && tile.col === this.centerSquare.col)) {
         throw new WordPlacementError('Tiles must connect to existing words or cover the center square.')
       }
     }
-    mainWordScore *= mainWordMultiplier
+
     return {
       wordsFormed: [mainWord, ...crossWords],
       score: mainWordScore + crossWordsScore,
@@ -222,6 +238,7 @@ export class Board {
       row: mainStartRow,
       col: mainStartCol,
       vertical: Boolean(mainDir.y),
+      blanks,
     }
   }
 

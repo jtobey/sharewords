@@ -40,6 +40,7 @@ describe('board', () => {
       row: 1,
       col: 0,
       vertical: false,
+      blanks: [],
     })
   })
 
@@ -64,6 +65,7 @@ describe('board', () => {
       row: 0,
       col: 1,
       vertical: false,
+      blanks: [],
     })
   })
 
@@ -84,6 +86,7 @@ describe('board', () => {
       row: 1,
       col: 0,
       vertical: false,
+      blanks: [],
     })
   })
 
@@ -102,6 +105,27 @@ describe('board', () => {
       row: 0,
       col: 1,
       vertical: true,
+      blanks: [],
+    })
+  })
+
+  it('should score a word with blank tiles', () => {
+    const [oldBoard, newBoard] = parseBoards(`
+
+        . . .     . . .
+        . . .     C0A1T0
+        . . .     . . .
+
+    `)[0]!
+    const diff = diffBoards(oldBoard!, newBoard!)
+    expect(oldBoard!.checkWordPlacement(...diff)).toEqual({
+      score: 1,
+      wordsFormed: ['CAT'],
+      mainWord: 'CAT',
+      row: 1,
+      col: 0,
+      vertical: false,
+      blanks: [0, 2],
     })
   })
 

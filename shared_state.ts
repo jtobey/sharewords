@@ -89,7 +89,7 @@ export class SharedState {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
       if ('playTiles' in turn.move) {
-        const {score, wordsFormed, row, col, vertical} = this.board.checkWordPlacement(...turn.move.playTiles)
+        const {score, wordsFormed, row, col, vertical, blanks} = this.board.checkWordPlacement(...turn.move.playTiles)
         wordsFormed.forEach((w: string) => wordsToCheck.add(w))
         const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
         boardChanges.push({playerId, score: score + bingoBonus, placements: turn.move.playTiles})
@@ -97,6 +97,7 @@ export class SharedState {
         turn.row = row
         turn.col = col
         turn.vertical = vertical
+        turn.blanks = blanks
         console.log(`Player ${playerId} plays ${wordsFormed[0]} for ${score}`)
       } else if ('exchangeTileIndices' in turn.move) {
         checkIndicesForExchange(this.tilesState.countTiles(playerId), ...turn.move.exchangeTileIndices)

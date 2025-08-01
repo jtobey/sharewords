@@ -19,6 +19,7 @@ export class Turn {
   row?: number
   col?: number
   vertical?: boolean
+  blanks?: ReadonlyArray<number>
 
   constructor(readonly playerId: string, readonly turnNumber: TurnNumber, readonly move: {
     playTiles: ReadonlyArray<BoardPlacement>

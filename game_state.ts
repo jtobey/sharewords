@@ -275,14 +275,7 @@ export class GameState extends EventTarget {
       const params = new URLSearchParams
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
-        const tileAssignments = [] as Array<string>
-        turn.move.playTiles.forEach((placement: BoardPlacement, index) => {
-          tilePlacements.push(placement)
-          if (placement.tile.isBlank) {
-            tileAssignments.push(`${index}-${placement.assignedLetter}`)
-          }
-        })
-        if (tileAssignments.length) params.set('bt', tileAssignments.join('.'))
+        if (turn.blanks?.length) params.set('bt', turn.blanks.join('.'))
         // Keep the word last so that it stands out in the URL.
         params.set(turn.vertical ? 'wv' : 'wh', turn.mainWord!)
       } else if ('exchangeTileIndices' in turn.move) {
@@ -312,26 +305,30 @@ export class GameState extends EventTarget {
     const turns = [] as Array<Turn>
     let urlTurnNumber = parseInt(urlTurnNumberStr)
     let wordLocationStr: string | null = null
-    let blankTileAssignmentsStr: string | null = null
+    let blankTileIndicesStr: string | null = null
     let direction: null | 'wv' | 'wh' = null
     let wordPlayed: string | null = null
     let exchangeIndicesStr: string | null = null
-    const nextTurn = () => {
+    const processPendingMoveIfAny = () => {
       const playerId = this.players[(urlTurnNumber - 1) % this.players.length]!.id
       if (wordPlayed && direction && wordLocationStr) {
         if (exchangeIndicesStr) {
           throw new Error(`URL contains both word and exchange data for turn ${urlTurnNumber}`)
         }
         const blankTileAssignments = [] as Array<string>
-        if (blankTileAssignmentsStr) {
-          blankTileAssignmentsStr.split('.').forEach((s: string) => {
-            const match = s.match(/^(\d+)-(.+)/)
+        if (blankTileIndicesStr) {
+          blankTileIndicesStr.split('.').forEach((s: string) => {
+            const match = s.match(/^(\d+)$/)
             if (!match) { throw new Error(`Invalid "bt" URL parameter component: ${s}`) }
             const index = parseInt(match[1]!)
             if (index in blankTileAssignments) {
-              throw new Error(`Duplicate blank tile assignment index: bt=${blankTileAssignmentsStr}`)
+              throw new Error(`Duplicate blank tile assignment index: bt=${blankTileIndicesStr}`)
             }
-            blankTileAssignments[index] = match[2]!
+            const assignedLetter = wordPlayed![index]
+            if (!assignedLetter) {
+              throw new RangeError(`Blank tile assignment index ${index} out of range 0-${wordPlayed!.length - 1}.`)
+            }
+            blankTileAssignments[index] = assignedLetter
           })
         }
         const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
@@ -339,33 +336,35 @@ export class GameState extends EventTarget {
         let row = parseInt(match[1]!)
         let col = parseInt(match[2]!)
         const placements = [] as Array<BoardPlacement>
-        for (const letter of wordPlayed.split('')) {
+        wordPlayed.split('').map((letter, letterIndex) => {
           const square = this.board.squares[row]?.[col]
-          if (!square) { throw new RangeError(`Attemted to play a word out of bounds: ${row},${col}.`) }
+          if (!square) throw new RangeError(`Attemted to play a word out of bounds: ${row},${col}.`)
           if (!square.tile) {
             // It must be a new tile from the player's rack.
-            const assignedLetter = blankTileAssignments[placements.length] ?? ''
-            const value = assignedLetter ? 0 : this.settings.letterValues[letter]
-            if (value === undefined) { throw new Error(`Attempt to play an invalid letter: "${letter}"`) }
-            const placement: BoardPlacement = {tile: new Tile({letter, value}), row, col}
-            if (assignedLetter) placement.assignedLetter = assignedLetter
-            placements.push(placement)
+            const assignedLetter = blankTileAssignments[letterIndex] ?? ''
+            if (assignedLetter) {
+              placements.push({tile: new Tile({letter: '', value: 0}), row, col, assignedLetter})
+            } else {
+              const value = this.settings.letterValues[letter]
+              if (value === undefined) throw new Error(`Attempt to play an invalid letter: "${letter}"`)
+              placements.push({tile: new Tile({letter, value}), row, col})
+            }
           } else if (square.letter !== letter) {
             throw new Error(`Attempt word requires "${letter}" at ${row},${col}, but "${square.letter}" is there.`)
           }
           if (direction === 'wv') { row += 1 }
           else { col += 1 }
-        }
-        if (blankTileAssignments.length > placements.length) {
+        })
+        if (blankTileAssignments.length >= wordPlayed!.length) {
           throw new RangeError(
-            `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${placements.length - 1}`
+            `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${wordPlayed!.length - 1}`
           )
         }
         turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {playTiles: placements}))
       } else if (exchangeIndicesStr != null) {
-        if (wordPlayed || direction || wordLocationStr || blankTileAssignmentsStr) {
+        if (wordPlayed || direction || wordLocationStr || blankTileIndicesStr) {
           throw new Error(
-            `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileAssignmentsStr}`)
+            `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileIndicesStr}`)
         }
         const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
         const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
@@ -382,23 +381,25 @@ export class GameState extends EventTarget {
       }
       urlTurnNumber++
       wordLocationStr = null
-      blankTileAssignmentsStr = null
+      blankTileIndicesStr = null
       direction = null
       wordPlayed = null
       exchangeIndicesStr = null
     }
     for (const [key, value] of params) {
       if (key === 'wl') {
-        nextTurn()
+        // `wl` marks a new word play move.
+        processPendingMoveIfAny()
         wordLocationStr = value
       } else if (key === 'ex') {
-        nextTurn()
+        // `ex` marks a new pass/exchange move.
+        processPendingMoveIfAny()
         exchangeIndicesStr = value
       } else if (key === 'bt') {
-        if (blankTileAssignmentsStr) {
+        if (blankTileIndicesStr) {
           throw new Error(`Duplicate "bt" parameter in URL data for turn ${urlTurnNumber}`)
         }
-        blankTileAssignmentsStr = value
+        blankTileIndicesStr = value
       } else if (key === 'wv' || key === 'wh') {
         if (direction) {
           throw new Error(`Duplicate word parameters in URL data for turn ${urlTurnNumber}`)
@@ -407,7 +408,8 @@ export class GameState extends EventTarget {
         wordPlayed = value
       }
     }
-    nextTurn()
+    // We are out of turn params.
+    processPendingMoveIfAny()
     await this.playTurns(...turns)
   }
 
