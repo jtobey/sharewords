@@ -47,11 +47,11 @@ function updateUrl() {
 const boardContainer = document.getElementById('board-container')!
 const rackContainer = document.getElementById('rack-container')!
 
-function addTileToElement(element: HTMLElement, tile: Tile) {
+function addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
   element.textContent = '' // Clear previous content
   const letterDiv = document.createElement('div')
   letterDiv.className = 'letter'
-  letterDiv.textContent = tile.letter
+  letterDiv.textContent = assignedLetter || tile.letter
   element.appendChild(letterDiv)
   if (!tile.isBlank) {
     const valueDiv = document.createElement('div')
@@ -79,11 +79,11 @@ function renderBoard() {
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
-        addTileToElement(squareDiv, square.tile)
+        addTileToElement(squareDiv, square.tile, square.assignedLetter)
       } else {
         const placedTile = gameState.tilesHeld.find(p => p.row === r && p.col === c)
         if (placedTile) {
-          addTileToElement(squareDiv, placedTile.tile)
+          addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
           squareDiv.classList.add('placed')
         }
       }
@@ -99,7 +99,7 @@ function renderRack() {
   for (const tilePlacement of rackTiles) {
     const tileDiv = document.createElement('div')
     tileDiv.className = 'tile'
-    addTileToElement(tileDiv, tilePlacement.tile)
+    addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
     tileDiv.dataset.row = String(tilePlacement.row)
     tileDiv.dataset.col = String(tilePlacement.col)
     rackTileElements[tilePlacement.col] = tileDiv
@@ -192,7 +192,19 @@ boardContainer.addEventListener('click', (evt) => {
     } else {
       // This square is open. Move the selected tile here.
       try {
-        gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol)
+        const selectedPlacement = gameState.tilesHeld.find(
+          p => p.row === selectedTile!.row && p.col === selectedTile!.col
+        )
+        let assignedLetter: string | undefined
+        if (selectedPlacement?.tile.isBlank) {
+          const letter = prompt('Enter a letter for the blank tile:')
+          if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
+            alert('Invalid letter. Please enter a single letter.')
+            return
+          }
+          assignedLetter = letter.toUpperCase()
+        }
+        gameState.moveTile(selectedTile.row, selectedTile.col, toRow, toCol, assignedLetter)
         deselect()
       } catch (e) {
         alert(e)

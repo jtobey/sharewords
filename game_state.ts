@@ -111,7 +111,13 @@ export class GameState extends EventTarget {
    * @throws {RangeError} if either location is invalid or the destination is full.
    * @fires TileEvent#tilemove
    */
-  moveTile(fromRow: TilePlacementRow, fromCol: number, toRow: TilePlacementRow, toCol: number) {
+  moveTile(
+    fromRow: TilePlacementRow,
+    fromCol: number,
+    toRow: TilePlacementRow,
+    toCol: number,
+    assignedLetter?: string,
+  ) {
     const preparation = this.prepareTileMove(fromRow, fromCol, toRow, toCol)
     if (!preparation.success) throw new RangeError(preparation.message)
     for (const pushed of preparation.toPush) {
@@ -120,6 +126,10 @@ export class GameState extends EventTarget {
     }
     preparation.placement.row = preparation.toRow
     preparation.placement.col = preparation.toCol
+    preparation.placement.assignedLetter = assignedLetter
+    if (typeof fromRow === 'number' && typeof preparation.toRow !== 'number') {
+      delete preparation.placement.assignedLetter
+    }
     this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: preparation.placement}}))
   }
 
