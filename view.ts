@@ -68,10 +68,14 @@ export class View {
 
   renderScores() {
     this.scorePanel.innerHTML = ''
+    const currentPlayer = this.gameState.playerWhoseTurnItIs
     for (const player of this.gameState.players) {
       const score = this.gameState.board.scores.get(player.id) ?? 0
       const scoreDiv = document.createElement('div')
       scoreDiv.className = 'player-score'
+      if (player.id === currentPlayer?.id) {
+        scoreDiv.classList.add('current-player')
+      }
       scoreDiv.textContent = `${player.name}: ${score}`
       this.scorePanel.appendChild(scoreDiv)
     }
