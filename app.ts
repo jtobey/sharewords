@@ -142,12 +142,16 @@ rackContainer.addEventListener('click', (evt) => {
   if (target.classList.contains('tile')) {
     col = parseInt(target.dataset.col!, 10)
     const row = target.dataset.row!
-    if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
-      deselect()
+    if (selectedTile) {
+      if (selectedTile.row === row && selectedTile.col === col) {
+        deselect()
+      } else {
+        gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+        deselect()
+      }
     } else {
       select(row as 'rack', col)
     }
-    return
   } else if (selectedTile) {
     const rackRect = rackContainer.getBoundingClientRect()
     const x = evt.clientX - rackRect.left
