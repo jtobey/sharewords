@@ -4,13 +4,13 @@ import { makeTiles, Tile } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
-import type { BoardPlacement } from './tile.ts'
+import type { BoardPlacement, TilePlacementRow } from './tile.ts'
 import { Player } from './player.ts'
 import { Turn, toTurnNumber } from './turn.js'
 
 let gameState: GameState
-let selectedTile: { row: 'rack' | 'exchange' | number, col: number } | null = null
-let dropTarget: { row: 'rack' | number, col: number } | null = null
+let selectedTile: { row: TilePlacementRow, col: number } | null = null
+let dropTarget: { row: TilePlacementRow, col: number } | null = null
 
 async function updateGameStateFromUrlOrStorage() {
   const params = new URLSearchParams(window.location.hash?.substring(1) || [])
@@ -155,7 +155,7 @@ function renderRack() {
 renderBoard()
 renderRack()
 
-function getElementByLocation(row: 'rack' | 'exchange' | number, col: number): HTMLElement | null {
+function getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {
   return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
 }
 
@@ -167,7 +167,7 @@ function clearDropTarget() {
   dropTarget = null
 }
 
-function setDropTarget(row: 'rack' | number, col: number) {
+function setDropTarget(row: TilePlacementRow, col: number) {
   clearDropTarget()
   const el = getElementByLocation(row, col)
   if (el) {
@@ -184,7 +184,7 @@ function deselect() {
   clearDropTarget()
 }
 
-function select(row: 'rack' | 'exchange' | number, col: number) {
+function select(row: TilePlacementRow, col: number) {
   deselect()
   selectedTile = { row, col }
   const element = getElementByLocation(row, col)
@@ -193,11 +193,11 @@ function select(row: 'rack' | 'exchange' | number, col: number) {
 
 function rackOrExchangeClick(evt: MouseEvent) {
   const container = (evt.currentTarget as HTMLElement)
-  const rowName = container.id.split('-')[0] as 'rack' | 'exchange'
+  const rowName = container.id.split('-')[0] as TilePlacementRow
   const tileTarget = (evt.target as HTMLElement).closest('.tile')
   if (tileTarget instanceof HTMLElement) {
     const col = parseInt(tileTarget.dataset.col!, 10)
-    const row = tileTarget.dataset.row!
+    const row = tileTarget.dataset.row! as TilePlacementRow
     if (selectedTile) {
       if (selectedTile.row === row && selectedTile.col === col) {
         deselect()
@@ -206,7 +206,7 @@ function rackOrExchangeClick(evt: MouseEvent) {
         deselect()
       }
     } else {
-      select(row as 'rack' | 'exchange', col)
+      select(row, col)
     }
   } else if (selectedTile) {
     const rackRect = container.getBoundingClientRect()
@@ -262,7 +262,7 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
   if (!target.dataset.col || !target.dataset.row) return
   const col = parseInt(target.dataset.col, 10)
   const rowStr = target.dataset.row
-  const row: 'rack' | number = rowStr === 'rack' ? 'rack' : parseInt(rowStr, 10)
+  const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
   switch (evt.key) {
     case ' ':
     case 'Enter': {
@@ -320,7 +320,9 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
       const boardCenterRow = Math.ceil((boardHeight - 1) / 2)
       switch (evt.key) {
         case 'ArrowUp':
-          if (r === 'rack') {
+          if (r === 'exchange') {
+            r = 'rack'
+          } else if (r === 'rack') {
             const offset = c - rackCenter
             c = boardCenterCol + offset
             c = Math.max(0, Math.min(boardWidth - 1, c))
@@ -330,7 +332,9 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
           }
           break
         case 'ArrowDown':
-          if (r !== 'rack') {
+          if (r === 'rack') {
+            r = 'exchange'
+          } else if (r !== 'exchange') {
             if (r === boardHeight - 1) {
               const offset = c - boardCenterCol
               c = rackCenter + offset
@@ -349,6 +353,10 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
             } else {
               c--
             }
+          } else if (r === 'exchange') {
+            if (c > 0) {
+              c--
+            }
           } else {
             if (c > 0) {
               c--
@@ -356,7 +364,7 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
           }
           break
         case 'ArrowRight':
-          if (r === 'rack') {
+          if (r === 'rack' || r === 'exchange') {
             if (c < rackCapacity - 1) {
               c++
             }
