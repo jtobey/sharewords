@@ -81,13 +81,24 @@ function renderBoard() {
 function renderRack() {
   rackContainer.innerHTML = ''
   const rackTiles = gameState.tilesHeld.filter(p => p.row === 'rack')
+  const rackTileElements = [] as (HTMLDivElement | null)[]
   for (const tilePlacement of rackTiles) {
     const tileDiv = document.createElement('div')
     tileDiv.className = 'tile'
     tileDiv.textContent = tilePlacement.tile.letter
     tileDiv.dataset.row = String(tilePlacement.row)
     tileDiv.dataset.col = String(tilePlacement.col)
-    rackContainer.appendChild(tileDiv)
+    rackTileElements[tilePlacement.col] = tileDiv
+  }
+  for (let i = 0; i < gameState.settings.rackCapacity; i++) {
+    const tileDiv = rackTileElements[i]
+    if (tileDiv) {
+      rackContainer.appendChild(tileDiv)
+    } else {
+      const emptySpot = document.createElement('div')
+      emptySpot.className = 'tile-spot'
+      rackContainer.appendChild(emptySpot)
+    }
   }
 }
 
@@ -131,12 +142,16 @@ rackContainer.addEventListener('click', (evt) => {
   if (target.classList.contains('tile')) {
     col = parseInt(target.dataset.col!, 10)
     const row = target.dataset.row!
-    if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
-      deselect()
+    if (selectedTile) {
+      if (selectedTile.row === row && selectedTile.col === col) {
+        deselect()
+      } else {
+        gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+        deselect()
+      }
     } else {
       select(row as 'rack', col)
     }
-    return
   } else if (selectedTile) {
     const rackRect = rackContainer.getBoundingClientRect()
     const x = evt.clientX - rackRect.left
