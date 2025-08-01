@@ -1,6 +1,6 @@
 import { Settings, toGameId } from './settings.js'
 import { GameState } from './game_state.js'
-import { makeTiles } from './tile.js'
+import { makeTiles, Tile } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
@@ -47,6 +47,20 @@ function updateUrl() {
 const boardContainer = document.getElementById('board-container')!
 const rackContainer = document.getElementById('rack-container')!
 
+function addTileToElement(element: HTMLElement, tile: Tile) {
+  element.textContent = '' // Clear previous content
+  const letterDiv = document.createElement('div')
+  letterDiv.className = 'letter'
+  letterDiv.textContent = tile.letter
+  element.appendChild(letterDiv)
+  if (!tile.isBlank) {
+    const valueDiv = document.createElement('div')
+    valueDiv.className = 'value'
+    valueDiv.textContent = String(tile.value)
+    element.appendChild(valueDiv)
+  }
+}
+
 function renderBoard() {
   boardContainer.innerHTML = ''
   for (let r = 0; r < gameState.board.squares.length; r++) {
@@ -65,11 +79,11 @@ function renderBoard() {
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
-        squareDiv.textContent = square.tile.letter
+        addTileToElement(squareDiv, square.tile)
       } else {
         const placedTile = gameState.tilesHeld.find(p => p.row === r && p.col === c)
         if (placedTile) {
-          squareDiv.textContent = placedTile.tile.letter
+          addTileToElement(squareDiv, placedTile.tile)
           squareDiv.classList.add('placed')
         }
       }
@@ -85,7 +99,7 @@ function renderRack() {
   for (const tilePlacement of rackTiles) {
     const tileDiv = document.createElement('div')
     tileDiv.className = 'tile'
-    tileDiv.textContent = tilePlacement.tile.letter
+    addTileToElement(tileDiv, tilePlacement.tile)
     tileDiv.dataset.row = String(tilePlacement.row)
     tileDiv.dataset.col = String(tilePlacement.col)
     rackTileElements[tilePlacement.col] = tileDiv
@@ -137,11 +151,10 @@ function select(row: 'rack' | 'exchange' | number, col: number) {
 }
 
 rackContainer.addEventListener('click', (evt) => {
-  const target = evt.target as HTMLElement
-  let col: number
-  if (target.classList.contains('tile')) {
-    col = parseInt(target.dataset.col!, 10)
-    const row = target.dataset.row!
+  const tileTarget = (evt.target as HTMLElement).closest('.tile')
+  if (tileTarget instanceof HTMLElement) {
+    const col = parseInt(tileTarget.dataset.col!, 10)
+    const row = tileTarget.dataset.row!
     if (selectedTile) {
       if (selectedTile.row === row && selectedTile.col === col) {
         deselect()
@@ -156,15 +169,15 @@ rackContainer.addEventListener('click', (evt) => {
     const rackRect = rackContainer.getBoundingClientRect()
     const x = evt.clientX - rackRect.left
     const tileWidth = rackRect.width / gameState.settings.rackCapacity
-    col = Math.floor(x / tileWidth)
+    const col = Math.floor(x / tileWidth)
     gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
     deselect()
   }
 })
 
 boardContainer.addEventListener('click', (evt) => {
-  const target = evt.target as HTMLElement
-  if (!target.classList.contains('square')) return
+  const target = (evt.target as HTMLElement).closest('.square') as HTMLElement
+  if (!target) return
   const toRow = parseInt(target.dataset.row!, 10)
   const toCol = parseInt(target.dataset.col!, 10)
   const placedTile = gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
