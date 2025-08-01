@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeAll, spy } from 'bun:test'
+import { expect, describe, it, beforeAll } from 'bun:test'
 import { Window } from 'happy-dom'
 import { GameState } from './game_state'
 
