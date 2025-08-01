@@ -7,22 +7,33 @@ import { Tile } from './tile.js'
 import { arraysEqual } from './validation.js'
 
 export class HonorSystemBag extends Bag {
-  constructor(tiles: Iterable<Tile>, randomSeed: string, shuffle=true) {
-    super(tiles, new Mulberry32Prng(BigInt(randomSeed)), shuffle)
+  constructor(
+    // Args for HonorSystemTilesState.
+    randomSeed: string,
+    // Args for HonorSystemTilesState and fromJSON.
+    tiles: Iterable<Tile>,
+    // Args for fromJSON.
+    shuffle=true,
+    randomGenerator=new Mulberry32Prng(BigInt(randomSeed))
+  ) {
+    super(tiles, randomGenerator, shuffle)
   }
+
   static fromJSON(json: any) {
-    if (!(
-      typeof json === 'object'
-        && arraysEqual([...Object.keys(json)], ['tiles', 'prng'])
-        && Array.isArray(json.tiles)
-        && typeof json.prng === 'number'
-    )) {
-      throw new TypeError(`Invalid serialized Bag: ${JSON.stringify(json)}`)
+    function fail(msg: string): never {
+      throw new TypeError(`${msg} in HonorSystemBag serialization: ${JSON.stringify(json)}`)
     }
+    if (typeof json !== 'object') fail('Not an object')
+    if (!arraysEqual(
+      [...Object.keys(json)],
+      ['tiles', 'prng'],
+    )) fail('Wrong keys or key order')
+    if (!Array.isArray(json.tiles)) fail('Tiles are not an array.')
     return new HonorSystemBag(
+      '',
       json.tiles.map(Tile.fromJSON),
-      String(json.prng),
       false,
+      Mulberry32Prng.fromJSON(json.prng),
     )
   }
 }

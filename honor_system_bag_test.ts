@@ -7,7 +7,7 @@ function _tiles(...nums: Array<number>) {
 }
 
 function createHonorSystemBag({tiles, randomSeed}: any) {
-  return new HonorSystemBag(tiles, randomSeed)
+  return new HonorSystemBag(randomSeed, tiles)
 }
 
 describe("honor system bag", () => {

@@ -10,46 +10,38 @@ import { Tile } from './tile.js'
 import { HonorSystemBag } from './honor_system_bag.js'
 
 export class HonorSystemTilesState implements TilesState {
-  readonly rackCapacity: number
-  isGameOver: boolean = false
-  private numberOfTurnsPlayed: number
-  private readonly bag: HonorSystemBag
-  private readonly racks: ReadonlyMap<string, Array<Tile>>
-  constructor({players, rackCapacity, tiles, tileSystemSettings}: Readonly<{
-    players: ReadonlyArray<Player>
-    rackCapacity: number
-    tiles: Iterable<Tile>
-    tileSystemSettings: any
-  }>) {
-    const playerIds = players.map(p => p.id)
-    if ([...new Set(playerIds)].length !== playerIds.length) {
-      throw new Error(`The player IDs are not unique: ${playerIds}`)
-    }
-    if (typeof tileSystemSettings !== 'object' || typeof tileSystemSettings.seed !== 'string') {
-      throw new TypeError(`tileSystemSettings should be an object with a seed string, not ${JSON.stringify(tileSystemSettings)}`)
-    }
-    this.rackCapacity = rackCapacity
-    this.numberOfTurnsPlayed = 0
-    this.bag = new HonorSystemBag(tiles, tileSystemSettings.seed)
-    this.racks = new Map(playerIds.map(playerId => [playerId, []]))
-    if (this.bag.size > 0) {
-      for (const rack of this.racks.values()) {
-        rack.push(...this.bag.draw(this.rackCapacity))
-      }
+  constructor(
+    // Args for SharedState.
+    players: ReadonlyArray<Player>,
+    tileSystemSettings: {seed: string},
+    tiles: Iterable<Tile>,
+    // Arg for SharedState and fromJSON.
+    readonly rackCapacity: number,
+    // Args for fromJSON.
+    private numberOfTurnsPlayed = 0,
+    private readonly racks = new Map(players.map(player => [player.id, [] as Array<Tile>])),
+    private readonly bag = makeBag(tiles, tileSystemSettings, rackCapacity, racks),
+    public isGameOver: boolean = false,
+  ) {
+    if (racks.size < players.length) {
+      throw new Error(`The player IDs are not unique: ${players.map(player => player.id)}`)
     }
   }
+
   get numberOfTilesInBag() { return this.bag.size }
   get stateId() { return this.numberOfTurnsPlayed }
   countTiles(playerId: string) { return this.getRack(playerId).length }
   getTiles(playerId: string) {
     return Promise.resolve([...this.getRack(playerId)])
   }
+
   playTurns(...turnsToPlay: Array<Turn>) {
     for (const turn of turnsToPlay) {
       this.playOneTurn(turn)
     }
     return Promise.resolve(this.stateId)
   }
+
   private playOneTurn(turn: Turn) {
     const rack = this.getRack(turn.playerId)
     const rackCopy = [...rack]
@@ -76,6 +68,7 @@ export class HonorSystemTilesState implements TilesState {
     rack.splice(0, rack.length, ...rackCopy)
     this.numberOfTurnsPlayed += 1
   }
+
   private getRack(playerId: string): Array<Tile> {
     const rack = this.racks.get(playerId)
     if (rack === undefined) {
@@ -83,6 +76,7 @@ export class HonorSystemTilesState implements TilesState {
     }
     return rack
   }
+
   toJSON() {
     const racks = [...this.racks.entries().map(
       ([playerId, rack]) => [playerId, rack.map(tile => tile.toJSON())]
@@ -94,6 +88,7 @@ export class HonorSystemTilesState implements TilesState {
       racks,
     }
   }
+
   static fromJSON(json: any) {
     function fail(msg: string): never {
       throw new TypeError(`${msg} in HonorSystemTileState serialization: ${JSON.stringify(json)}`)
@@ -115,13 +110,26 @@ export class HonorSystemTilesState implements TilesState {
       if (rackJson.length === 0) isGameOver = true
       racks.set(playerId, rackJson.map(Tile.fromJSON))
     }
-    // TODO - Redo this.
-    const state = Object.create(HonorSystemTilesState.prototype) as any
-    state.rackCapacity = json.rackCapacity
-    state.numberOfTurnsPlayed = json.numberOfTurnsPlayed
-    state.bag = bag
-    state.racks = racks
-    state.isGameOver = isGameOver
-    return state as HonorSystemTilesState
+    return new HonorSystemTilesState(
+      [], {seed: ''}, [],  // Arguments for direct constructor calls.
+      json.rackCapacity,
+      json.numberOfTurnsPlayed,
+      racks,
+      bag,
+      isGameOver,
+    )
   }
+}
+
+function makeBag(
+  tiles: Iterable<Tile>,
+  tileSystemSettings: {seed: string},
+  rackCapacity: number,
+  racks: Map<string, Array<Tile>>,
+) {
+  const bag = new HonorSystemBag(tileSystemSettings.seed, tiles)
+  for (const rack of racks.values()) {
+    rack.push(...bag.draw(rackCapacity))
+  }
+  return bag
 }

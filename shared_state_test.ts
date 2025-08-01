@@ -13,12 +13,12 @@ describe('shared state', () => {
     const settings = new Settings()
     const gameId = 'test' as GameId
     const board = new Board(...settings.boardLayout)
-    const tilesState = new HonorSystemTilesState({
-      players: settings.players,
-      rackCapacity: settings.rackCapacity,
-      tiles: makeTiles({ letterCounts: settings.letterCounts, letterValues: settings.letterValues }),
-      tileSystemSettings: {seed: '1'}
-    })
+    const tilesState = new HonorSystemTilesState(
+      settings.players,
+      {seed: '1'},
+      makeTiles({ letterCounts: settings.letterCounts, letterValues: settings.letterValues }),
+      settings.rackCapacity,
+    )
     const sharedState = new SharedState(settings, gameId, board, tilesState)
     expect(sharedState.gameId).toBe(gameId)
     expect(sharedState.nextTurnNumber).toBe(toTurnNumber(1))
@@ -165,7 +165,18 @@ describe('shared state', () => {
       expect(() => SharedState.fromJSON({}))
         .toThrow('Wrong keys or key order in SharedState serialization: {}')
       const board = new Board('.')
-      const template = { gameId: '1', nextTurnNumber: 1, settings: new Settings().toJSON(), board: board.toJSON(), tilesState: new HonorSystemTilesState({ players: new Settings().players, rackCapacity: 7, tiles: [], tileSystemSettings: {seed: '1'} }).toJSON() }
+      const template = {
+        gameId: '1',
+        nextTurnNumber: 1,
+        settings: new Settings().toJSON(),
+        board: board.toJSON(),
+        tilesState: new HonorSystemTilesState(
+          new Settings().players,
+          {seed: '1'},
+          makeTiles({letterCounts: {A: 20}, letterValues: {A: 1}}),
+          7,
+        ).toJSON(),
+      }
       expect(() => SharedState.fromJSON({ ...template, gameId: 1 }))
         .toThrow('Game ID is not a string in SharedState serialization: {"gameId":1,"nextTurnNumber":1,')
       expect(() => SharedState.fromJSON({ ...template, nextTurnNumber: '1' }))
