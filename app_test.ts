@@ -14,7 +14,10 @@ describe('app', () => {
     // TODO - Try to share this with index.html.
     document.body.innerHTML = `
       <div id="game-container">
-        <div id="board-container"></div>
+        <div id="center-panel">
+          <div id="score-panel"></div>
+          <div id="board-container"></div>
+        </div>
         <div id="controls-container">
           <div id="rack-container"></div>
           <div id="exchange-container"></div>

@@ -59,6 +59,7 @@ export async function init() {
 
   view.renderBoard()
   view.renderRack()
+  view.renderScores()
 
   gameState.addEventListener('tilemove', (evt: any) => {
     if (typeof evt.detail.fromRow !== 'number' || typeof evt.detail.placement.row !== 'number') {
@@ -75,6 +76,7 @@ export async function init() {
   })
 
   gameState.addEventListener('turnchange', () => {
+    view.renderScores()
     updateUrl()
     saveGameState()
   })
@@ -87,6 +89,7 @@ export async function init() {
     await updateGameStateFromUrlOrStorage()
     view.renderBoard()
     view.renderRack()
+    view.renderScores()
   })
 }
 
