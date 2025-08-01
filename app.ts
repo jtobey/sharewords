@@ -9,6 +9,8 @@ import { Player } from './player.ts'
 import { Turn, toTurnNumber } from './turn.js'
 
 let gameState: GameState
+let selectedTile: { row: 'rack' | 'exchange' | number, col: number } | null = null
+let dropTarget: { row: 'rack' | number, col: number } | null = null
 
 async function updateGameStateFromUrlOrStorage() {
   const params = new URLSearchParams(window.location.hash?.substring(1) || [])
@@ -35,7 +37,6 @@ async function updateGameStateFromUrlOrStorage() {
 }
 
 gameState = await updateGameStateFromUrlOrStorage()
-// console.log(gameState)
 
 function updateUrl() {
   const paramsStr = gameState.turnUrlParams.toString()
@@ -49,7 +50,7 @@ const boardContainer = gameContainer.querySelector<HTMLElement>('#board-containe
 const rackContainer = gameContainer.querySelector<HTMLElement>('#rack-container')!
 
 function addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
-  element.textContent = '' // Clear previous content
+  element.textContent = ''
   const letterDiv = document.createElement('div')
   letterDiv.className = 'letter'
   letterDiv.textContent = assignedLetter || tile.letter
@@ -125,9 +126,6 @@ function renderRack() {
 renderBoard()
 renderRack()
 
-let selectedTile: { row: 'rack' | 'exchange' | number, col: number } | null = null
-let dropTarget: { row: 'rack' | number, col: number } | null = null
-
 function getElementByLocation(row: 'rack' | 'exchange' | number, col: number): HTMLElement | null {
   if (row === 'exchange') return null
   return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
@@ -198,18 +196,14 @@ boardContainer.addEventListener('click', (evt) => {
   const placedTile = gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
   if (selectedTile) {
     if (placedTile) {
-      // A tile is here. If it's the one selected, deselect it. Otherwise, select this one.
       if (selectedTile.row === toRow && selectedTile.col === toCol) {
         deselect()
       } else {
         select(toRow, toCol)
       }
     } else {
-      // This square is open. Move the selected tile here.
       try {
-        const selectedPlacement = gameState.tilesHeld.find(
-          p => p.row === selectedTile!.row && p.col === selectedTile!.col
-        )
+        const selectedPlacement = gameState.tilesHeld.find(p => p.row === selectedTile!.row && p.col === selectedTile!.col)
         let assignedLetter: string | undefined
         if (selectedPlacement?.tile.isBlank) {
           const letter = prompt('Enter a letter for the blank tile:')
@@ -226,7 +220,6 @@ boardContainer.addEventListener('click', (evt) => {
       }
     }
   } else if (placedTile) {
-    // No tile selected, and a tile is here. Select it.
     select(toRow, toCol)
   }
 })
@@ -234,32 +227,22 @@ boardContainer.addEventListener('click', (evt) => {
 gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
   const target = evt.target as HTMLElement
   if (!target.dataset.col || !target.dataset.row) return
-
   const col = parseInt(target.dataset.col, 10)
   const rowStr = target.dataset.row
   const row: 'rack' | number = rowStr === 'rack' ? 'rack' : parseInt(rowStr, 10)
-
   switch (evt.key) {
     case ' ':
     case 'Enter': {
       evt.preventDefault()
       if (selectedTile) {
         if (!dropTarget) return
-
         const { row: toRow, col: toCol } = dropTarget
-
         if (typeof toRow === 'number') {
-          const boardSquare = gameState.board.squares[toRow]?.[toCol]
-          if (boardSquare?.tile) return // Occupied by permanent tile
+          if (gameState.board.squares[toRow]?.[toCol]?.tile) return
+          if (gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)) return
         }
-
-        const placedTileAtTarget = gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
-        if (placedTileAtTarget) return // Occupied by uncommitted tile
-
         try {
-          const selectedPlacement = gameState.tilesHeld.find(
-            p => p.row === selectedTile!.row && p.col === selectedTile!.col
-          )
+          const selectedPlacement = gameState.tilesHeld.find(p => p.row === selectedTile!.row && p.col === selectedTile!.col)
           let assignedLetter: string | undefined
           if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
             const letter = prompt('Enter a letter for the blank tile:')
@@ -275,7 +258,6 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
           alert(e)
         }
       } else {
-        // A tile must have been focused to get here.
         select(row, col)
         setDropTarget(row, col)
       }
@@ -296,16 +278,13 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
     case 'ArrowRight': {
       evt.preventDefault()
       if (!selectedTile || !dropTarget) return
-
       let { row: r, col: c } = dropTarget
       const boardWidth = gameState.board.squares[0]?.length ?? 15
       const boardHeight = gameState.board.squares.length ?? 15
       const rackCapacity = gameState.settings.rackCapacity
-
       const boardCenterCol = Math.ceil((boardWidth - 1) / 2)
       const rackCenter = Math.ceil((rackCapacity - 1) / 2)
       const boardCenterRow = Math.ceil((boardHeight - 1) / 2)
-
       switch (evt.key) {
         case 'ArrowUp':
           if (r === 'rack') {
@@ -364,40 +343,29 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
     case 'Tab': {
       if (selectedTile) {
         evt.preventDefault()
-
         if (!dropTarget) {
-          deselect() // Should not happen, but as a fallback
+          deselect()
         } else {
           const { row: toRow, col: toCol } = dropTarget
           let isOccupied = false
-          if (typeof toRow === 'number') {
-            if (gameState.board.squares[toRow]?.[toCol]?.tile) {
-              isOccupied = true
-            }
+          if (typeof toRow === 'number' && gameState.board.squares[toRow]?.[toCol]?.tile) {
+            isOccupied = true
           }
-          if (!isOccupied) {
-            if (gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)) {
-              isOccupied = true
-            }
+          if (!isOccupied && gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)) {
+            isOccupied = true
           }
-
           if (isOccupied) {
-            // Esc logic
             const previouslySelected = getElementByLocation(selectedTile.row, selectedTile.col)
             deselect()
             previouslySelected?.focus()
           } else {
-            // Space logic
             try {
-              const selectedPlacement = gameState.tilesHeld.find(
-                p => p.row === selectedTile!.row && p.col === selectedTile!.col
-              )
+              const selectedPlacement = gameState.tilesHeld.find(p => p.row === selectedTile!.row && p.col === selectedTile!.col)
               let assignedLetter: string | undefined
               if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
                 const letter = prompt('Enter a letter for the blank tile:')
                 if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
                   alert('Invalid letter. Please enter a single letter.')
-                  // If cancelled, treat as Esc.
                   const previouslySelected = getElementByLocation(selectedTile.row, selectedTile.col)
                   deselect()
                   previouslySelected?.focus()
@@ -415,14 +383,10 @@ gameContainer.addEventListener('keydown', (evt: KeyboardEvent) => {
             }
           }
         }
-
-        // Manual focus cycling
         const focusable = Array.from(gameContainer.querySelectorAll<HTMLElement>('[tabindex="0"]'))
         if (focusable.length === 0) break
         const currentIndex = focusable.indexOf(target)
-        const nextIndex = evt.shiftKey ?
-          (currentIndex - 1 + focusable.length) % focusable.length :
-          (currentIndex + 1) % focusable.length
+        const nextIndex = evt.shiftKey ? (currentIndex - 1 + focusable.length) % focusable.length : (currentIndex + 1) % focusable.length
         focusable[nextIndex]?.focus()
       }
       break
@@ -462,6 +426,8 @@ gameState.addEventListener('gameover', () => {
 
 window.addEventListener('hashchange', async () => {
   await updateGameStateFromUrlOrStorage()
+  renderBoard()
+  renderRack()
 })
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'

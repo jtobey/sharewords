@@ -88,6 +88,6 @@
   box-shadow: inset 0 0 5px 2px rgba(0,0,255,0.5);
 }
 
-.tile:focus, .square:focus {
+.tile:focus, .square:focus, .placed:focus {
   outline: 3px solid #333;
 }
