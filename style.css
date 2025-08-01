@@ -28,7 +28,7 @@
   margin-left: 20px;
 }
 
-#rack-container {
+#rack-container, #exchange-container {
   display: flex;
   flex-direction: row;
   margin-bottom: 10px;
