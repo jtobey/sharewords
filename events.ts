@@ -1,7 +1,11 @@
-import type { TilePlacement, BoardPlacement } from './tile.js'
+import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 
 export interface TileEventDetail {
-  tilePlacement: TilePlacement
+  // Tile identity and new location.
+  placement: TilePlacement
+  // Old location.
+  fromRow?: TilePlacementRow
+  fromCol?: number
 }
 
 export class TileEvent extends CustomEvent<TileEventDetail> {}

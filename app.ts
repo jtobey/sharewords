@@ -223,10 +223,13 @@ function saveGameState() {
   }
 }
 
-gameState.addEventListener('tilemove', (evt) => {
-  // TODO - Add "from" coordinates to evt.detail, and render only the necessary.
-  renderRack()
-  renderBoard()
+gameState.addEventListener('tilemove', (evt: any) => {
+  if (evt.detail.fromRow === 'rack' || evt.detail.placement.row === 'rack') {
+    renderRack()
+  }
+  if (typeof evt.detail.fromRow === 'number' || typeof evt.detail.placement.row === 'number') {
+    renderBoard()
+  }
   saveGameState()
 })
 

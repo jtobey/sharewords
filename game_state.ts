@@ -52,6 +52,10 @@ export class GameState extends EventTarget {
     }
   }
 
+  /**
+   * Initializes `this.tilesHeld` from the shared game state.
+   * @fires TileEvent#tilemove
+   */
   async initRack() {
     // TODO - Don't rearrange existing rack placements.
     const tiles = await this.shared.tilesState.getTiles(this.playerId)
@@ -63,7 +67,7 @@ export class GameState extends EventTarget {
       }
     })
     this.tilesHeld.forEach(p => {
-      this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: p}}))
+      this.dispatchEvent(new TileEvent('tilemove', {detail: {placement: p}}))
     })
     return this
   }
@@ -121,8 +125,9 @@ export class GameState extends EventTarget {
     const preparation = this.prepareTileMove(fromRow, fromCol, toRow, toCol)
     if (!preparation.success) throw new RangeError(preparation.message)
     for (const pushed of preparation.toPush) {
-      pushed.col += preparation.pushDirection
-      this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: pushed}}))
+      const pushedFromCol = pushed.col
+      pushed.col = pushedFromCol + preparation.pushDirection
+      this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol: pushedFromCol, placement: pushed}}))
     }
     preparation.placement.row = preparation.toRow
     preparation.placement.col = preparation.toCol
@@ -130,7 +135,7 @@ export class GameState extends EventTarget {
     if (typeof fromRow === 'number' && typeof preparation.toRow !== 'number') {
       delete preparation.placement.assignedLetter
     }
-    this.dispatchEvent(new TileEvent('tilemove', {detail: {tilePlacement: preparation.placement}}))
+    this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement: preparation.placement}}))
   }
 
   /**
@@ -214,6 +219,8 @@ export class GameState extends EventTarget {
   /**
    * Forms a `playTiles` turn from the `heldTiles` currently on the board.
    * Passes the resulting `Turn` to `playTurns`.
+   * @fires BoardEvent#tilesplaced
+   * @fires TileEvent#tilemove
    */
   async playWord() {
     const placements = this.tilesHeld.filter(p => typeof p.row === 'number') as BoardPlacement[]
@@ -228,6 +235,7 @@ export class GameState extends EventTarget {
   /**
    * Forms a `exchangeTileIndices` turn from the `heldTiles` currently in the exchange area.
    * Passes the resulting `Turn` to `playTurns`.
+   * @fires TileEvent#tilemove
    */
   async passOrExchange() {
     const placements = this.tilesHeld.map((p, index) => ({p, index})).filter(({p}) => p.row === 'exchange')
