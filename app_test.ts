@@ -5,13 +5,14 @@ describe('app', () => {
   beforeAll(() => {
     const window = new Window()
     const document = window.document
+    // TODO - Try to share this with style.css.
     document.head.innerHTML = `<style>
       .tile { width: 40px; height: 40px; }
     </style>`
+    // TODO - Try to share this with index.html.
     document.body.innerHTML = `
       <div id="board-container"></div>
       <div id="rack-container"></div>
-      <button id="show-stats"></button>
       <button id="play-word"></button>
       <button id="pass-exchange"></button>
     `
