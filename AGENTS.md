@@ -8,6 +8,10 @@
 
 Prefer to submit fixes on the feature branch that you created, since multiple levels of branches produce extra cleanup work.
 
+# Repository layout
+
+We test the app using `bun index.html`. app.ts is the main TypeScript entry point.
+
 # Overview
 
 `bun index.html` serves ShareWords, a Scrabble-like game. We are working first on the game logic and unit tests. Once that settles down, we plan to add a drag-and-drop HTML interface. As of this writing, we have only a very incomplete DOM-based UI (index.html, style.css, app.js).
@@ -19,3 +23,5 @@ ShareWords has no strong security against inspecting the tile bag and other play
 This kind of game usually requires a dictionary, but ShareWords relies on players to agree upon what is a word. We plan to add dictionary support by a configuable URL template.
 
 The design for extensibility in security and dictionary explains why some functions return `Promise`s.
+
+README.md lists current and planned features.
