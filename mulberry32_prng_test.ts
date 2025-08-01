@@ -1,4 +1,4 @@
-import { expect, describe, it } from "bun:test"
+import { expect, describe, it } from 'bun:test'
 import { Mulberry32Prng } from './mulberry32_prng.js'
 
 describe('Mulberry32 PRNG', () => {
@@ -8,11 +8,11 @@ describe('Mulberry32 PRNG', () => {
     expect(prng.random()).toEqual(0xD510621D / 0x100000000)
     expect(prng.random()).toEqual(0xDC59BB95 / 0x100000000)
   })
-  it("should reject a fractional seed", () => {
+  it('should reject a fractional seed', () => {
     expect(() => new Mulberry32Prng(1.5)).toThrow(RangeError)
   })
   describe('json', () => {
-    it("should roundtrip to and from JSON", () => {
+    it('should roundtrip to and from JSON', () => {
       const prng = new Mulberry32Prng(12345)
       const prngAsJson = JSON.parse(JSON.stringify(prng))
       const prngFromJson = Mulberry32Prng.fromJSON(prngAsJson)
@@ -29,7 +29,7 @@ describe('Mulberry32 PRNG', () => {
       const prng = Mulberry32Prng.fromJSON(42)
       expect(prng.random()).toEqual(new Mulberry32Prng(42).random())
     })
-    it("should reject a non-numeric seed", () => {
+    it('should reject a non-numeric seed', () => {
       expect(() => Mulberry32Prng.fromJSON('frob')).toThrow(TypeError)
     })
   })
