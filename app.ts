@@ -48,6 +48,7 @@ function updateUrl() {
 const gameContainer = document.getElementById('game-container')!
 const boardContainer = gameContainer.querySelector<HTMLElement>('#board-container')!
 const rackContainer = gameContainer.querySelector<HTMLElement>('#rack-container')!
+const exchangeContainer = gameContainer.querySelector<HTMLElement>('#exchange-container')!
 
 function addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
   element.textContent = ''
@@ -98,7 +99,10 @@ function renderBoard() {
 
 function renderRack() {
   rackContainer.innerHTML = ''
+  exchangeContainer.innerHTML = ''
   const rackTiles = gameState.tilesHeld.filter(p => p.row === 'rack')
+  const exchangeTiles = gameState.tilesHeld.filter(p => p.row === 'exchange')
+
   const rackTileElements = [] as (HTMLDivElement | null)[]
   for (const tilePlacement of rackTiles) {
     const tileDiv = document.createElement('div')
@@ -109,6 +113,7 @@ function renderRack() {
     tileDiv.tabIndex = 0
     rackTileElements[tilePlacement.col] = tileDiv
   }
+
   for (let i = 0; i < gameState.settings.rackCapacity; i++) {
     const tileDiv = rackTileElements[i]
     if (tileDiv) {
@@ -121,13 +126,36 @@ function renderRack() {
       rackContainer.appendChild(emptySpot)
     }
   }
+
+  const exchangeTileElements = [] as (HTMLDivElement | null)[]
+  for (const tilePlacement of exchangeTiles) {
+    const tileDiv = document.createElement('div')
+    tileDiv.className = 'tile'
+    addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
+    tileDiv.dataset.row = String(tilePlacement.row)
+    tileDiv.dataset.col = String(tilePlacement.col)
+    tileDiv.tabIndex = 0
+    exchangeTileElements[tilePlacement.col] = tileDiv
+  }
+
+  for (let i = 0; i < gameState.settings.rackCapacity; i++) {
+    const tileDiv = exchangeTileElements[i]
+    if (tileDiv) {
+      exchangeContainer.appendChild(tileDiv)
+    } else {
+      const emptySpot = document.createElement('div')
+      emptySpot.className = 'tile-spot'
+      emptySpot.dataset.row = 'exchange'
+      emptySpot.dataset.col = String(i)
+      exchangeContainer.appendChild(emptySpot)
+    }
+  }
 }
 
 renderBoard()
 renderRack()
 
 function getElementByLocation(row: 'rack' | 'exchange' | number, col: number): HTMLElement | null {
-  if (row === 'exchange') return null
   return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
 }
 
@@ -163,7 +191,9 @@ function select(row: 'rack' | 'exchange' | number, col: number) {
   element?.classList.add('selected')
 }
 
-rackContainer.addEventListener('click', (evt) => {
+function rackOrExchangeClick(evt: MouseEvent) {
+  const container = (evt.currentTarget as HTMLElement)
+  const rowName = container.id.split('-')[0] as 'rack' | 'exchange'
   const tileTarget = (evt.target as HTMLElement).closest('.tile')
   if (tileTarget instanceof HTMLElement) {
     const col = parseInt(tileTarget.dataset.col!, 10)
@@ -172,21 +202,24 @@ rackContainer.addEventListener('click', (evt) => {
       if (selectedTile.row === row && selectedTile.col === col) {
         deselect()
       } else {
-        gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+        gameState.moveTile(selectedTile.row, selectedTile.col, rowName, col)
         deselect()
       }
     } else {
-      select(row as 'rack', col)
+      select(row as 'rack' | 'exchange', col)
     }
   } else if (selectedTile) {
-    const rackRect = rackContainer.getBoundingClientRect()
+    const rackRect = container.getBoundingClientRect()
     const x = evt.clientX - rackRect.left
     const tileWidth = rackRect.width / gameState.settings.rackCapacity
     const col = Math.floor(x / tileWidth)
-    gameState.moveTile(selectedTile.row, selectedTile.col, 'rack', col)
+    gameState.moveTile(selectedTile.row, selectedTile.col, rowName, col)
     deselect()
   }
-})
+}
+
+rackContainer.addEventListener('click', rackOrExchangeClick)
+exchangeContainer.addEventListener('click', rackOrExchangeClick)
 
 boardContainer.addEventListener('click', (evt) => {
   const target = (evt.target as HTMLElement).closest('.square') as HTMLElement
@@ -402,7 +435,7 @@ function saveGameState() {
 }
 
 gameState.addEventListener('tilemove', (evt: any) => {
-  if (evt.detail.fromRow === 'rack' || evt.detail.placement.row === 'rack') {
+  if (evt.detail.fromRow === 'rack' || evt.detail.placement.row === 'rack' || evt.detail.fromRow === 'exchange' || evt.detail.placement.row === 'exchange') {
     renderRack()
   }
   if (typeof evt.detail.fromRow === 'number' || typeof evt.detail.placement.row === 'number') {

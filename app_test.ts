@@ -13,9 +13,14 @@ describe('app', () => {
     document.body.innerHTML = `
       <div id="game-container">
         <div id="board-container"></div>
-        <div id="rack-container"></div>
-        <button id="play-word"></button>
-        <button id="pass-exchange"></button>
+        <div id="controls-container">
+          <div id="rack-container"></div>
+          <div id="exchange-container"></div>
+          <div id="buttons-container">
+            <button id="play-word"></button>
+            <button id="pass-exchange"></button>
+          </div>
+        </div>
       </div>
     `
     global.window = window as any
