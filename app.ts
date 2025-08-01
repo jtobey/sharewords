@@ -35,7 +35,7 @@ async function updateGameStateFromUrlOrStorage() {
 }
 
 gameState = await updateGameStateFromUrlOrStorage()
-console.log(gameState)
+// console.log(gameState)
 
 function updateUrl() {
   const paramsStr = gameState.turnUrlParams.toString()
