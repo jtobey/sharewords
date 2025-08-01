@@ -6,6 +6,7 @@ export class View {
   private boardContainer: HTMLElement
   private rackContainer: HTMLElement
   private exchangeContainer: HTMLElement
+  private scorePanel: HTMLElement
   private gameState: GameState
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
 
@@ -15,6 +16,7 @@ export class View {
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!
     this.rackContainer = this.gameContainer.querySelector<HTMLElement>('#rack-container')!
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
+    this.scorePanel = this.gameContainer.querySelector<HTMLElement>('#score-panel')!
   }
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
@@ -61,6 +63,21 @@ export class View {
         }
         this.boardContainer.appendChild(squareDiv)
       }
+    }
+  }
+
+  renderScores() {
+    this.scorePanel.innerHTML = ''
+    const currentPlayer = this.gameState.playerWhoseTurnItIs
+    for (const player of this.gameState.players) {
+      const score = this.gameState.board.scores.get(player.id) ?? 0
+      const scoreDiv = document.createElement('div')
+      scoreDiv.className = 'player-score'
+      if (player.id === currentPlayer?.id) {
+        scoreDiv.classList.add('current-player')
+      }
+      scoreDiv.textContent = `${player.name}: ${score}`
+      this.scorePanel.appendChild(scoreDiv)
     }
   }
 
