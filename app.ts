@@ -47,6 +47,22 @@ function updateUrl() {
 const boardContainer = document.getElementById('board-container')!
 const rackContainer = document.getElementById('rack-container')!
 
+function createTileDiv(letter: string, value?: number) {
+  const tileDiv = document.createElement('div')
+  tileDiv.className = 'tile'
+  const letterDiv = document.createElement('div')
+  letterDiv.className = 'letter'
+  letterDiv.textContent = letter
+  tileDiv.appendChild(letterDiv)
+  if (value !== undefined) {
+    const valueDiv = document.createElement('div')
+    valueDiv.className = 'value'
+    valueDiv.textContent = String(value)
+    tileDiv.appendChild(valueDiv)
+  }
+  return tileDiv
+}
+
 function renderBoard() {
   boardContainer.innerHTML = ''
   for (let r = 0; r < gameState.board.squares.length; r++) {
@@ -65,12 +81,14 @@ function renderBoard() {
       squareDiv.dataset.row = String(r)
       squareDiv.dataset.col = String(c)
       if (square.tile) {
-        squareDiv.textContent = square.tile.letter
+        const tileDiv = createTileDiv(square.letter || '', square.tile.isBlank ? undefined : square.value)
+        squareDiv.appendChild(tileDiv)
       } else {
         const placedTile = gameState.tilesHeld.find(p => p.row === r && p.col === c)
         if (placedTile) {
-          squareDiv.textContent = placedTile.tile.letter
-          squareDiv.classList.add('placed')
+          const tileDiv = createTileDiv(placedTile.tile.letter, placedTile.tile.isBlank ? undefined : placedTile.tile.value)
+          tileDiv.classList.add('placed')
+          squareDiv.appendChild(tileDiv)
         }
       }
       boardContainer.appendChild(squareDiv)
@@ -82,9 +100,7 @@ function renderRack() {
   rackContainer.innerHTML = ''
   const rackTiles = gameState.tilesHeld.filter(p => p.row === 'rack')
   for (const tilePlacement of rackTiles) {
-    const tileDiv = document.createElement('div')
-    tileDiv.className = 'tile'
-    tileDiv.textContent = tilePlacement.tile.letter
+    const tileDiv = createTileDiv(tilePlacement.tile.letter, tilePlacement.tile.isBlank ? undefined : tilePlacement.tile.value)
     tileDiv.dataset.row = String(tilePlacement.row)
     tileDiv.dataset.col = String(tilePlacement.col)
     rackContainer.appendChild(tileDiv)
