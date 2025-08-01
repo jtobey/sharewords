@@ -42,23 +42,10 @@
   background-color: #eee;
   margin-right: 5px;
   box-sizing: border-box;
-  position: relative;
-  cursor: pointer;
-}
-
-.letter {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  text-align: center;
+  line-height: 40px;
   font-size: 24px;
-}
-
-.value {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  font-size: 12px;
+  cursor: pointer;
 }
 
 .placed {
