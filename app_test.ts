@@ -5,6 +5,9 @@ describe('app', () => {
   beforeAll(() => {
     const window = new Window()
     const document = window.document
+    document.head.innerHTML = `<style>
+      .tile { width: 40px; height: 40px; }
+    </style>`
     document.body.innerHTML = `
       <div id="board-container"></div>
       <div id="rack-container"></div>
@@ -22,5 +25,15 @@ describe('app', () => {
     await import('./app.js')
     const boardContainer = document.getElementById('board-container')!
     expect(boardContainer.children.length).toBe(225)
+  })
+
+  it('should render rack tiles with non-zero dimensions', async () => {
+    await import('./app.js')
+    const rackContainer = document.getElementById('rack-container')!
+    const tile = rackContainer.querySelector('.tile')
+    expect(tile).not.toBeNull()
+    const style = window.getComputedStyle(tile!)
+    expect(parseInt(style.width, 10)).toBeGreaterThan(0)
+    expect(parseInt(style.height, 10)).toBeGreaterThan(0)
   })
 })
