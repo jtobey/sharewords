@@ -13,9 +13,9 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 -   Player racks holding up to 7 tiles.
 -   Word validation using a configurable dictionary (default permissive, PLANNED option for RFC 2229-like servers).
 -   Scoring based on tile values and board bonuses.
--   Special "seven-tile bonus".
--   Blank tiles assignable when placed on the board by players.
--   Player actions: play word, exchange tiles, pass turn.
+-   Special seven-tile "bingo bonus".
+-   Blank tiles assignable (PLANNED) when placed on the board by players.
+-   Player actions: play word, exchange tiles (PLANNED), pass turn.
 -   Game state managed in local storage.
 -   Turn progression via sharable "turn URLs".
 -   Customizable game settings for new games (board layout, letter values, dictionary, etc.).
@@ -52,7 +52,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 5.  When you receive a turn URL from another player:
     *   Open the turn URL in your browser to update your game state.
     *   Any tiles that you have placed where another player played a word automatically revert to your rack.
-6.  When the bag is empty and one player plays their last tile:
+6.  (PLANNED) When the bag is empty and one player plays their last tile:
     *   Each player's score is reduced by the total value of their remaining tiles.
     *   The score of the player who played last is increased by the other players' tile values.
     *   The player with the highest score wins.
