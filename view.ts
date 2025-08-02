@@ -150,4 +150,18 @@ export class View {
     const element = this.getElementByLocation(row, col)
     element?.classList.add('selected')
   }
+
+  createGhostTile(originalTileElement: HTMLElement): HTMLElement {
+    const ghostTile = originalTileElement.cloneNode(true) as HTMLElement
+    ghostTile.classList.remove('selected')
+    ghostTile.classList.add('ghost-tile')
+    document.body.appendChild(ghostTile)
+    return ghostTile
+  }
+
+  removeGhostTile(ghostTileElement: HTMLElement) {
+    if (ghostTileElement && ghostTileElement.parentNode) {
+      ghostTileElement.parentNode.removeChild(ghostTileElement)
+    }
+  }
 }
