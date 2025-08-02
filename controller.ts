@@ -153,12 +153,12 @@ export class Controller {
     const dropTarget = this.view.getDropTarget()
     if (!this.selectedTile || !dropTarget) return
     let { row: r, col: c } = dropTarget
-    const boardWidth = this.gameState.board.squares[0]?.length ?? 15
-    const boardHeight = this.gameState.board.squares.length ?? 15
     const rackCapacity = this.gameState.settings.rackCapacity
-    const boardCenterCol = Math.ceil((boardWidth - 1) / 2)
+    const boardCenterCol = this.gameState.board.centerSquare.col
     const rackCenter = Math.ceil((rackCapacity - 1) / 2)
-    const boardCenterRow = Math.ceil((boardHeight - 1) / 2)
+    const boardCenterRow = this.gameState.board.centerSquare.row
+    const boardWidth = this.gameState.board.squares[boardCenterRow]!.length
+    const boardHeight = this.gameState.board.squares.length
     switch (key) {
       case 'ArrowUp':
         if (r === 'exchange') {
@@ -187,21 +187,11 @@ export class Controller {
         }
         break
       case 'ArrowLeft':
-        if (r === 'rack') {
-          if (c === 0) {
-            r = boardCenterRow
-            c = boardWidth - 1
-          } else {
-            c--
-          }
-        } else if (r === 'exchange') {
-          if (c > 0) {
-            c--
-          }
-        } else {
-          if (c > 0) {
-            c--
-          }
+        if (r === 'rack' && c === 0 && boardWidth > 0) {
+          r = boardCenterRow
+          c = boardWidth - 1
+        } else if (c > 0) {
+          c--
         }
         break
       case 'ArrowRight':
