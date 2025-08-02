@@ -207,8 +207,8 @@ export class GameState extends EventTarget {
           const nearbySquare = this.board.squares[row]?.[col]
           if (!nearbySquare) continue
           if (nearbySquare.tile) continue
-          if (this.tilesHeld.some(p => p.row === toRow && p.col === toCol)) continue
-          return { success: true, placement, toRow: row, toCol: row, pushDirection, toPush }
+          if (this.tilesHeld.some(p => p.row === row && p.col === col)) continue
+          return { success: true, placement, toRow: row, toCol: col, pushDirection, toPush }
         }
         return { success: false, message: `Square ${toRow},${toCol} is occupied` }
       }
