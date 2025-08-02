@@ -1,7 +1,6 @@
 #game-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 #board-container {
@@ -139,5 +138,24 @@
   #controls-container {
     margin-top: 0;
     margin-left: 20px;
+  }
+}
+
+@media (max-width: 601px) {
+  #board-container {
+    width: 98vw;
+    height: 98vw;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+  }
+
+  .square {
+    width: auto;
+    height: auto;
+    font-size: 3.2vw;
+  }
+
+  .value {
+    font-size: 1.6vw;
   }
 }
