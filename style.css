@@ -44,6 +44,7 @@
   font-size: 24px;
   cursor: pointer;
   position: relative;
+  touch-action: none;
 }
 
 .letter {
@@ -68,6 +69,7 @@
 
 .placed {
   background-color: #lightgreen;
+  touch-action: none;
 }
 
 .square.dl { background-color: #c99; }
