@@ -1,6 +1,7 @@
 #game-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 #board-container {
@@ -127,4 +128,16 @@
 
 .tile.dragging, .placed.dragging {
   opacity: 0.4;
+}
+
+@media (min-width: 1024px) {
+  #game-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  #controls-container {
+    margin-top: 0;
+    margin-left: 20px;
+  }
 }

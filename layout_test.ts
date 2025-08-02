@@ -19,7 +19,7 @@ describe("layout", () => {
     document.head.appendChild(style);
   });
 
-  it.skip("should have a column layout on narrow screens", () => {
+  it("should have a column layout on narrow screens", () => {
     window.happyDOM.setWindowSize({ width: 500 });
     const gameContainer = document.getElementById("game-container")!;
     const centerPanel = document.getElementById("center-panel")!;
