@@ -44,6 +44,7 @@
   font-size: 24px;
   cursor: pointer;
   position: relative;
+  touch-action: none;
 }
 
 .letter {
@@ -68,6 +69,7 @@
 
 .placed {
   background-color: #lightgreen;
+  touch-action: none;
 }
 
 .square.dl { background-color: #c99; }
@@ -112,4 +114,17 @@
 
 .current-player {
   font-weight: bold;
+}
+
+.ghost-tile {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.1s ease-out;
+}
+
+.tile.dragging, .placed.dragging {
+  opacity: 0.4;
 }

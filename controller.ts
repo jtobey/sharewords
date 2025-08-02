@@ -6,6 +6,9 @@ export class Controller {
   private gameState: GameState
   private view: View
   private selectedTile: { row: TilePlacementRow, col: number } | null = null
+  private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
+  private ghostTile: HTMLElement | null = null
+  private dragStartPos: { x: number, y: number } | null = null
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -26,67 +29,133 @@ export class Controller {
     this.selectedTile = null
   }
 
-  private rackOrExchangeClick(evt: MouseEvent) {
-    const container = (evt.currentTarget as HTMLElement)
-    const rowName = container.id.split('-')[0] as TilePlacementRow
-    const tileTarget = (evt.target as HTMLElement).closest('.tile')
-    if (tileTarget instanceof HTMLElement) {
-      const col = parseInt(tileTarget.dataset.col!, 10)
-      const row = tileTarget.dataset.row! as TilePlacementRow
-      if (this.selectedTile) {
-        if (this.selectedTile.row === row && this.selectedTile.col === col) {
-          this.deselect()
-        } else {
-          this.gameState.moveTile(this.selectedTile.row, this.selectedTile.col, rowName, col)
-          this.deselect()
-        }
-      } else {
-        this.select(row, col)
+  private pointerDown(evt: PointerEvent) {
+    const tileTarget = (evt.target as HTMLElement).closest('.tile, .placed')
+    if (!(tileTarget instanceof HTMLElement)) return
+
+    // Middle or right-click
+    if (evt.button !== 0) return
+
+    // Prevent default behavior like text selection
+    evt.preventDefault()
+    evt.stopPropagation()
+
+    const col = parseInt(tileTarget.dataset.col!, 10)
+    const rowStr = tileTarget.dataset.row!
+    const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
+
+    this.draggingTile = { row, col, element: tileTarget }
+    this.dragStartPos = { x: evt.clientX, y: evt.clientY }
+  }
+
+  private pointerMove(evt: PointerEvent) {
+    if (!this.draggingTile) return
+
+    evt.preventDefault()
+    evt.stopPropagation()
+
+    const dx = evt.clientX - this.dragStartPos!.x
+    const dy = evt.clientY - this.dragStartPos!.y
+
+    if (!this.ghostTile) {
+      // Start dragging only if the pointer has moved a certain distance
+      if (Math.sqrt(dx * dx + dy * dy) < 5) {
+        return
       }
-    } else if (this.selectedTile) {
-      const rackRect = container.getBoundingClientRect()
-      const x = evt.clientX - rackRect.left
-      const tileWidth = rackRect.width / this.gameState.settings.rackCapacity
-      const col = Math.floor(x / tileWidth)
-      this.gameState.moveTile(this.selectedTile.row, this.selectedTile.col, rowName, col)
+
       this.deselect()
+      this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
+      this.draggingTile.element.classList.add('dragging')
+    }
+
+    // Move ghost tile
+    this.ghostTile.style.left = `${evt.clientX}px`
+    this.ghostTile.style.top = `${evt.clientY}px`
+
+    // Find and highlight drop target
+    this.ghostTile.style.display = 'none' // Hide ghost to find element underneath
+    const targetElement = document.elementFromPoint(evt.clientX, evt.clientY)
+    this.ghostTile.style.display = ''
+
+    if (targetElement) {
+      const dropTarget = targetElement.closest('.square, .tile-spot, .tile, .placed')
+      if (dropTarget instanceof HTMLElement && dropTarget.dataset.row && dropTarget.dataset.col) {
+        const toRowStr = dropTarget.dataset.row
+        const toRow: TilePlacementRow = toRowStr === 'rack' ? 'rack' : (toRowStr === 'exchange' ? 'exchange' : parseInt(toRowStr, 10))
+        const toCol = parseInt(dropTarget.dataset.col, 10)
+        this.view.setDropTarget(toRow, toCol)
+      } else {
+        this.view.clearDropTarget()
+      }
     }
   }
 
-  private boardClick(evt: MouseEvent) {
-    const target = (evt.target as HTMLElement).closest('.square') as HTMLElement
-    if (!target) return
-    const toRow = parseInt(target.dataset.row!, 10)
-    const toCol = parseInt(target.dataset.col!, 10)
-    const placedTile = this.gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)
-    if (this.selectedTile) {
-      if (placedTile) {
-        if (this.selectedTile.row === toRow && this.selectedTile.col === toCol) {
-          this.deselect()
-        } else {
-          this.select(toRow, toCol)
-        }
-      } else {
+  private pointerUp(evt: PointerEvent) {
+    if (this.ghostTile) { // It was a drag
+      const dropTarget = this.view.getDropTarget()
+      if (dropTarget) {
         try {
-          const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === this.selectedTile!.row && p.col === this.selectedTile!.col)
+          const fromRow = this.draggingTile!.row
+          const fromCol = this.draggingTile!.col
+          const toRow = dropTarget.row
+          const toCol = dropTarget.col
+
+          const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
           let assignedLetter: string | undefined
-          if (selectedPlacement?.tile.isBlank) {
+          if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
             const letter = prompt('Enter a letter for the blank tile:')
             if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
               alert('Invalid letter. Please enter a single letter.')
-              return
+            } else {
+              assignedLetter = letter.toUpperCase()
+              this.gameState.moveTile(fromRow, fromCol, toRow, toCol, assignedLetter)
             }
-            assignedLetter = letter.toUpperCase()
+          } else {
+            this.gameState.moveTile(fromRow, fromCol, toRow, toCol)
           }
-          this.gameState.moveTile(this.selectedTile.row, this.selectedTile.col, toRow, toCol, assignedLetter)
-          this.deselect()
         } catch (e) {
           alert(e)
         }
       }
-    } else if (placedTile) {
-      this.select(toRow, toCol)
+      this.view.removeGhostTile(this.ghostTile)
+      this.draggingTile!.element.classList.remove('dragging')
+
+    } else if (this.draggingTile) { // It was a click
+      const { row, col } = this.draggingTile
+      if (this.selectedTile) {
+        if (this.selectedTile.row === row && this.selectedTile.col === col) {
+          this.deselect()
+        } else {
+          // This is a move
+          try {
+            const fromRow = this.selectedTile.row
+            const fromCol = this.selectedTile.col
+            const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
+            let assignedLetter: string | undefined
+            if (selectedPlacement?.tile.isBlank && typeof row === 'number') {
+              const letter = prompt('Enter a letter for the blank tile:')
+              if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
+                alert('Invalid letter. Please enter a single letter.')
+                return
+              }
+              assignedLetter = letter.toUpperCase()
+            }
+            this.gameState.moveTile(fromRow, fromCol, row, col, assignedLetter)
+            this.deselect()
+          } catch(e) {
+            alert(e)
+          }
+        }
+      } else {
+        this.select(row, col)
+      }
     }
+
+    // Cleanup
+    this.draggingTile = null
+    this.ghostTile = null
+    this.dragStartPos = null
+    this.view.clearDropTarget()
   }
 
   private keydown(evt: KeyboardEvent) {
@@ -230,13 +299,14 @@ export class Controller {
 
   private attachEventListeners() {
     const gameContainer = document.getElementById('game-container')!
-    const boardContainer = gameContainer.querySelector<HTMLElement>('#board-container')!
-    const rackContainer = gameContainer.querySelector<HTMLElement>('#rack-container')!
-    const exchangeContainer = gameContainer.querySelector<HTMLElement>('#exchange-container')!
 
-    rackContainer.addEventListener('click', this.rackOrExchangeClick.bind(this))
-    exchangeContainer.addEventListener('click', this.rackOrExchangeClick.bind(this))
-    boardContainer.addEventListener('click', this.boardClick.bind(this))
+    // Pointer events for drag-and-drop and clicking
+    gameContainer.addEventListener('pointerdown', this.pointerDown.bind(this))
+    // We need to listen on the whole document for pointermove and pointerup
+    // so that the drag continues even if the user's pointer leaves the game container.
+    document.addEventListener('pointermove', this.pointerMove.bind(this))
+    document.addEventListener('pointerup', this.pointerUp.bind(this))
+
     gameContainer.addEventListener('keydown', this.keydown.bind(this))
 
     document.getElementById('play-word')!.addEventListener('click', this.playWordClick.bind(this))
