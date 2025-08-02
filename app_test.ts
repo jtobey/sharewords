@@ -103,5 +103,43 @@ describe('app', () => {
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.col).toBe(1)
     })
+
+    it('should move up from rack to board', () => {
+      controller.select('rack', 0)
+      controller.moveDropTarget('ArrowUp')
+      const dropTarget = view.getDropTarget()
+      expect(dropTarget).not.toBeNull()
+      expect(dropTarget!.row).toBe(14)
+      // Jumps from rack 0 to board col 7 + (0 - 3) = 4.
+      expect(dropTarget!.col).toBe(4)
+    })
+
+    it('should move down from board to rack', () => {
+      controller.select(14, 0)
+      controller.moveDropTarget('ArrowDown')
+      const dropTarget = view.getDropTarget()
+      expect(dropTarget).not.toBeNull()
+      expect(dropTarget!.row).toBe('rack')
+      // Jumps from board col 0 to rack 7 + (0 - 7) = 0.
+      expect(dropTarget!.col).toBe(0)
+    })
+
+    it('should move right from board to rack', () => {
+      controller.select(0, 14)
+      controller.moveDropTarget('ArrowRight')
+      const dropTarget = view.getDropTarget()
+      expect(dropTarget).not.toBeNull()
+      expect(dropTarget!.row).toBe('rack')
+      expect(dropTarget!.col).toBe(0)
+    })
+
+    it('should move left from rack to board', () => {
+      controller.select('rack', 0)
+      controller.moveDropTarget('ArrowLeft')
+      const dropTarget = view.getDropTarget()
+      expect(dropTarget).not.toBeNull()
+      expect(dropTarget!.row).toBe(7)
+      expect(dropTarget!.col).toBe(14)
+    })
   })
 })
