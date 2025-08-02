@@ -14,8 +14,8 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 -   Word validation using a configurable dictionary (default permissive, PLANNED option for RFC 2229-like servers).
 -   Scoring based on tile values and board bonuses.
 -   Special seven-tile "bingo bonus".
--   Blank tiles assignable (PLANNED) when placed on the board by players.
--   Player actions: play word, exchange tiles (PLANNED), pass turn.
+-   Blank tiles assignable when placed on the board by players.
+-   Player actions: play word, exchange tiles, pass turn.
 -   Game state managed in local storage.
 -   Turn progression via sharable "turn URLs".
 -   Customizable game settings for new games (board layout, letter values, dictionary, etc.).
@@ -28,7 +28,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 2.  If starting a new game, configure settings or use defaults.
 3.  Players take turns. On your turn:
     *   (PLANNED) Drag tiles from your rack to the board to form words.
-    *   (PLANNED) Alternatively, use the keyboard to select and move a tile.
+    *   Alternatively, use the keyboard to select and move a tile.
         *   Tab to navigate among selectable tiles.
         *   Space to select the tile.
         *   Arrow keys to move the selected tile among possible drop locations.
