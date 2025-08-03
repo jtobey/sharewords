@@ -1,6 +1,7 @@
 import type { GameState } from './game_state.js'
 import type { View } from './view.js'
 import type { TilePlacementRow } from './tile.js'
+import { PlayRejectedError } from './dictionary.js'
 
 export class Controller {
   private gameState: GameState
@@ -285,7 +286,8 @@ export class Controller {
     try {
       await this.gameState.playWord()
     } catch (e: any) {
-      alert(e)
+      if (e instanceof PlayRejectedError) alert(e.message)
+      else alert(e)
     }
   }
 

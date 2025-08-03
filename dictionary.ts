@@ -23,7 +23,7 @@ export function makeDictionary(dictionaryType: DictionaryType, dictionarySetting
     if (errors.length === 0) return  // Words accepted.
     if (errors.length === 1) throw errors[0]
     const invalidWords = errors.map(wnidError => wnidError!.word)
-    throw new PlayRejectedError(`Words rejected: ${invalidWords}.`)
+    throw new PlayRejectedError(`Not words in ${errors[0]!.dictionaryName}: ${invalidWords}.`)
   }
 }
 
