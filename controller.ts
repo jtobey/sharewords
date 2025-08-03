@@ -255,7 +255,7 @@ export class Controller {
       await this.gameState.playWord()
       if (copyUrl) {
         const url = new URL(location.href);
-        url.search = this.gameState.turnUrlParams.toString();
+        url.hash = this.gameState.turnUrlParams.toString();
         await navigator.clipboard.writeText(url.toString());
       }
     } catch (e: any) {
@@ -276,7 +276,7 @@ export class Controller {
       await this.gameState.passOrExchange()
       if (copyUrl) {
         const url = new URL(location.href);
-        url.search = this.gameState.turnUrlParams.toString();
+        url.hash = this.gameState.turnUrlParams.toString();
         await navigator.clipboard.writeText(url.toString());
       }
     } catch (e: any) {
