@@ -1,3 +1,4 @@
+import { Dialog } from './dialog.js';
 import type { GameState } from './game_state.js'
 import type { BoardPlacement, Tile, TilePlacementRow } from './tile.js'
 
@@ -182,5 +183,33 @@ export class View {
     if (ghostTileElement && ghostTileElement.parentNode) {
       ghostTileElement.parentNode.removeChild(ghostTileElement)
     }
+  }
+
+  async showConfirmationDialog(
+    title: string,
+    showCopyCheckbox: boolean,
+  ): Promise<{confirmed: boolean, copyUrl: boolean}> {
+    const content = document.createElement('div');
+
+    let copyUrlCheckbox: HTMLInputElement | undefined;
+    if (showCopyCheckbox) {
+      const copyUrlContainer = document.createElement('div');
+      copyUrlContainer.innerHTML = `
+        <label>
+          <input type="checkbox" id="copy-url-checkbox" checked>
+          Copy Turn URL?
+        </label>
+      `;
+      copyUrlCheckbox = copyUrlContainer.querySelector<HTMLInputElement>('#copy-url-checkbox')!;
+      content.appendChild(copyUrlContainer);
+    }
+
+    const dialog = new Dialog(title, content, ['OK', 'Cancel']);
+    const result = await dialog.show();
+
+    return {
+      confirmed: result === 'OK',
+      copyUrl: result === 'OK' && (copyUrlCheckbox?.checked ?? false),
+    };
   }
 }

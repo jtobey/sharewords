@@ -49,25 +49,31 @@ describe('app', () => {
     expect(parseInt(style.height, 10)).toBeGreaterThan(0)
   })
 
-  it('should call playWord when the button is clicked', () => {
+  it('should call playWord when the button is clicked', async () => {
     let playWordCalled = false
     GameState.prototype.playWord = async () => {
       playWordCalled = true
       return Promise.resolve()
     }
+    view.showConfirmationDialog = async () => Promise.resolve({ confirmed: true, copyUrl: false });
+
     const playWordButton = document.getElementById('play-word')!
     playWordButton.click()
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(playWordCalled).toBe(true)
   })
 
-  it('should call passOrExchange when the button is clicked', () => {
+  it('should call passOrExchange when the button is clicked', async () => {
     let passOrExchangeCalled = false
     GameState.prototype.passOrExchange = async () => {
       passOrExchangeCalled = true
       return Promise.resolve()
     }
+    view.showConfirmationDialog = async () => Promise.resolve({ confirmed: true, copyUrl: false });
+
     const passOrExchangeButton = document.getElementById('pass-exchange')!
     passOrExchangeButton.click()
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(passOrExchangeCalled).toBe(true)
   })
 
