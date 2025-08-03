@@ -47,6 +47,10 @@ export class Controller {
 
     this.draggingTile = { row, col, element: tileTarget }
     this.dragStartPos = { x: evt.clientX, y: evt.clientY }
+    this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
+    this.draggingTile.element.classList.add('dragging')
+    this.ghostTile.style.left = `${evt.clientX}px`
+    this.ghostTile.style.top = `${evt.clientY}px`
   }
 
   private pointerMove(evt: PointerEvent) {
@@ -55,28 +59,14 @@ export class Controller {
     evt.preventDefault()
     evt.stopPropagation()
 
-    const dx = evt.clientX - this.dragStartPos!.x
-    const dy = evt.clientY - this.dragStartPos!.y
-
-    if (!this.ghostTile) {
-      // Start dragging only if the pointer has moved a certain distance
-      if (Math.sqrt(dx * dx + dy * dy) < 5) {
-        return
-      }
-
-      this.deselect()
-      this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
-      this.draggingTile.element.classList.add('dragging')
-    }
-
     // Move ghost tile
-    this.ghostTile.style.left = `${evt.clientX}px`
-    this.ghostTile.style.top = `${evt.clientY}px`
+    this.ghostTile!.style.left = `${evt.clientX}px`
+    this.ghostTile!.style.top = `${evt.clientY}px`
 
     // Find and highlight drop target
-    this.ghostTile.style.display = 'none' // Hide ghost to find element underneath
+    this.ghostTile!.style.display = 'none' // Hide ghost to find element underneath
     const targetElement = document.elementFromPoint(evt.clientX, evt.clientY)
-    this.ghostTile.style.display = ''
+    this.ghostTile!.style.display = ''
 
     if (targetElement) {
       const dropTarget = targetElement.closest('.square, .tile-spot, .tile, .placed')
@@ -121,35 +111,6 @@ export class Controller {
       this.view.removeGhostTile(this.ghostTile)
       this.draggingTile!.element.classList.remove('dragging')
 
-    } else if (this.draggingTile) { // It was a click
-      const { row, col } = this.draggingTile
-      if (this.selectedTile) {
-        if (this.selectedTile.row === row && this.selectedTile.col === col) {
-          this.deselect()
-        } else {
-          // This is a move
-          try {
-            const fromRow = this.selectedTile.row
-            const fromCol = this.selectedTile.col
-            const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
-            let assignedLetter: string | undefined
-            if (selectedPlacement?.tile.isBlank && typeof row === 'number') {
-              const letter = prompt('Enter a letter for the blank tile:')
-              if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
-                alert('Invalid letter. Please enter a single letter.')
-                return
-              }
-              assignedLetter = letter.toUpperCase()
-            }
-            this.gameState.moveTile(fromRow, fromCol, row, col, assignedLetter)
-            this.deselect()
-          } catch(e) {
-            alert(e)
-          }
-        }
-      } else {
-        this.select(row, col)
-      }
     }
 
     // Cleanup
