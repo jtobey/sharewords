@@ -173,6 +173,47 @@ describe('game state', () => {
     expect(rackAfterPass).toBe('ESOQTSI')
   })
 
+  it('should handle end of game', async () => {
+    const settings = new Settings
+    settings.rackCapacity = 4
+    settings.letterCounts = {A: 10}
+    settings.letterValues = {A: 1}
+    let [[board0, board1, board2, board3]] = parseBoards(`
+
+        . . . . .     . . . . .     . . . . .     . . . . .
+        . . . . .     . . . . .     . . . . A₁    . . . . A₁
+        . . . . .     . A₁A₁A₁.     . A₁A₁A₁A₁    . A₁A₁A₁A₁
+        . . . . .     . . . . .     . . . . .     A₁A₁A₁. .
+        . . . . .     . . . . .     . . . . .     . . . . .
+
+      `) as any
+    settings.boardLayout = generateRowStrings(board0.squares)
+    settings.tileSystemSettings = {seed: '1'}
+    const player1GameState = new GameState('1', settings)
+
+    const turn1Tiles = diffBoards(board0, board1)
+    await player1GameState['playTurns'](new Turn('1', toTurnNumber(1), {playTiles: turn1Tiles}))
+    expect(player1GameState.isGameOver).toBeFalsy()
+    const player2GameState = await GameState.fromParams(player1GameState.turnUrlParams)
+    expect(player2GameState.isGameOver).toBeFalsy()
+
+    const turn2Tiles = diffBoards(board1, board2)
+    await player2GameState['playTurns'](new Turn('2',toTurnNumber(2), {playTiles: turn2Tiles}))
+    expect(player2GameState.isGameOver).toBeFalsy()
+    await player1GameState.applyTurnParams(player2GameState.turnUrlParams)
+    expect(player1GameState.isGameOver).toBeFalsy()
+
+    const turn3Tiles = diffBoards(board2, board3)
+    await player1GameState['playTurns'](new Turn('1',toTurnNumber(3), {playTiles: turn3Tiles}))
+    expect(player1GameState.isGameOver).toBeTruthy()
+    expect(player1GameState.board.scores.get('1')).toEqual(12)
+    expect(player1GameState.board.scores.get('2')).toEqual(4)
+    await player2GameState.applyTurnParams(player1GameState.turnUrlParams)
+    expect(player2GameState.isGameOver).toBeTruthy()
+    expect(player2GameState.board.scores.get('1')).toEqual(12)
+    expect(player2GameState.board.scores.get('2')).toEqual(4)
+  })
+
   describe('params', () => {
     it('should be added for non-default settings', () => {
       const settings = new Settings

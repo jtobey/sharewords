@@ -291,12 +291,25 @@ export class GameState extends EventTarget {
       }
       this.history.push({turnNumber: turn.turnNumber, params: String(params)})
       wroteHistory = true
+      if (this.isGameOver) {
+        console.log(`Player ${turn.playerId} ends game after turn ${turn.turnNumber}.`)
+        let allTilesSum = 0
+        for (const player of this.players) {
+          if (player.id !== turn.playerId) {
+            const playerTiles = await this.getTiles(player.id)
+            const tilesSum = playerTiles.reduce((sum, curr) => sum + curr.value, 0)
+            this.board.scores.set(player.id, (this.board.scores.get(player.id) ?? 0) - tilesSum)
+            console.log(`Transfering ${tilesSum} from Player ${player.id}.`)
+            allTilesSum += tilesSum
+          }
+        }
+        console.log(`Transfering ${allTilesSum} to Player ${turn.playerId}.`)
+        this.board.scores.set(turn.playerId, (this.board.scores.get(turn.playerId) ?? 0) + allTilesSum)
+        this.dispatchEvent(new GameEvent('gameover'))
+        break
+      }
     }
     if (tilePlacements.length) this.dispatchEvent(new BoardEvent('tilesplaced', {detail: {tilePlacements}}))
-    if (this.isGameOver) {
-      // TODO: Transfer tile values to the winner.
-      this.dispatchEvent(new GameEvent('gameover'))
-    }
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
     }
@@ -444,6 +457,9 @@ export class GameState extends EventTarget {
         ([letter, count]) => `${letter}-${count}-${this.settings.letterValues[letter] ?? 0}`
       ).join('.')
       params.set('bag', bagParam)
+    }
+    if (this.settings.rackCapacity !== defaults.rackCapacity) {
+      params.set('racksize', String(this.settings.rackCapacity))
     }
     if (this.settings.tileSystemType === 'honor') {
       params.set('seed', this.settings.tileSystemSettings.seed)
