@@ -68,7 +68,7 @@ describe('shared state', () => {
     const sharedState = new SharedState(settings)
     sharedState['checkWords'] = async (...words: Array<string>) => {
       for (const word of words) {
-        if (word !== 'AA') throw new WordNotInDictionaryError(`${word} is not a word.`)
+        if (word !== 'AA') throw new WordNotInDictionaryError(word, 'test dictionary', 'is not a word')
       }
     }
     const player1Id = settings.players[0]!.id
@@ -98,7 +98,7 @@ describe('shared state', () => {
       }
     )
 
-    expect(sharedState.playTurns(turn)).rejects.toThrow('AAA is not a word. Play rejected.')
+    expect(sharedState.playTurns(turn)).rejects.toThrow('Word "AAA" is not a word in test dictionary. Play rejected.')
   })
 
   test('throws on duplicate turn number', async () => {
