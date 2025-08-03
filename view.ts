@@ -77,6 +77,13 @@ export class View {
   renderScores() {
     this.scorePanel.innerHTML = ''
     const currentPlayer = this.gameState.playerWhoseTurnItIs
+    let maxScore = -Infinity
+    if (this.gameState.isGameOver) {
+      const scores = [...this.gameState.board.scores.values()]
+      if (scores.length > 0) {
+        maxScore = Math.max(...scores)
+      }
+    }
     for (const player of this.gameState.players) {
       const score = this.gameState.board.scores.get(player.id) ?? 0
       const scoreDiv = document.createElement('div')
@@ -84,7 +91,11 @@ export class View {
       if (player.id === currentPlayer?.id) {
         scoreDiv.classList.add('current-player')
       }
-      scoreDiv.textContent = `${player.name}: ${score}`
+      let scoreText = `${player.name}: ${score}`
+      if (this.gameState.isGameOver && score === maxScore) {
+        scoreText += ' 🎉'
+      }
+      scoreDiv.textContent = scoreText
       this.scorePanel.appendChild(scoreDiv)
     }
   }
