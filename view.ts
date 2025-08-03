@@ -59,6 +59,14 @@ export class View {
             this.addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
             squareDiv.classList.add('placed')
             squareDiv.tabIndex = 0
+          } else {
+            const bonusSpan = document.createElement('span')
+            bonusSpan.className = 'bonus-text'
+            if (square.letterBonus === 2) bonusSpan.textContent = '2L'
+            if (square.letterBonus === 3) bonusSpan.textContent = '3L'
+            if (square.wordBonus === 2) bonusSpan.textContent = '2W'
+            if (square.wordBonus === 3) bonusSpan.textContent = '3W'
+            if (bonusSpan.textContent) squareDiv.appendChild(bonusSpan)
           }
         }
         this.boardContainer.appendChild(squareDiv)
