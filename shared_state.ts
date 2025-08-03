@@ -32,7 +32,7 @@
 
 import { arraysEqual } from './validation.js'
 import { Settings } from './settings.js'
-import type { GameId, DictionaryType } from './settings.js'
+import type { GameId } from './settings.js'
 import { checkIndicesForExchange } from './tiles_state.js'
 import type { TilesState } from './tiles_state.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
@@ -40,16 +40,16 @@ import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import { makeTiles } from './tile.js'
 import type { BoardPlacement } from './tile.js'
+import { makeDictionary } from './dictionary.js'
 
 export class SharedState {
-  checkWords: ((...possibleWords: Array<string>) => Promise<void>)
-
   constructor(
     readonly settings: Readonly<Settings>,
     readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
+    private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings)
   ) {
     this.settings.players.forEach((player, index) => {
       const expected = String(index + 1)
@@ -57,7 +57,6 @@ export class SharedState {
         throw new Error(`players[${index}] should have ID "${expected}", not "${player.id}".`)
       }
     })
-    this.checkWords = makeDictionary(this.settings.dictionaryType, this.settings.dictionarySettings)
   }
 
   get players() { return this.settings.players }
@@ -175,9 +174,4 @@ function makeTilesState(settings: Settings): TilesState {
 function rehydrateTilesState(tileSystemType: string, tilesStateJson: any) {
   if (tileSystemType === 'honor') return HonorSystemTilesState.fromJSON(tilesStateJson)
   throw new TypeError(`Unknown tileSystemType: ${tileSystemType}`)
-}
-
-function makeDictionary(type: DictionaryType, settings: any) {
-  if (type === 'permissive') return async (...words: Array<string>) => {}
-  throw new Error(`dictionaryType ${type} is not currently supported.`)
 }

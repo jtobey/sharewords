@@ -6,9 +6,9 @@ import type { Serializable } from './serializable.js'
 import { arraysEqual } from './validation.js'
 import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
+import type { DictionaryType } from './dictionary.js'
 
 export type GameId = string & { '__brand': 'GameId' }
-export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 
 export function toGameId(gameIdStr: string) {
   return gameIdStr as GameId

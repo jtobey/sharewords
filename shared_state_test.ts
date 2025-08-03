@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'bun:test'
 import { SharedState } from './shared_state.js'
 import { Settings } from './settings.js'
 import type { GameId } from './settings.js'
@@ -6,7 +7,7 @@ import { Board } from './board.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Turn, toTurnNumber } from './turn.js'
 import { makeTiles } from './tile.js'
-import { describe, test, expect } from 'bun:test'
+import { WordNotInDictionaryError } from './dictionary.js'
 
 describe('shared state', () => {
   test('can create a shared state', () => {
@@ -65,9 +66,9 @@ describe('shared state', () => {
     const settings = new Settings()
     settings.letterCounts = {A:100}
     const sharedState = new SharedState(settings)
-    sharedState.checkWords = async (...words: Array<string>) => {
+    sharedState['checkWords'] = async (...words: Array<string>) => {
       for (const word of words) {
-        if (word !== 'AA') throw new Error(`${word} is not a word.`)
+        if (word !== 'AA') throw new WordNotInDictionaryError(`${word} is not a word.`)
       }
     }
     const player1Id = settings.players[0]!.id
@@ -97,7 +98,7 @@ describe('shared state', () => {
       }
     )
 
-    expect(sharedState.playTurns(turn)).rejects.toThrow('AAA is not a word.')
+    expect(sharedState.playTurns(turn)).rejects.toThrow('AAA is not a word. Play rejected.')
   })
 
   test('throws on duplicate turn number', async () => {
@@ -120,7 +121,7 @@ describe('shared state', () => {
   test('throws on unsupported dictionary', () => {
     const settings = new Settings()
     settings.dictionaryType = 'strict' as any
-    expect(() => new SharedState(settings)).toThrow('dictionaryType strict is not currently supported.')
+    expect(() => new SharedState(settings)).toThrow('dictionaryType strict is not supported.')
   })
 
   test('throws on exchanging too many tiles', async () => {
