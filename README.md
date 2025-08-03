@@ -27,7 +27,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 1.  Start a new game or load an existing game using a turn URL.
 2.  If starting a new game, configure settings or use defaults.
 3.  Players take turns. On your turn:
-    *   (PLANNED) Drag tiles from your rack to the board to form words.
+    *   Drag tiles from your rack to the board to form words.
     *   Alternatively, use the keyboard to select and move a tile.
         *   Tab to navigate among selectable tiles.
         *   Space to select the tile.
