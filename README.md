@@ -52,7 +52,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 5.  When you receive a turn URL from another player:
     *   Open the turn URL in your browser to update your game state.
     *   Any tiles that you have placed where another player played a word automatically revert to your rack.
-6.  (PLANNED) When the bag is empty and one player plays their last tile:
+6.  When the bag is empty and one player plays their last tile:
     *   Each player's score is reduced by the total value of their remaining tiles.
     *   The score of the player who played last is increased by the other players' tile values.
     *   The player with the highest score wins.
