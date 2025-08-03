@@ -4,6 +4,8 @@
     bun tsc
     bun test
 
+Consider running these tests *before* your change. If any fail and seem unrelated to the change, we may ignore those failures.
+
 # Submitting code
 
 Prefer to submit fixes on the feature branch that you created, since multiple levels of branches produce extra cleanup work.

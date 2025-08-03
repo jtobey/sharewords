@@ -318,6 +318,7 @@ export class GameState extends EventTarget {
   }
 
   async applyTurnParams(params: URLSearchParams) {
+    if (this.isGameOver) return
     const urlTurnNumberStr = params.get('tn')
     if (!urlTurnNumberStr) {
       console.info('applyTurnParams: no turn number')
