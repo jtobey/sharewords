@@ -30,6 +30,7 @@ export class TestBrowser implements Browser {
           <div id="buttons-container">
             <button id="play-word"></button>
             <button id="pass-exchange"></button>
+            <button id="recall-tiles"></button>
           </div>
         </div>
       </div>
