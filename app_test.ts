@@ -19,6 +19,7 @@ describe('app', () => {
           <div id="board-container"></div>
         </div>
         <div id="controls-container">
+          <div id="bag-tile-count-container"></div>
           <div id="rack-container"></div>
           <div id="exchange-container"></div>
           <div id="buttons-container">

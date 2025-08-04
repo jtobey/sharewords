@@ -129,6 +129,14 @@
   font-size: 18px;
 }
 
+#bag-tile-count-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
 .player-score {
   margin: 0 10px;
 }
