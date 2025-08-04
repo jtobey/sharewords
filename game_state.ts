@@ -13,7 +13,7 @@ import type { GameId } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './validation.js'
 import { SharedState } from './shared_state.js'
-import { Tile } from './tile.js'
+import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
@@ -132,7 +132,7 @@ export class GameState extends EventTarget {
     preparation.placement.row = preparation.toRow
     preparation.placement.col = preparation.toCol
     preparation.placement.assignedLetter = assignedLetter
-    if (typeof preparation.toRow !== 'number') {
+    if (!isBoardPlacementRow(preparation.toRow)) {
       delete preparation.placement.assignedLetter
     }
     this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement: preparation.placement}}))
@@ -228,7 +228,7 @@ export class GameState extends EventTarget {
    * @fires TileEvent#tilemove
    */
   async playWord() {
-    const placements = this.tilesHeld.filter(p => typeof p.row === 'number') as BoardPlacement[]
+    const placements = this.tilesHeld.filter(isBoardPlacement)
     if (placements.length === 0) {
       throw new Error('No tiles on board.')
     }

@@ -1,6 +1,6 @@
 import type { GameState } from './game_state.js'
 import type { View } from './view.js'
-import type { TilePlacementRow } from './tile.js'
+import { isBoardPlacementRow, type TilePlacementRow } from './tile.js'
 import { PlayRejectedError } from './dictionary.js'
 
 export class Controller {
@@ -93,7 +93,7 @@ export class Controller {
 
           const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === fromRow && p.col === fromCol)
           let assignedLetter: string | undefined
-          if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
+          if (selectedPlacement?.tile.isBlank && isBoardPlacementRow(toRow)) {
             const letter = prompt('Enter a letter for the blank tile:')
             if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
               alert('Invalid letter. Please enter a single letter.')
@@ -134,14 +134,14 @@ export class Controller {
           const dropTarget = this.view.getDropTarget()
           if (!dropTarget) return
           const { row: toRow, col: toCol } = dropTarget
-          if (typeof toRow === 'number') {
+          if (isBoardPlacementRow(toRow)) {
             if (this.gameState.board.squares[toRow]?.[toCol]?.tile) return
             if (this.gameState.tilesHeld.find(p => p.row === toRow && p.col === toCol)) return
           }
           try {
             const selectedPlacement = this.gameState.tilesHeld.find(p => p.row === this.selectedTile!.row && p.col === this.selectedTile!.col)
             let assignedLetter: string | undefined
-            if (selectedPlacement?.tile.isBlank && typeof toRow === 'number') {
+            if (selectedPlacement?.tile.isBlank && isBoardPlacementRow(toRow)) {
               const letter = prompt('Enter a letter for the blank tile:')
               if (!letter || letter.length !== 1 || !/^[a-zA-Z]$/.test(letter)) {
                 alert('Invalid letter. Please enter a single letter.')
