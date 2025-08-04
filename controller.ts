@@ -259,8 +259,7 @@ export class Controller {
         await navigator.clipboard.writeText(url.toString());
       }
     } catch (e: any) {
-      if (e instanceof PlayRejectedError) alert(e.message)
-      else alert(e)
+      alert(e instanceof PlayRejectedError ? e.message : e)
     }
   }
 
