@@ -4,16 +4,19 @@ import { isBoardPlacementRow, type TilePlacementRow } from './tile.js'
 import { PlayRejectedError } from './dictionary.js'
 import { KeyHandler } from './key_handler.js'
 import { PointerHandler } from './pointer_handler.js'
+import type { Browser } from './browser.js'
 
 export class Controller {
   private gameState: GameState
   private view: View
+  private browser: Browser
   keyHandler: KeyHandler
   private pointerHandler: PointerHandler
 
-  constructor(gameState: GameState, view: View) {
+  constructor(gameState: GameState, view: View, browser: Browser) {
     this.gameState = gameState
     this.view = view
+    this.browser = browser
     this.keyHandler = new KeyHandler(gameState, view)
     this.pointerHandler = new PointerHandler(gameState, view)
     this.attachEventListeners()
@@ -22,7 +25,7 @@ export class Controller {
   private async playWordClick() {
     const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
       'Play Word?',
-      'clipboard' in navigator,
+      this.browser.hasClipboard(),
     );
 
     if (!confirmed) return;
@@ -30,9 +33,9 @@ export class Controller {
     try {
       await this.gameState.playWord()
       if (copyUrl) {
-        const url = new URL(location.href);
+        const url = new URL(this.browser.getHref());
         url.hash = this.gameState.turnUrlParams.toString();
-        await navigator.clipboard.writeText(url.toString());
+        await this.browser.writeToClipboard(url.toString());
       }
     } catch (e: any) {
       alert(e instanceof PlayRejectedError ? e.message : e)
@@ -43,7 +46,7 @@ export class Controller {
     const tileCount = this.gameState.exchangeTilesCount
     const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
       tileCount ? `Exchange ${tileCount}?` : 'Pass Turn?',
-      'clipboard' in navigator,
+      this.browser.hasClipboard(),
     );
 
     if (!confirmed) return;
@@ -51,9 +54,9 @@ export class Controller {
     try {
       await this.gameState.passOrExchange()
       if (copyUrl) {
-        const url = new URL(location.href);
+        const url = new URL(this.browser.getHref());
         url.hash = this.gameState.turnUrlParams.toString();
-        await navigator.clipboard.writeText(url.toString());
+        await this.browser.writeToClipboard(url.toString());
       }
     } catch (e: any) {
       alert(e)
@@ -61,18 +64,19 @@ export class Controller {
   }
 
   private attachEventListeners() {
-    const gameContainer = document.getElementById('game-container')!
+    const doc = this.browser.getDocument()
+    const gameContainer = doc.getElementById('game-container')!
 
     // Pointer events for drag-and-drop and clicking
     gameContainer.addEventListener('pointerdown', this.pointerHandler.pointerDown.bind(this.pointerHandler))
     // We need to listen on the whole document for pointermove and pointerup
     // so that the drag continues even if the user's pointer leaves the game container.
-    document.addEventListener('pointermove', this.pointerHandler.pointerMove.bind(this.pointerHandler))
-    document.addEventListener('pointerup', this.pointerHandler.pointerUp.bind(this.pointerHandler))
+    doc.addEventListener('pointermove', this.pointerHandler.pointerMove.bind(this.pointerHandler))
+    doc.addEventListener('pointerup', this.pointerHandler.pointerUp.bind(this.pointerHandler))
 
     gameContainer.addEventListener('keydown', this.keyHandler.keydown.bind(this.keyHandler))
 
-    document.getElementById('play-word')!.addEventListener('click', this.playWordClick.bind(this))
-    document.getElementById('pass-exchange')!.addEventListener('click', this.passOrExchangeClick.bind(this))
+    doc.getElementById('play-word')!.addEventListener('click', this.playWordClick.bind(this))
+    doc.getElementById('pass-exchange')!.addEventListener('click', this.passOrExchangeClick.bind(this))
   }
 }
