@@ -34,9 +34,7 @@ describe('multi-player', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Now, player 2's game state should be synced with player 1's
-    expect(app2.gameState.gameId).toBe(app1.gameState.gameId)
-    expect(app2.gameState.nextTurnNumber).toBe(app1.gameState.nextTurnNumber)
-    expect(app2.gameState.board.squares).toEqual(app1.gameState.board.squares)
+    expect(JSON.stringify(app2.gameState.shared)).toEqual(JSON.stringify(app1.gameState.shared))
 
     // Player 2 makes a move
     await app2.gameState.passOrExchange()
@@ -50,7 +48,6 @@ describe('multi-player', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Now, player 1's game state should be synced with player 2's
-    expect(app1.gameState.nextTurnNumber).toBe(app2.gameState.nextTurnNumber)
-    expect(app1.gameState.board.squares).toEqual(app2.gameState.board.squares)
+    expect(JSON.stringify(app1.gameState.shared)).toEqual(JSON.stringify(app2.gameState.shared))
   })
 })
