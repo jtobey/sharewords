@@ -8,6 +8,7 @@ export class View {
   private rackContainer: HTMLElement
   private exchangeContainer: HTMLElement
   private scorePanel: HTMLElement
+  private bagTileCountContainer: HTMLElement
   private gameState: GameState
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
 
@@ -18,6 +19,7 @@ export class View {
     this.rackContainer = this.gameContainer.querySelector<HTMLElement>('#rack-container')!
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
     this.scorePanel = this.gameContainer.querySelector<HTMLElement>('#score-panel')!
+    this.bagTileCountContainer = this.gameContainer.querySelector<HTMLElement>('#bag-tile-count-container')!
   }
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
@@ -133,6 +135,10 @@ export class View {
   renderRack() {
     this.renderRacklike(this.rackContainer, 'rack')
     this.renderRacklike(this.exchangeContainer, 'exchange')
+  }
+
+  renderBagTileCount() {
+    this.bagTileCountContainer.textContent = `Tiles in bag: ${this.gameState.numberOfTilesInBag}`
   }
 
   getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {

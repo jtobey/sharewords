@@ -61,6 +61,7 @@ export async function init() {
   view.renderBoard()
   view.renderRack()
   view.renderScores()
+  view.renderBagTileCount()
 
   gameState.addEventListener('tilemove', (evt: any) => {
     if (!isBoardPlacementRow(evt.detail.fromRow) || !isBoardPlacementRow(evt.detail.placement.row)) {
@@ -74,6 +75,7 @@ export async function init() {
 
   gameState.addEventListener('turnchange', () => {
     view.renderScores()
+    view.renderBagTileCount()
     updateUrl()
     saveGameState()
   })
@@ -87,6 +89,7 @@ export async function init() {
     view.renderBoard()
     view.renderRack()
     view.renderScores()
+    view.renderBagTileCount()
   })
 }
 
