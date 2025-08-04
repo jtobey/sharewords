@@ -72,6 +72,9 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
         tilesToExchange.push(...rackCopy.splice(indexOfTileToExchange, 1))
       }
       const newTiles = this.bag.exchange(tilesToExchange)
+      for (const tile of tilesToExchange) {
+        this.dispatchEvent(new BagEvent('tilereturn', { detail: { playerId: turn.playerId, tile } }))
+      }
       for (const tile of newTiles) {
         this.dispatchEvent(new BagEvent('tiledraw', { detail: { playerId: turn.playerId, tile } }))
       }

@@ -82,12 +82,12 @@ describe('game state', () => {
     }
   })
 
-  it('should exchange tiles', async () => {
+  it('should exchange tiles 1', async () => {
     const settings = new Settings
     settings.gameId = 'test' as GameId
     settings.tileSystemSettings = {seed: '2'}  // Random seed.
     const player1GameState = new GameState('1', settings)
-    await player1GameState.initRack()
+    await player1GameState.init()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter)
     expect(initialRack.join('')).toEqual('WTIUTNC')
 
@@ -129,7 +129,7 @@ describe('game state', () => {
       `) as any
     settings.boardLayout = generateRowStrings(before.squares)
     const gameState = new GameState('1', settings)
-    await gameState.initRack()
+    await gameState.init()
     for (const placement of diffBoards(before, after)) {
       const fromCol = gameState.tilesHeld.findIndex(p => p.row === 'rack' && p.tile.equals(placement.tile))
       gameState.moveTile(
@@ -147,7 +147,7 @@ describe('game state', () => {
     settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
     settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
     const gameState = new GameState('1', settings)
-    await gameState.initRack()
+    await gameState.init()
 
     // Move tiles to the board
     gameState.moveTile('rack', 0, 7, 7)
@@ -164,7 +164,7 @@ describe('game state', () => {
     const settings = new Settings
     settings.tileSystemSettings = {seed: '3'}
     const player1GameState = new GameState('1', settings)
-    await player1GameState.initRack()
+    await player1GameState.init()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
     expect(initialRack).toBe('ESOQTSI')
 
@@ -174,11 +174,11 @@ describe('game state', () => {
     expect(rackAfterPass).toBe('ESOQTSI')
   })
 
-  it('should exchange tiles', async () => {
+  it('should exchange tiles 2', async () => {
     const settings = new Settings
     settings.tileSystemSettings = {seed: '1'}
     const gameState = new GameState('1', settings)
-    await gameState.initRack()
+    await gameState.init()
     const initialRack = gameState.tilesHeld.map(t => t.tile.letter).join('')
     expect(initialRack).toBe('MLRVTSE')
 
@@ -313,7 +313,7 @@ describe('game state', () => {
     settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
     settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
     const gameState = new GameState('1', settings)
-    await gameState.initRack()
+    await gameState.init()
 
     const tileToPlace = gameState.tilesHeld[0]!
     expect(tileToPlace.tile.letter).toBe('B')
