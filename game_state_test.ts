@@ -160,7 +160,7 @@ describe('game state', () => {
     expect(gameState.board.scores.get('1')).toEqual(4)
   })
 
-  it('should pass or exchange', async () => {
+  it('should pass turn', async () => {
     const settings = new Settings
     settings.tileSystemSettings = {seed: '3'}
     const player1GameState = new GameState('1', settings)
@@ -172,6 +172,24 @@ describe('game state', () => {
     await player1GameState.passOrExchange()
     const rackAfterPass = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
     expect(rackAfterPass).toBe('ESOQTSI')
+  })
+
+  it('should exchange tiles', async () => {
+    const settings = new Settings
+    settings.tileSystemSettings = {seed: '1'}
+    const gameState = new GameState('1', settings)
+    await gameState.initRack()
+    const initialRack = gameState.tilesHeld.map(t => t.tile.letter).join('')
+    expect(initialRack).toBe('MLRVTSE')
+
+    // Move tiles to the exchange area.
+    gameState.moveTile('rack', 0, 'exchange', 0)
+    gameState.moveTile('rack', 1, 'exchange', 0)
+
+    // Exchange tiles.
+    await gameState.passOrExchange()
+    const rackAfterPass = gameState.tilesHeld.map(t => t.tile.letter).join('')
+    expect(rackAfterPass).toBe('RVTSEIR')
   })
 
   it('should handle end of game', async () => {
