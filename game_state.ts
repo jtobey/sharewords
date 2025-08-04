@@ -53,7 +53,7 @@ export class GameState extends EventTarget {
     this.board.addEventListener('tileplaced', (evt: Event) => {
       const { placement } = (evt as BoardEvent).detail
       const myTile = this.tilesHeld.find(p => p.row === placement.row && p.col === placement.col)
-      if (myTile) {
+      if (myTile && myTile.tile !== placement.tile) {
         console.log(`My tile at ${placement.row},${placement.col} is displaced. Moving it to rack.`)
         // toCol=0 is arbitrary, moveTile will find a spot.
         this.moveTile(myTile.row, myTile.col, 'rack', 0)
@@ -265,7 +265,8 @@ export class GameState extends EventTarget {
   async playWord() {
     const placements = this.tilesHeld.filter(isBoardPlacement)
     if (placements.length === 0) {
-      throw new Error('No tiles on board.')
+      // TODO - Consider dynamically enabling the Play Word button.
+      throw new Error('Drag some tiles onto the board, and try again.')
     }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     await this.playTurns(turn)
@@ -306,7 +307,7 @@ export class GameState extends EventTarget {
       if (turn.playerId === this.playerId && 'playTiles' in turn.move) {
         for (const placement of turn.move.playTiles) {
           const index = this.tilesHeld.findIndex(p => p.row === placement.row && p.col === placement.col)
-          // TODO - Disable tile moves in the above `await`.
+          // TODO - Disable tile moves during the above `await`.
           if (index === -1) throw new Error(`Could not find tile to place: ${JSON.stringify(placement)}`)
           this.tilesHeld.splice(index, 1)
         }
