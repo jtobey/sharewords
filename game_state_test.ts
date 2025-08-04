@@ -7,6 +7,7 @@ import { generateRowStrings } from './board.js'
 import { Turn, nextTurnNumber } from './turn.js'
 import { toTurnNumber } from './turn.js'
 import { Player } from './player.js'
+import { Tile } from './tile.js'
 
 describe('game state', () => {
   it('should take turns', async () => {
@@ -287,5 +288,28 @@ describe('game state', () => {
       params.set('tn', '1')
       await expect(GameState.fromParams(params, '1')).rejects.toThrow('Custom dictionary requires a URL.')
     })
+  })
+
+  it('should return a displaced tile to the rack', async () => {
+    const settings = new Settings
+    settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
+    settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
+    const gameState = new GameState('1', settings)
+    await gameState.initRack()
+
+    const tileToPlace = gameState.tilesHeld[0]!
+    expect(tileToPlace.tile.letter).toBe('B')
+
+    // Move a tile to the board
+    gameState.moveTile('rack', 0, 7, 7)
+    expect(gameState.tilesHeld.find(p => p.row === 7 && p.col === 7)).toBe(tileToPlace)
+
+    // Simulate another player's move by placing a tile on the same square
+    const otherPlayerTile = {tile: new Tile({letter: 'X', value: 8}), row: 7, col: 7}
+    gameState.board.placeTiles(otherPlayerTile)
+
+    // The tile should be moved back to the rack
+    expect(gameState.tilesHeld.find(p => p.row === 7 && p.col === 7)).toBeUndefined()
+    expect(gameState.tilesHeld.find(p => p.tile.equals(tileToPlace.tile))?.row).toBe('rack')
   })
 })
