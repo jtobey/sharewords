@@ -7,7 +7,6 @@ export class PointerHandler {
   private view: View
   private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
   private ghostTile: HTMLElement | null = null
-  private dragStartPos: { x: number, y: number } | null = null
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -30,7 +29,6 @@ export class PointerHandler {
     const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
 
     this.draggingTile = { row, col, element: tileTarget }
-    this.dragStartPos = { x: evt.clientX, y: evt.clientY }
     this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
     this.draggingTile.element.classList.add('dragging')
     this.ghostTile.style.left = `${evt.clientX}px`
@@ -100,7 +98,6 @@ export class PointerHandler {
     // Cleanup
     this.draggingTile = null
     this.ghostTile = null
-    this.dragStartPos = null
     this.view.clearDropTarget()
   }
 }
