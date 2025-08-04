@@ -80,40 +80,40 @@ describe('app', () => {
 
   describe('keyboard navigation', () => {
     it('should move down from rack to exchange', () => {
-      controller.select('rack', 0)
-      controller.moveDropTarget('ArrowDown')
+      controller.keyHandler.select('rack', 0)
+      controller.keyHandler.moveDropTarget('ArrowDown')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe('exchange')
     })
 
     it('should move up from exchange to rack', () => {
-      controller.select('exchange', 0)
-      controller.moveDropTarget('ArrowUp')
+      controller.keyHandler.select('exchange', 0)
+      controller.keyHandler.moveDropTarget('ArrowUp')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe('rack')
     })
 
     it('should not move left from the leftmost exchange spot', () => {
-      controller.select('exchange', 0)
-      controller.moveDropTarget('ArrowLeft')
+      controller.keyHandler.select('exchange', 0)
+      controller.keyHandler.moveDropTarget('ArrowLeft')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.col).toBe(0)
     })
 
     it('should move right in the exchange area', () => {
-      controller.select('exchange', 0)
-      controller.moveDropTarget('ArrowRight')
+      controller.keyHandler.select('exchange', 0)
+      controller.keyHandler.moveDropTarget('ArrowRight')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.col).toBe(1)
     })
 
     it('should move up from rack to board', () => {
-      controller.select('rack', 0)
-      controller.moveDropTarget('ArrowUp')
+      controller.keyHandler.select('rack', 0)
+      controller.keyHandler.moveDropTarget('ArrowUp')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe(14)
@@ -122,8 +122,8 @@ describe('app', () => {
     })
 
     it('should move down from board to rack', () => {
-      controller.select(14, 0)
-      controller.moveDropTarget('ArrowDown')
+      controller.keyHandler.select(14, 0)
+      controller.keyHandler.moveDropTarget('ArrowDown')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe('rack')
@@ -132,8 +132,8 @@ describe('app', () => {
     })
 
     it('should move right from board to rack', () => {
-      controller.select(0, 14)
-      controller.moveDropTarget('ArrowRight')
+      controller.keyHandler.select(0, 14)
+      controller.keyHandler.moveDropTarget('ArrowRight')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe('rack')
@@ -141,8 +141,8 @@ describe('app', () => {
     })
 
     it('should move left from rack to board', () => {
-      controller.select('rack', 0)
-      controller.moveDropTarget('ArrowLeft')
+      controller.keyHandler.select('rack', 0)
+      controller.keyHandler.moveDropTarget('ArrowLeft')
       const dropTarget = view.getDropTarget()
       expect(dropTarget).not.toBeNull()
       expect(dropTarget!.row).toBe(7)
