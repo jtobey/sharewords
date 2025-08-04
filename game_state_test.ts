@@ -250,7 +250,8 @@ describe('game state', () => {
       const params = new URLSearchParams
       gameState['addGameParams'](params)
       expect(params.get('ver')).toEqual(settings.version)
-      expect(params.getAll('pn')).toEqual(['player1', 'player2'])
+      expect(params.get('p1n')).toEqual('player1')
+      expect(params.get('p2n')).toEqual('player2')
       expect(params.get('board')).toEqual('T..-.d.-..T')
       expect(params.get('bingo')).toEqual('100')
       expect(params.get('bag')).toEqual('A-10-1.B-10-2')
@@ -261,8 +262,8 @@ describe('game state', () => {
     it('should be parsed for non-default settings', async () => {
       const params = new URLSearchParams
       params.set('ver', '0')
-      params.append('pn', 'player1')
-      params.append('pn', 'player2')
+      params.set('p1n', 'player1')
+      params.set('p2n', 'player2')
       params.set('board', 'T..-.d.-..T')
       params.set('bingo', '100')
       params.set('bag', 'A-10-1.B-10-2')

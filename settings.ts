@@ -60,6 +60,7 @@ export class Settings {
   gameId: GameId | undefined  // Not serialized with Settings.
   version = PROTOCOL_VERSION
   players = DEFAULT_PLAYER_LIST
+  maxPlayerNameLength = 50
   letterCounts = DEFAULT_LETTER_COUNTS
   letterValues = DEFAULT_LETTER_VALUES
   boardLayout = DEFAULT_BOARD_LAYOUT

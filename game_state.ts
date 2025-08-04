@@ -511,7 +511,7 @@ export class GameState extends EventTarget {
     params.set('ver', this.settings.version)
     if (!playersEqual(this.settings.players, defaults.players)) {
       this.settings.players.forEach((p, index) => {
-        params.append('pn', p.name)
+        params.set(`p${index + 1}n`, p.name)
       })
     }
     if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
@@ -551,12 +551,13 @@ export class GameState extends EventTarget {
     }
     const gidParam = params.get('gid')
     if (gidParam) settings.gameId = toGameId(gidParam)
-    // TODO - Consider using p1n, p2n, ... and letting URLs update names mid-game.
-    const pnParams = params.getAll('pn')
-    if (pnParams.length) settings.players = pnParams.map((name, index) => {
-      const args = {id: String(index + 1), ...(name ? {name} : {})}
-      return new Player(args)
-    })
+    const newPlayers: Array<Player> = []
+    for (let playerNumber = 1; ; ++playerNumber) {
+      const pnParam = params.get(`p${playerNumber}n`)
+      if (!pnParam) break
+      newPlayers.push(new Player({id: String(playerNumber), name: pnParam.slice(0, settings.maxPlayerNameLength)}))
+    }
+    if (newPlayers.length) settings.players = newPlayers
     const bagParam = params.get('bag')
     if (bagParam) {
       const letterCounts: {[key: string]: number} = {}
