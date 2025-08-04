@@ -19,7 +19,7 @@ import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { indicesOk } from './validation.js'
-import { TileEvent, GameEvent, BoardEvent } from './events.js'
+import { TileEvent, GameEvent, BoardEvent, BagEvent } from './events.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -31,7 +31,7 @@ export class GameState extends EventTarget {
     settings?: Settings,
     public keepAllHistory = false,
     shared?: SharedState,
-    public tilesHeld = [] as ReadonlyArray<TilePlacement>,
+    readonly tilesHeld: Array<TilePlacement> = [],
     /**
      * The last N turns played, where N is at least
      * the number of players minus one. Turn URLs should describe the last move
@@ -53,27 +53,29 @@ export class GameState extends EventTarget {
     this.board.addEventListener('tileplaced', (evt: Event) => {
       const { placement } = (evt as BoardEvent).detail
       const myTile = this.tilesHeld.find(p => p.row === placement.row && p.col === placement.col)
-      if (myTile) {
+      if (myTile && myTile.tile !== placement.tile) {
         console.log(`My tile at ${placement.row},${placement.col} is displaced. Moving it to rack.`)
         // toCol=0 is arbitrary, moveTile will find a spot.
         this.moveTile(myTile.row, myTile.col, 'rack', 0)
       }
     })
+    this.tilesState.addEventListener('tiledraw', this.tiledraw.bind(this))
+    this.tilesState.addEventListener('tilereturn', this.tilereturn.bind(this))
   }
 
   /**
    * Initializes `this.tilesHeld` from the shared game state.
    * @fires TileEvent#tilemove
    */
-  async initRack() {
-    const tiles = await this.shared.tilesState.getTiles(this.playerId)
-    this.tilesHeld = tiles.map((tile, index) => {
+  async init() {
+    const tiles = await this.tilesState.getTiles(this.playerId)
+    this.tilesHeld.splice(0, this.tilesHeld.length, ...tiles.map((tile, index) => {
       return {
         tile,
-        row: 'rack',
+        row: 'rack' as 'rack',
         col: index,
       }
-    })
+    }))
     this.tilesHeld.forEach(p => {
       this.dispatchEvent(new TileEvent('tilemove', {detail: {placement: p}}))
     })
@@ -85,12 +87,13 @@ export class GameState extends EventTarget {
   get nextTurnNumber()     { return this.shared.nextTurnNumber }
   get players()            { return this.shared.players }
   get board()              { return this.shared.board }
-  get numberOfTilesInBag() { return this.shared.tilesState.numberOfTilesInBag }
-  get isGameOver()         { return this.shared.tilesState.isGameOver }
+  get tilesState()         { return this.shared.tilesState }
+  get numberOfTilesInBag() { return this.tilesState.numberOfTilesInBag }
+  get isGameOver()         { return this.tilesState.isGameOver }
   get exchangeTilesCount() { return this.tilesHeld.filter(p => p.row === 'exchange').length }
 
   async getTiles(playerId: string) {
-    return await this.shared.tilesState.getTiles(playerId)
+    return await this.tilesState.getTiles(playerId)
   }
 
   get turnUrlParams() {
@@ -117,6 +120,30 @@ export class GameState extends EventTarget {
 
   get playerWhoseTurnItIs() {
     return this.players[(fromTurnNumber(this.nextTurnNumber) - 1) % this.players.length]
+  }
+
+  tiledraw(evt: any) {
+    if (evt.detail.playerId === this.playerId) {
+      const occupiedIndices = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
+      for (let col = 0; col < this.settings.rackCapacity; ++col) {
+        if (!occupiedIndices.has(col)) {
+          this.tilesHeld.push({row: 'rack', col, tile: evt.detail.tile})
+          return
+        }
+      }
+      throw new Error(`No room for drawn tile! ${JSON.stringify(this.tilesHeld)}`)
+    }
+  }
+
+  tilereturn(evt: any) {
+    if (evt.detail.playerId === this.playerId) {
+      const index = this.tilesHeld.findIndex(p => p.row === 'exchange' && p.tile.equals(evt.detail.tile))
+      if (index === -1) {
+        console.error(`Tile not found for exchange: ${JSON.stringify(evt.detail.tile)}`)
+      } else {
+        this.tilesHeld.splice(index, 1)
+      }
+    }
   }
 
   /**
@@ -238,11 +265,11 @@ export class GameState extends EventTarget {
   async playWord() {
     const placements = this.tilesHeld.filter(isBoardPlacement)
     if (placements.length === 0) {
-      throw new Error('No tiles on board.')
+      // TODO - Consider dynamically enabling the Play Word button.
+      throw new Error('Drag some tiles onto the board, and try again.')
     }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     await this.playTurns(turn)
-    await this.initRack()
   }
 
   /**
@@ -255,7 +282,6 @@ export class GameState extends EventTarget {
     const exchangeTileIndices = placements.map(({index}) => index)
     const turn = new Turn(this.playerId, this.nextTurnNumber, { exchangeTileIndices })
     await this.playTurns(turn)
-    if (placements.length) await this.initRack()
   }
 
   /**
@@ -276,10 +302,21 @@ export class GameState extends EventTarget {
     // * It updates the board and scores.
     // * It updates nextTurnNumber after each successfully processed turn.
     // On success, it updates tiles state (i.e., racks) and the board.
-    await this.shared.playTurns(...turns)
+    turns = await this.shared.playTurns(...turns)
+    for (const turn of turns) {
+      if (turn.playerId === this.playerId && 'playTiles' in turn.move) {
+        for (const placement of turn.move.playTiles) {
+          const index = this.tilesHeld.findIndex(p => p.row === placement.row && p.col === placement.col)
+          // TODO - Disable tile moves during the above `await`.
+          if (index === -1) throw new Error(`Could not find tile to place: ${JSON.stringify(placement)}`)
+          this.tilesHeld.splice(index, 1)
+        }
+      }
+    }
+    // Draw/exchange tiles between bag and racks.
+    await this.tilesState.playTurns(...turns)
 
     // Update history.
-    let iPlayed = false
     let wroteHistory = false
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
@@ -290,7 +327,6 @@ export class GameState extends EventTarget {
       if (this.history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(this.history.slice(-1)[0]!.turnNumber)) {
         continue
       }
-      if (turn.playerId === this.playerId) iPlayed = true
       const params = new URLSearchParams
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
@@ -327,7 +363,6 @@ export class GameState extends EventTarget {
       }
     }
     if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
-    if (iPlayed) await this.initRack()
   }
 
   async applyTurnParams(params: URLSearchParams) {
@@ -402,7 +437,7 @@ export class GameState extends EventTarget {
             `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileIndicesStr}`)
         }
         const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
-        const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
+        const numberOfTilesInRack = this.tilesState.countTiles(playerId)
         const exchangeTileIndices = exchangeIndexStrs.map(s => parseInt(s, 10))
         exchangeTileIndices.forEach((index: number) => {
           if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
@@ -543,6 +578,7 @@ export class GameState extends EventTarget {
       console.log(`Joining as Player ${playerId}.`)
     }
     const gameState = new GameState(playerId, settings)
+    await gameState.init()
     await gameState.applyTurnParams(params)
     return gameState
   }
@@ -565,7 +601,7 @@ export class GameState extends EventTarget {
     }
   }
 
-  static fromJSON(json: any) {
+  static async fromJSON(json: any) {
     function fail(msg: string): never {
       throw new TypeError(`${msg} in GameState serialization: ${JSON.stringify(json)}`)
     }
@@ -608,7 +644,7 @@ export class GameState extends EventTarget {
     })
     // TODO - Check json.history element types.
 
-    return new GameState(
+    const gameState = new GameState(
       json.playerId,
       undefined,  // settings
       json.keepAllHistory,
@@ -616,6 +652,8 @@ export class GameState extends EventTarget {
       tilesHeld,
       json.history,
     )
+    await gameState.init()
+    return gameState
   }
 }
 

@@ -8,8 +8,9 @@ import { checkIndicesForExchange } from './tiles_state.js'
 import { Turn } from './turn.js'
 import { Tile } from './tile.js'
 import { HonorSystemBag } from './honor_system_bag.js'
+import { BagEvent } from './events.js'
 
-export class HonorSystemTilesState implements TilesState {
+export class HonorSystemTilesState extends EventTarget implements TilesState {
   constructor(
     // Args for SharedState.
     players: ReadonlyArray<Player>,
@@ -20,12 +21,15 @@ export class HonorSystemTilesState implements TilesState {
     // Args for fromJSON.
     private numberOfTurnsPlayed = 0,
     private readonly racks = new Map(players.map(player => [player.id, [] as Array<Tile>])),
-    private readonly bag = makeBag(tiles, tileSystemSettings, rackCapacity, racks),
+    private readonly bag = new HonorSystemBag(tileSystemSettings.seed, tiles),
     public isGameOver: boolean = false,
+    init = true,
   ) {
-    if (racks.size < players.length) {
+    super()
+    if (this.racks.size < players.length) {
       throw new Error(`The player IDs are not unique: ${players.map(player => player.id)}`)
     }
+    if (init) this.initRacks()
   }
 
   get numberOfTilesInBag() { return this.bag.size }
@@ -54,7 +58,11 @@ export class HonorSystemTilesState implements TilesState {
         rackCopy.splice(index, 1)
       }
       const numberOfTilesToDraw = Math.min(rack.length - rackCopy.length, this.bag.size)
-      rackCopy.push(...this.bag.draw(numberOfTilesToDraw))
+      const drawnTiles = this.bag.draw(numberOfTilesToDraw)
+      for (const tile of drawnTiles) {
+        this.dispatchEvent(new BagEvent('tiledraw', { detail: { playerId: turn.playerId, tile } }))
+      }
+      rackCopy.push(...drawnTiles)
       if (rackCopy.length === 0) this.isGameOver = true
     } else if ('exchangeTileIndices' in turn.move) {
       const indicesOfTilesToExchange = checkIndicesForExchange(rackCopy.length, ...turn.move.exchangeTileIndices)
@@ -63,7 +71,14 @@ export class HonorSystemTilesState implements TilesState {
       for (const indexOfTileToExchange of indicesOfTilesToExchange) {
         tilesToExchange.push(...rackCopy.splice(indexOfTileToExchange, 1))
       }
-      rackCopy.push(...this.bag.exchange(tilesToExchange))
+      const newTiles = this.bag.exchange(tilesToExchange)
+      for (const tile of tilesToExchange) {
+        this.dispatchEvent(new BagEvent('tilereturn', { detail: { playerId: turn.playerId, tile } }))
+      }
+      for (const tile of newTiles) {
+        this.dispatchEvent(new BagEvent('tiledraw', { detail: { playerId: turn.playerId, tile } }))
+      }
+      rackCopy.push(...newTiles)
     }
     rack.splice(0, rack.length, ...rackCopy)
     this.numberOfTurnsPlayed += 1
@@ -75,6 +90,16 @@ export class HonorSystemTilesState implements TilesState {
       throw new Error(`Unknown playerId: ${playerId}`)
     }
     return rack
+  }
+
+  private initRacks() {
+    for (const [playerId, rack] of this.racks.entries()) {
+      const drawnTiles = this.bag.draw(this.rackCapacity)
+      for (const tile of drawnTiles) {
+        this.dispatchEvent(new BagEvent('tiledraw', { detail: { playerId, tile } }))
+      }
+      rack.push(...drawnTiles)
+    }
   }
 
   toJSON() {
@@ -117,19 +142,8 @@ export class HonorSystemTilesState implements TilesState {
       racks,
       bag,
       isGameOver,
+      false,
     )
   }
 }
 
-function makeBag(
-  tiles: Iterable<Tile>,
-  tileSystemSettings: {seed: string},
-  rackCapacity: number,
-  racks: Map<string, Array<Tile>>,
-) {
-  const bag = new HonorSystemBag(tileSystemSettings.seed, tiles)
-  for (const rack of racks.values()) {
-    rack.push(...bag.draw(rackCapacity))
-  }
-  return bag
-}

@@ -73,8 +73,8 @@ export class SharedState {
         seen[turn.turnNumber] = turn
       }
     }
-    const turnsToPlayNow = [] as Array<Turn>
-    const boardChanges = [] as Array<{playerId: string, score: number, placements: ReadonlyArray<BoardPlacement>}>
+    const turnsToPlayNow: Array<Turn> = []
+    const boardChanges: Array<{playerId: string, score: number, placements: ReadonlyArray<BoardPlacement>}> = []
     const wordsToCheck = new Set<string>
     let turnNumber = this.nextTurnNumber
     for (const turn of seen.filter(t => t)) {
@@ -117,15 +117,14 @@ export class SharedState {
       turnNumber = nextTurnNumber(turnNumber)
     }
     if (wordsToCheck.size) await this.checkWords(...wordsToCheck)
-    if (turnsToPlayNow.length === 0) return this.tilesState.playTurns()
+    if (turnsToPlayNow.length === 0) return turnsToPlayNow
     console.log(`Turn validation success.`)
     for (const {playerId, score, placements} of boardChanges) {
       this.board.placeTiles(...placements)
       this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
     }
     this.nextTurnNumber = turnNumber
-    // Draw/exchange tiles between bag and racks.
-    return this.tilesState.playTurns(...turnsToPlayNow)
+    return turnsToPlayNow
   }
 
   toJSON() {
