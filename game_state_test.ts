@@ -57,7 +57,7 @@ describe('game state', () => {
     for (const [player1Board, player2Board] of pairs) {
       const player1Tiles = diffBoards(sharedBoard, player1Board)
       for (const playerId of ['1', '2']) {
-        const tiles = await player1GameState.shared.tilesState.getTiles(playerId)
+        const tiles = await player1GameState.tilesState.getTiles(playerId)
         const tilesStr = tiles.map(t => `${t.letter}(${t.value})`).join(' ')
         console.log(`player ${playerId} tiles: ${tilesStr}`)
       }

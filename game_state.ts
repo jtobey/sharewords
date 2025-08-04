@@ -66,7 +66,7 @@ export class GameState extends EventTarget {
    * @fires TileEvent#tilemove
    */
   async initRack() {
-    const tiles = await this.shared.tilesState.getTiles(this.playerId)
+    const tiles = await this.tilesState.getTiles(this.playerId)
     this.tilesHeld = tiles.map((tile, index) => {
       return {
         tile,
@@ -85,12 +85,13 @@ export class GameState extends EventTarget {
   get nextTurnNumber()     { return this.shared.nextTurnNumber }
   get players()            { return this.shared.players }
   get board()              { return this.shared.board }
-  get numberOfTilesInBag() { return this.shared.tilesState.numberOfTilesInBag }
-  get isGameOver()         { return this.shared.tilesState.isGameOver }
+  get tilesState()         { return this.shared.tilesState }
+  get numberOfTilesInBag() { return this.tilesState.numberOfTilesInBag }
+  get isGameOver()         { return this.tilesState.isGameOver }
   get exchangeTilesCount() { return this.tilesHeld.filter(p => p.row === 'exchange').length }
 
   async getTiles(playerId: string) {
-    return await this.shared.tilesState.getTiles(playerId)
+    return await this.tilesState.getTiles(playerId)
   }
 
   get turnUrlParams() {
@@ -402,7 +403,7 @@ export class GameState extends EventTarget {
             `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileIndicesStr}`)
         }
         const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
-        const numberOfTilesInRack = this.shared.tilesState.countTiles(playerId)
+        const numberOfTilesInRack = this.tilesState.countTiles(playerId)
         const exchangeTileIndices = exchangeIndexStrs.map(s => parseInt(s, 10))
         exchangeTileIndices.forEach((index: number) => {
           if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
