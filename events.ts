@@ -1,4 +1,11 @@
-import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
+import type { Tile, TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
+
+export interface BagEventDetail {
+  playerId: string
+  tile: Tile
+}
+
+export class BagEvent extends CustomEvent<BagEventDetail> {}
 
 export interface TileEventDetail {
   // Tile identity and new location.
