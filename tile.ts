@@ -38,6 +38,10 @@ export class Tile {
 
 export type TilePlacementRow = number | 'rack' | 'exchange'
 
+export function isBoardPlacementRow(row: TilePlacementRow) {
+  return typeof row === 'number'
+}
+
 // A Tile positioned on the rack, exchange pile, or game board.
 export interface TilePlacement {
   row: TilePlacementRow
@@ -48,6 +52,10 @@ export interface TilePlacement {
 
 // A Tile positioned on the game board.
 export type BoardPlacement = TilePlacement & { row: number }
+
+export function isBoardPlacement(tilePlacement: TilePlacement) {
+  return isBoardPlacementRow(tilePlacement.row)
+}
 
 interface StringNumbers { [key: string]: number }
 
