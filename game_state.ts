@@ -79,6 +79,7 @@ export class GameState extends EventTarget {
   get board()              { return this.shared.board }
   get numberOfTilesInBag() { return this.shared.tilesState.numberOfTilesInBag }
   get isGameOver()         { return this.shared.tilesState.isGameOver }
+  get exchangeTilesCount() { return this.tilesHeld.filter(p => p.row === 'exchange').length }
 
   async getTiles(playerId: string) {
     return await this.shared.tilesState.getTiles(playerId)

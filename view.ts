@@ -141,6 +141,16 @@ export class View {
     this.bagTileCountContainer.textContent = `Tiles in bag: ${this.gameState.numberOfTilesInBag}`
   }
 
+  renderPassExchangeButton() {
+    const button = document.getElementById('pass-exchange')!
+    const count = this.gameState.exchangeTilesCount
+    if (count === 0) {
+      button.textContent = 'Pass Turn'
+    } else {
+      button.textContent = `Exchange ${count}`
+    }
+  }
+
   getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {
     return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
   }
