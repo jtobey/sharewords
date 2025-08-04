@@ -72,10 +72,6 @@ export async function init() {
     saveGameState()
   })
 
-  gameState.addEventListener('tilesplaced', (evt) => {
-    view.renderBoard()
-  })
-
   gameState.addEventListener('turnchange', () => {
     view.renderScores()
     updateUrl()

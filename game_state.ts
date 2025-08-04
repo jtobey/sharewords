@@ -19,7 +19,7 @@ import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { indicesOk } from './validation.js'
-import { TileEvent, BoardEvent, GameEvent } from './events.js'
+import { TileEvent, GameEvent } from './events.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -224,7 +224,6 @@ export class GameState extends EventTarget {
   /**
    * Forms a `playTiles` turn from the `heldTiles` currently on the board.
    * Passes the resulting `Turn` to `playTurns`.
-   * @fires BoardEvent#tilesplaced
    * @fires TileEvent#tilemove
    */
   async playWord() {
@@ -253,7 +252,6 @@ export class GameState extends EventTarget {
   /**
    * Commits turns to the board and players' racks.
    * @fires TileEvent#tilemove
-   * @fires BoardEvent#tilesplaced
    * @fires GameEvent#turnchange
    * @fires GameEvent#gameover
    */
@@ -274,7 +272,6 @@ export class GameState extends EventTarget {
     // Update history.
     let iPlayed = false
     let wroteHistory = false
-    const tilePlacements: Array<BoardPlacement> = []
     for (const turn of turns) {
       // Convert {playerId, turnNumber, move} to TurnData.
       if (fromTurnNumber(turn.turnNumber) >= this.nextTurnNumber) {
@@ -314,7 +311,6 @@ export class GameState extends EventTarget {
         break
       }
     }
-    if (tilePlacements.length) this.dispatchEvent(new BoardEvent('tilesplaced', {detail: {tilePlacements}}))
     if (!this.keepAllHistory) {
       this.history.splice(0, this.history.length - this.players.length + 1)
     }
