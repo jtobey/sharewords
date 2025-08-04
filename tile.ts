@@ -38,7 +38,7 @@ export class Tile {
 
 export type TilePlacementRow = number | 'rack' | 'exchange'
 
-export function isBoardPlacementRow(row: TilePlacementRow) {
+export function isBoardPlacementRow(row: TilePlacementRow): row is number {
   return typeof row === 'number'
 }
 
@@ -53,7 +53,7 @@ export interface TilePlacement {
 // A Tile positioned on the game board.
 export type BoardPlacement = TilePlacement & { row: number }
 
-export function isBoardPlacement(tilePlacement: TilePlacement) {
+export function isBoardPlacement(tilePlacement: TilePlacement): tilePlacement is BoardPlacement {
   return isBoardPlacementRow(tilePlacement.row)
 }
 

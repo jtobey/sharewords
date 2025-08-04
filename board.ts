@@ -1,5 +1,5 @@
 import { arraysEqual } from './validation.js'
-import { Tile } from './tile.js'
+import { isBoardPlacementRow, Tile } from './tile.js'
 import type { BoardPlacement } from './tile.js'
 
 export class Square {
@@ -287,7 +287,7 @@ export class Board {
         if (!Array.isArray(tile)) fail('Tile is not an array')
         if (tile.length > 4) fail('Wrong size array for tile')
         const [row, col, tileJson, assignedLetter] = tile
-        if (!(typeof row === 'number')) fail('Tile row is not a number')
+        if (!isBoardPlacementRow(row)) fail('Tile row is not a number')
         if (!(typeof col === 'number')) fail('Tile col is not a number')
         const square = board.squares[row]?.[col]
         if (!square) fail('Tile coordinates are off the board')

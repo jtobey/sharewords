@@ -4,6 +4,7 @@ import { makeTiles, Tile } from './tile.js'
 import type { TilesState } from './tiles_state.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
+import { isBoardPlacementRow } from './tile.js'
 import type { BoardPlacement, TilePlacementRow } from './tile.ts'
 import { Player } from './player.ts'
 import { Turn, toTurnNumber } from './turn.js'
@@ -62,10 +63,10 @@ export async function init() {
   view.renderScores()
 
   gameState.addEventListener('tilemove', (evt: any) => {
-    if (typeof evt.detail.fromRow !== 'number' || typeof evt.detail.placement.row !== 'number') {
+    if (!isBoardPlacementRow(evt.detail.fromRow) || !isBoardPlacementRow(evt.detail.placement.row)) {
       view.renderRack()
     }
-    if (typeof evt.detail.fromRow === 'number' || typeof evt.detail.placement.row === 'number') {
+    if (isBoardPlacementRow(evt.detail.fromRow) || isBoardPlacementRow(evt.detail.placement.row)) {
       view.renderBoard()
     }
     saveGameState()
