@@ -244,8 +244,20 @@ export class Controller {
     }
 
   private async playWordClick() {
+    const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
+      'Play Word?',
+      'clipboard' in navigator,
+    );
+
+    if (!confirmed) return;
+
     try {
       await this.gameState.playWord()
+      if (copyUrl) {
+        const url = new URL(location.href);
+        url.hash = this.gameState.turnUrlParams.toString();
+        await navigator.clipboard.writeText(url.toString());
+      }
     } catch (e: any) {
       if (e instanceof PlayRejectedError) alert(e.message)
       else alert(e)
@@ -253,8 +265,20 @@ export class Controller {
   }
 
   private async passOrExchangeClick() {
+    const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
+      'Pass or Exchange?',
+      'clipboard' in navigator,
+    );
+
+    if (!confirmed) return;
+
     try {
       await this.gameState.passOrExchange()
+      if (copyUrl) {
+        const url = new URL(location.href);
+        url.hash = this.gameState.turnUrlParams.toString();
+        await navigator.clipboard.writeText(url.toString());
+      }
     } catch (e: any) {
       alert(e)
     }

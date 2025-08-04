@@ -222,3 +222,31 @@
     color: #332;
   }
 }
+
+dialog {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+dialog::backdrop {
+  background-color: rgba(0,0,0,0.5);
+}
+
+dialog .buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1em;
+}
+
+dialog button {
+  margin-left: 0.5em;
+}
+
+@media (prefers-color-scheme: dark) {
+  dialog {
+    background-color: #222;
+    color: #eee;
+    border-color: #555;
+  }
+}
