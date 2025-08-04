@@ -62,10 +62,12 @@ export async function init() {
   view.renderRack()
   view.renderScores()
   view.renderBagTileCount()
+  view.renderPassExchangeButton()
 
   gameState.addEventListener('tilemove', (evt: any) => {
     if (!isBoardPlacementRow(evt.detail.fromRow) || !isBoardPlacementRow(evt.detail.placement.row)) {
       view.renderRack()
+      view.renderPassExchangeButton()
     }
     if (isBoardPlacementRow(evt.detail.fromRow) || isBoardPlacementRow(evt.detail.placement.row)) {
       view.renderBoard()
@@ -90,6 +92,7 @@ export async function init() {
     view.renderRack()
     view.renderScores()
     view.renderBagTileCount()
+    view.renderPassExchangeButton()
   })
 }
 
