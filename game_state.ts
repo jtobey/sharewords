@@ -157,6 +157,7 @@ export class GameState extends EventTarget {
     let pushDirection: 1 | -1 = (toRow !== fromRow || toCol < fromCol ? 1 : -1)
     let toPush: Array<TilePlacement> = []
     const occupant = (
+      // A drop at the pick-up location does not push tiles but supports letter reassignment.
       fromRow === toRow && fromCol === toCol
         ? undefined
         : this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
