@@ -132,7 +132,7 @@ export class GameState extends EventTarget {
     preparation.placement.row = preparation.toRow
     preparation.placement.col = preparation.toCol
     preparation.placement.assignedLetter = assignedLetter
-    if (typeof fromRow === 'number' && typeof preparation.toRow !== 'number') {
+    if (typeof preparation.toRow !== 'number') {
       delete preparation.placement.assignedLetter
     }
     this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement: preparation.placement}}))
@@ -156,7 +156,11 @@ export class GameState extends EventTarget {
     if (placement === undefined) return {success: false, message: `No tile at ${fromRow},${fromCol}.`}
     let pushDirection: 1 | -1 = (toRow !== fromRow || toCol < fromCol ? 1 : -1)
     let toPush: Array<TilePlacement> = []
-    const occupant = this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
+    const occupant = (
+      fromRow === toRow && fromCol === toCol
+        ? undefined
+        : this.tilesHeld.find(p => p.row === toRow && p.col === toCol)
+    )
 
     // In the rack and exchange area, provided that there is room (which there will be, barring a bug),
     // we can always drop the tile at the specified position, but we may have to move other tiles.
