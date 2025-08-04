@@ -88,6 +88,7 @@ export async function init() {
 
   window.addEventListener('hashchange', async () => {
     await updateGameStateFromUrlOrStorage()
+    // TODO - Don't render elements directly.
     view.renderBoard()
     view.renderRack()
     view.renderScores()
