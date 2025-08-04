@@ -321,7 +321,10 @@ export class GameState extends EventTarget {
       }
     }
     if (!this.keepAllHistory) {
-      this.history.splice(0, this.history.length - this.players.length + 1)
+      const turnsToKeep = this.players.length - 1;
+      if (turnsToKeep > 0 && this.history.length > turnsToKeep) {
+        this.history.splice(0, this.history.length - turnsToKeep);
+      }
     }
     if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
     if (iPlayed) await this.initRack()

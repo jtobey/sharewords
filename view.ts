@@ -11,10 +11,12 @@ export class View {
   private bagTileCountContainer: HTMLElement
   private gameState: GameState
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
+  private doc: Document
 
-  constructor(gameState: GameState) {
+  constructor(gameState: GameState, doc: Document) {
     this.gameState = gameState
-    this.gameContainer = document.getElementById('game-container')!
+    this.doc = doc
+    this.gameContainer = this.doc.getElementById('game-container')!
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!
     this.rackContainer = this.gameContainer.querySelector<HTMLElement>('#rack-container')!
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
@@ -24,12 +26,12 @@ export class View {
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
     element.textContent = ''
-    const letterDiv = document.createElement('div')
+    const letterDiv = this.doc.createElement('div')
     letterDiv.className = 'letter'
     letterDiv.textContent = assignedLetter || tile.letter
     element.appendChild(letterDiv)
     if (!tile.isBlank) {
-      const valueDiv = document.createElement('div')
+      const valueDiv = this.doc.createElement('div')
       valueDiv.className = 'value'
       valueDiv.textContent = String(tile.value)
       element.appendChild(valueDiv)
@@ -45,7 +47,7 @@ export class View {
       for (let c = 0; c < row.length; c++) {
         const square = row[c]
         if (!square) throw new Error(`Invalid board: Square ${r},${c} is missing.`)
-        const squareDiv = document.createElement('div')
+        const squareDiv = this.doc.createElement('div')
         squareDiv.className = 'square'
         if (square.letterBonus === 2) squareDiv.classList.add('dl')
         if (square.letterBonus === 3) squareDiv.classList.add('tl')
@@ -63,7 +65,7 @@ export class View {
             squareDiv.classList.add('placed')
             squareDiv.tabIndex = 0
           } else {
-            const bonusSpan = document.createElement('span')
+            const bonusSpan = this.doc.createElement('span')
             bonusSpan.className = 'bonus-text'
             if (square.letterBonus === 2) bonusSpan.textContent = '2L'
             if (square.letterBonus === 3) bonusSpan.textContent = '3L'
@@ -89,7 +91,7 @@ export class View {
     }
     for (const player of this.gameState.players) {
       const score = this.gameState.board.scores.get(player.id) ?? 0
-      const scoreDiv = document.createElement('div')
+      const scoreDiv = this.doc.createElement('div')
       scoreDiv.className = 'player-score'
       if (player.id === currentPlayer?.id) {
         scoreDiv.classList.add('current-player')
@@ -109,7 +111,7 @@ export class View {
 
     const tileElements = [] as (HTMLDivElement | null)[]
     for (const tilePlacement of tiles) {
-      const tileDiv = document.createElement('div')
+      const tileDiv = this.doc.createElement('div')
       tileDiv.className = 'tile'
       this.addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
       tileDiv.dataset.row = String(tilePlacement.row)
@@ -123,7 +125,7 @@ export class View {
       if (tileDiv) {
         container.appendChild(tileDiv)
       } else {
-        const emptySpot = document.createElement('div')
+        const emptySpot = this.doc.createElement('div')
         emptySpot.className = 'tile-spot'
         emptySpot.dataset.row = name
         emptySpot.dataset.col = String(i)
@@ -142,7 +144,7 @@ export class View {
   }
 
   renderPassExchangeButton() {
-    const button = document.getElementById('pass-exchange')!
+    const button = this.doc.getElementById('pass-exchange')!
     const count = this.gameState.exchangeTilesCount
     if (count === 0) {
       button.textContent = 'Pass Turn'
@@ -152,7 +154,7 @@ export class View {
   }
 
   getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {
-    return document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
+    return this.doc.querySelector(`[data-row="${row}"][data-col="${col}"]`)
   }
 
   clearDropTarget() {
@@ -191,7 +193,7 @@ export class View {
     const ghostTile = originalTileElement.cloneNode(true) as HTMLElement
     ghostTile.classList.remove('selected')
     ghostTile.classList.add('ghost-tile')
-    document.body.appendChild(ghostTile)
+    this.doc.body.appendChild(ghostTile)
     return ghostTile
   }
 
@@ -205,11 +207,11 @@ export class View {
     title: string,
     showCopyCheckbox: boolean,
   ): Promise<{confirmed: boolean, copyUrl: boolean}> {
-    const content = document.createElement('div');
+    const content = this.doc.createElement('div');
 
     let copyUrlCheckbox: HTMLInputElement | undefined;
     if (showCopyCheckbox) {
-      const copyUrlContainer = document.createElement('div');
+      const copyUrlContainer = this.doc.createElement('div');
       copyUrlContainer.innerHTML = `
         <label>
           <input type="checkbox" id="copy-url-checkbox" checked>
@@ -220,7 +222,7 @@ export class View {
       content.appendChild(copyUrlContainer);
     }
 
-    const dialog = new Dialog(title, content, ['OK', 'Cancel']);
+    const dialog = new Dialog(this.doc, title, content, ['OK', 'Cancel']);
     const result = await dialog.show();
 
     return {
