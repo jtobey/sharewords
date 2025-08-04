@@ -11,7 +11,7 @@ import { Tile } from './tile.js'
 import { Turn } from './turn.js'
 import { checkIndices } from './validation.ts'
 
-export interface TilesState {
+export interface TilesState extends EventTarget {
   /**
    * A rack's capacity, for example 7 tiles.
    * Within a game, all racks have the same capacity.

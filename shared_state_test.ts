@@ -158,7 +158,7 @@ describe('shared state', () => {
       expect(sharedState2.nextTurnNumber).toBe(sharedState.nextTurnNumber)
       expect(sharedState2.settings).toEqual(sharedState.settings)
       expect(sharedState2.board).toEqual(sharedState.board)
-      expect(sharedState2.tilesState).toEqual(sharedState.tilesState)
+      expect(sharedState2.tilesState.toJSON()).toEqual(sharedState.tilesState.toJSON())
     })
 
     test('throws on invalid json', () => {
