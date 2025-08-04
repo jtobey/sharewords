@@ -76,6 +76,18 @@
   cursor: default;
 }
 
+.tile-spot[data-row="exchange"] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tile-spot[data-row="exchange"]::before {
+  content: "♻";
+  font-size: 28px;
+  color: #bbb;
+}
+
 .placed {
   background-color: #lightgreen;
   touch-action: none;
@@ -198,6 +210,10 @@
   .tile-spot {
     background-color: #332;
     border-color: #444;
+  }
+
+  .tile-spot[data-row="exchange"]::before {
+    color: #444;
   }
 
   .placed {
