@@ -264,8 +264,9 @@ export class Controller {
   }
 
   private async passOrExchangeClick() {
+    const tileCount = this.gameState.exchangeTilesCount
     const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
-      'Pass or Exchange?',
+      tileCount ? `Exchange ${tileCount}?` : 'Pass Turn?',
       'clipboard' in navigator,
     );
 
