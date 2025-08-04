@@ -11,7 +11,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 -   15x15 game board with bonus squares (Double/Triple Letter, Double/Triple Word).
 -   Standard tile bag (approx. 100 tiles) with letter distributions and point values.
 -   Player racks holding up to 7 tiles.
--   Word validation using a configurable dictionary (default permissive, PLANNED option for RFC 2229-like servers).
+-   Word validation using a configurable dictionary (default permissive, option for HTTP servers).
 -   Scoring based on tile values and board bonuses.
 -   Special seven-tile "bingo bonus".
 -   Blank tiles assignable when placed on the board by players.
