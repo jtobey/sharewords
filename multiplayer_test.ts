@@ -50,4 +50,56 @@ describe('multi-player', () => {
     // Now, player 1's game state should be synced with player 2's
     expect(JSON.stringify(app1.gameState.shared)).toEqual(JSON.stringify(app2.gameState.shared))
   })
+
+  it('should handle collisions in pending placements', async () => {
+    // Player 1's environment
+    const browser1 = new TestBrowser()
+    const app1 = new App(browser1)
+    await app1.init()
+
+    // Player 2's environment
+    const browser2 = new TestBrowser()
+    const app2 = new App(browser2)
+    // Initially, player 2 has no hash, so they will create their own game.
+    await app2.init()
+
+    // Player 1 places two tiles near the center
+    const p1_tile1_placement = app1.gameState.tilesHeld.find(p => p.row === 'rack')!
+    app1.gameState.moveTile(p1_tile1_placement.row, p1_tile1_placement.col, 7, 7)
+    const p1_tile2_placement = app1.gameState.tilesHeld.find(p => p.row === 'rack')!
+    app1.gameState.moveTile(p1_tile2_placement.row, p1_tile2_placement.col, 7, 8)
+
+    // Player 1 passes their turn. The pending placements are not part of the turn.
+    await app1.gameState.passOrExchange()
+    const player1Hash = browser1.getHash()
+
+    // Player 2 gets the hash from player 1
+    browser2.setHash(player1Hash.substring(1))
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Player 2's board is empty. Player 2 makes a valid move on the center square.
+    const p2_tile1_placement = app2.gameState.tilesHeld.find(p => p.row === 'rack')!
+    app2.gameState.moveTile(p2_tile1_placement.row, p2_tile1_placement.col, 7, 7)
+    const p2_tile2_placement = app2.gameState.tilesHeld.find(p => p.row === 'rack')!
+    app2.gameState.moveTile(p2_tile2_placement.row, p2_tile2_placement.col, 8, 7)
+    await app2.gameState.playWord()
+    const player2Hash = browser2.getHash()
+
+    // Player 1 gets the hash from player 2
+    browser1.setHash(player2Hash.substring(1))
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Assertions
+    // 1. Shared states agree.
+    expect(JSON.stringify(app1.gameState.shared)).toEqual(JSON.stringify(app2.gameState.shared))
+
+    // 2. Player 1's collided tile has moved back to the rack.
+    const final_p1_tile1_placement = app1.gameState.tilesHeld.find(p => p.tile === p1_tile1_placement.tile)
+    expect(final_p1_tile1_placement?.row).toBe('rack')
+
+    // 3. Player 1's other placed tile remains on its square. (This may fail)
+    const final_p1_tile2_placement = app1.gameState.tilesHeld.find(p => p.tile === p1_tile2_placement.tile)
+    expect(final_p1_tile2_placement?.row).toBe(7)
+    expect(final_p1_tile2_placement?.col).toBe(8)
+  })
 })
