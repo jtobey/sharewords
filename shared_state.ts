@@ -42,7 +42,9 @@ import { makeTiles } from './tile.js'
 import type { BoardPlacement } from './tile.js'
 import { makeDictionary } from './dictionary.js'
 
-export class SharedState {
+import { BoardEvent } from './events.js'
+
+export class SharedState extends EventTarget {
   constructor(
     readonly settings: Readonly<Settings>,
     readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
@@ -51,6 +53,10 @@ export class SharedState {
     public nextTurnNumber = toTurnNumber(1),
     private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings)
   ) {
+    super()
+    this.board.addEventListener('tileplaced', (evt: Event) => {
+      this.dispatchEvent(new BoardEvent((evt as BoardEvent).type, { detail: (evt as BoardEvent).detail }))
+    })
     this.settings.players.forEach((player, index) => {
       const expected = String(index + 1)
       if (player.id !== expected) {

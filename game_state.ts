@@ -19,7 +19,7 @@ import { Player } from './player.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import type { TurnNumber } from './turn.js'
 import { indicesOk } from './validation.js'
-import { TileEvent, GameEvent } from './events.js'
+import { TileEvent, GameEvent, BoardEvent } from './events.js'
 
 type TurnData = {turnNumber: TurnNumber, params: string}
 
@@ -50,6 +50,15 @@ export class GameState extends EventTarget {
     if (!this.shared.settings.players.some(p => p.id === playerId)) {
       throw new Error(`Player ID "${playerId}" is not listed in settings.`)
     }
+    this.shared.addEventListener('tileplaced', (evt: Event) => {
+      const { placement } = (evt as BoardEvent).detail
+      const myTile = this.tilesHeld.find(p => p.row === placement.row && p.col === placement.col)
+      if (myTile) {
+        console.log(`My tile at ${placement.row},${placement.col} is displaced. Moving it to rack.`)
+        // toCol=0 is arbitrary, moveTile will find a spot.
+        this.moveTile(myTile.row, myTile.col, 'rack', 0)
+      }
+    })
   }
 
   /**

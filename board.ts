@@ -1,6 +1,7 @@
 import { arraysEqual } from './validation.js'
 import { Tile } from './tile.js'
 import type { BoardPlacement } from './tile.js'
+import { BoardEvent } from './events.js'
 
 export class Square {
   readonly row: number
@@ -75,12 +76,13 @@ class WordPlacementError extends Error {
   }
 }
 
-export class Board {
+export class Board extends EventTarget {
   readonly squares: ReadonlyArray<ReadonlyArray<Square>>
   readonly scores = new Map<string, number>
   readonly centerSquare: Square
 
   constructor(...rowStrings: Array<string>) {
+    super()
     this.squares = parseRowStrings(rowStrings)
     const centerRow = this.squares[this.squares.length >> 1]
     const centerSquare = centerRow?.[centerRow.length >> 1]
@@ -253,6 +255,7 @@ export class Board {
       if (square) {
         square.tile = tile.tile
         square.assignedLetter = tile.assignedLetter
+        this.dispatchEvent(new BoardEvent('tileplaced', { detail: { placement: tile } }))
       }
     }
   }
