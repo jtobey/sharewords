@@ -133,9 +133,9 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
       let header
       const endColumn = startColumns[index + 1]
       if (endColumn) {
-        header = line.substr(startColumn, endColumn - startColumn)
+        header = line.substring(startColumn, endColumn)
       } else {
-        header = line.substr(startColumn)
+        header = line.substring(startColumn)
       }
       header = header.trim()
       if (header) {
@@ -145,8 +145,8 @@ function parseRowOfBoards(headerLines: Array<string>, boardLines: Array<string>)
         }
         const headers = boardStrings.get(startColumn)?.headers
         if (headers) {
-          const headerName = header.substr(0, colon)
-          const headerValue = header.substr(colon + 1).trim()
+          const headerName = header.substring(0, colon)
+          const headerValue = header.substring(colon + 1).trim()
           headers.append(headerName, headerValue)
         }
       }
