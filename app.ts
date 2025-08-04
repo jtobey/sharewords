@@ -74,6 +74,7 @@ export class App {
 
       this.gameState.addEventListener('turnchange', () => {
         this.view.renderBoard();
+        this.view.renderRack();
         this.view.renderScores();
         this.view.renderBagTileCount();
         this.updateUrl();
