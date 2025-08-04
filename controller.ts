@@ -78,5 +78,10 @@ export class Controller {
 
     doc.getElementById('play-word')!.addEventListener('click', this.playWordClick.bind(this))
     doc.getElementById('pass-exchange')!.addEventListener('click', this.passOrExchangeClick.bind(this))
+    doc.getElementById('recall-tiles')!.addEventListener('click', this.recallTilesClick.bind(this))
+  }
+
+  private recallTilesClick() {
+    this.gameState.recallTiles()
   }
 }

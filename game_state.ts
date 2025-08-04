@@ -284,6 +284,28 @@ export class GameState extends EventTarget {
     await this.playTurns(turn)
   }
 
+  recallTiles() {
+    const rackSpots = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
+    const placedTiles = this.tilesHeld.filter(p => p.row !== 'rack')
+    for (const placement of placedTiles) {
+      let rackCol = 0
+      while (rackSpots.has(rackCol)) {
+        rackCol++
+      }
+      if (rackCol >= this.settings.rackCapacity) {
+        // Should not happen
+        console.error('No space in rack to recall tile')
+        break
+      }
+      const fromRow = placement.row
+      const fromCol = placement.col
+      placement.row = 'rack'
+      placement.col = rackCol
+      rackSpots.add(rackCol)
+      this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement}}))
+    }
+  }
+
   /**
    * Commits turns to the board and players' racks.
    * @fires TileEvent#tilemove
