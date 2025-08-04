@@ -50,7 +50,7 @@ export class GameState extends EventTarget {
     if (!this.shared.settings.players.some(p => p.id === playerId)) {
       throw new Error(`Player ID "${playerId}" is not listed in settings.`)
     }
-    this.shared.addEventListener('tileplaced', (evt: Event) => {
+    this.board.addEventListener('tileplaced', (evt: Event) => {
       const { placement } = (evt as BoardEvent).detail
       const myTile = this.tilesHeld.find(p => p.row === placement.row && p.col === placement.col)
       if (myTile) {
