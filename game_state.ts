@@ -453,7 +453,7 @@ export class GameState extends EventTarget {
             }
             const assignedLetter = wordPlayed![index]
             if (!assignedLetter) {
-              throw new RangeError(`Blank tile assignment index ${index} out of range 0-${wordPlayed!.length - 1}.`)
+              throw new RangeError(`Blank tile assignment index ${index} out of range: no "${wordPlayed}"[${index}].`)
             }
             blankTileAssignments[index] = assignedLetter
           })
@@ -465,7 +465,7 @@ export class GameState extends EventTarget {
         const placements = [] as Array<BoardPlacement>
         wordPlayed.split('').map((letter, letterIndex) => {
           const square = this.board.squares[row]?.[col]
-          if (!square) throw new RangeError(`Attemted to play a word out of bounds: ${row},${col}.`)
+          if (!square) throw new RangeError(`Attempted to play a word out of bounds: ${row},${col}.`)
           if (!square.tile) {
             // It must be a new tile from the player's rack.
             const assignedLetter = blankTileAssignments[letterIndex] ?? ''
@@ -482,7 +482,7 @@ export class GameState extends EventTarget {
           if (direction === 'wv') { row += 1 }
           else { col += 1 }
         })
-        if (blankTileAssignments.length >= wordPlayed!.length) {
+        if (blankTileAssignments.length > wordPlayed!.length) {
           throw new RangeError(
             `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${wordPlayed!.length - 1}`
           )
