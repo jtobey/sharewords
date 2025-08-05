@@ -20,6 +20,7 @@ export class Turn {
   col?: number
   vertical?: boolean
   blanks?: ReadonlyArray<number>
+  extraParams?: URLSearchParams
 
   constructor(readonly playerId: string, readonly turnNumber: TurnNumber, readonly move: {
     playTiles: ReadonlyArray<BoardPlacement>

@@ -22,6 +22,7 @@ export class View {
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
     this.scorePanel = this.gameContainer.querySelector<HTMLElement>('#score-panel')!
     this.bagTileCountContainer = this.gameContainer.querySelector<HTMLElement>('#bag-tile-count-container')!
+    this.gameState.addEventListener('turnchange', () => this.renderScores())
   }
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
@@ -96,11 +97,53 @@ export class View {
       if (player.id === currentPlayer?.id) {
         scoreDiv.classList.add('current-player')
       }
-      let scoreText = `${player.name}: ${score}`
+
+      const nameSpan = this.doc.createElement('span')
+      nameSpan.textContent = player.name
+
+      const scoreSpan = this.doc.createElement('span')
+      scoreSpan.textContent = `: ${score}`
+
       if (this.gameState.isGameOver && score === maxScore) {
-        scoreText += ' 🎉'
+        scoreSpan.textContent += ' 🎉'
       }
-      scoreDiv.textContent = scoreText
+
+      const editButton = this.doc.createElement('span')
+      editButton.textContent = ' ✏️'
+      editButton.className = 'edit-button'
+      editButton.style.cursor = 'pointer'
+      editButton.addEventListener('click', () => {
+        const input = this.doc.createElement('input')
+        input.type = 'text'
+        input.value = player.name
+        scoreDiv.replaceChild(input, nameSpan)
+        input.focus()
+
+        const save = () => {
+          if (input.value && input.value !== player.name) {
+            this.gameState.changePlayerName(player.id, input.value)
+          }
+        }
+
+        const cancel = () => {
+          scoreDiv.replaceChild(nameSpan, input)
+        }
+
+        input.addEventListener('blur', save)
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            save()
+          } else if (e.key === 'Escape') {
+            cancel()
+          }
+        })
+      })
+
+      scoreDiv.appendChild(nameSpan)
+      scoreDiv.appendChild(scoreSpan)
+      if (player.id === this.gameState.playerId) {
+        scoreDiv.appendChild(editButton)
+      }
       this.scorePanel.appendChild(scoreDiv)
     }
   }
