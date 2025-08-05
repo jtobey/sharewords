@@ -25,6 +25,7 @@ type TurnData = {turnNumber: TurnNumber, params: string}
 
 export class GameState extends EventTarget {
   readonly shared: SharedState
+  private pendingExtraParams = new URLSearchParams
 
   constructor(
     readonly playerId: string,  // The local player.
@@ -269,6 +270,8 @@ export class GameState extends EventTarget {
       throw new Error('Drag some tiles onto the board, and try again.')
     }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
+    turn.extraParams = this.pendingExtraParams
+    this.pendingExtraParams = new URLSearchParams
     await this.playTurns(turn)
   }
 
@@ -281,6 +284,8 @@ export class GameState extends EventTarget {
     const placements = this.tilesHeld.map((p, index) => ({p, index})).filter(({p}) => p.row === 'exchange')
     const exchangeTileIndices = placements.map(({index}) => index)
     const turn = new Turn(this.playerId, this.nextTurnNumber, { exchangeTileIndices })
+    turn.extraParams = this.pendingExtraParams
+    this.pendingExtraParams = new URLSearchParams
     await this.playTurns(turn)
   }
 
@@ -350,6 +355,11 @@ export class GameState extends EventTarget {
         continue
       }
       const params = new URLSearchParams
+      if (turn.extraParams) {
+        for (const [key, value] of turn.extraParams) {
+          params.set(key, value)
+        }
+      }
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
         if (turn.blanks?.length) params.set('bt', turn.blanks.join('.'))
@@ -387,8 +397,33 @@ export class GameState extends EventTarget {
     if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
   }
 
+  changePlayerName(playerId: string, name: string) {
+    const playerIndex = this.players.findIndex(p => p.id === playerId)
+    if (playerIndex === -1) {
+      throw new Error(`Player with ID ${playerId} not found.`)
+    }
+    const player = this.players[playerIndex]!
+    if (player.name !== name) {
+      player.name = name
+      this.pendingExtraParams.set(`p${playerIndex + 1}n`, name)
+      this.dispatchEvent(new GameEvent('turnchange'))
+    }
+  }
+
   async applyTurnParams(params: URLSearchParams) {
     if (this.isGameOver) return
+    for (const [key, value] of params) {
+      const match = key.match(/^p(\d+)n$/)
+      if (match) {
+        const playerIndex = parseInt(match[1]!) - 1
+        const player = this.players[playerIndex]
+        if (player) {
+          player.name = value
+        }
+      }
+    }
+    this.dispatchEvent(new GameEvent('turnchange'))
+
     const urlTurnNumberStr = params.get('tn')
     if (!urlTurnNumberStr) {
       console.info('applyTurnParams: no turn number')
