@@ -123,8 +123,10 @@ export class View {
           if (input.value && input.value !== player.name) {
             this.gameState.changePlayerName(player.id, input.value)
           }
+        }
+
+        const cancel = () => {
           scoreDiv.replaceChild(nameSpan, input)
-          this.renderScores()
         }
 
         input.addEventListener('blur', save)
@@ -132,8 +134,7 @@ export class View {
           if (e.key === 'Enter') {
             save()
           } else if (e.key === 'Escape') {
-            scoreDiv.replaceChild(nameSpan, input)
-            this.renderScores()
+            cancel()
           }
         })
       })
