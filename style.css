@@ -221,6 +221,13 @@ dialog {
   margin-right: 0.5em;
 }
 
+@media (prefers-color-scheme: dark) {
+  #settings-dialog {
+    background-color: #333;
+    color: #eee;
+  }
+}
+
 dialog::backdrop {
   background-color: rgba(0,0,0,0.5);
 }

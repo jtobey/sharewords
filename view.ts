@@ -291,11 +291,6 @@ export class View {
     const content = this.doc.createElement('div');
     content.className = 'content';
 
-    // Title
-    const title = this.doc.createElement('h2');
-    title.textContent = 'Game Setup';
-    dialog.appendChild(title);
-
     // Players
     const playersContainer = this.doc.createElement('div');
     playersContainer.className = 'settings-group';
@@ -436,12 +431,12 @@ export class View {
 
       // Dictionary
       const dictionaryType = (this.doc.getElementById('dictionary-type') as HTMLSelectElement).value;
-      params.set('dict', dictionaryType);
+      params.set('dt', dictionaryType);
 
       if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
         const url = (this.doc.getElementById('dictionary-url') as HTMLInputElement).value;
         if (url) {
-          params.set('dict_url', url);
+          params.set('ds', url);
         }
       }
 
