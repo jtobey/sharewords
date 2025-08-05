@@ -31,6 +31,7 @@ export class TestBrowser implements Browser {
             <button id="play-word"></button>
             <button id="pass-exchange"></button>
             <button id="recall-tiles"></button>
+            <button id="game-setup"></button>
           </div>
         </div>
       </div>
