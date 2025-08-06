@@ -23,7 +23,7 @@ describe('game state', () => {
 
 
           gid: test
-          ver: 0
+          v: 0
           seed: 1
           board: T.d.T-.t.t.-d.D.d-.t.t.-T.d.T  gid: test
           tn: 1                                 tn: 2
@@ -249,7 +249,7 @@ describe('game state', () => {
       const gameState = new GameState('1', settings)
       const params = new URLSearchParams
       gameState['addGameParams'](params)
-      expect(params.get('ver')).toEqual(settings.version)
+      expect(params.get('v')).toEqual(settings.version)
       expect(params.get('p1n')).toEqual('player1')
       expect(params.get('p2n')).toEqual('player2')
       expect(params.get('board')).toEqual('T..-.d.-..T')
@@ -261,7 +261,7 @@ describe('game state', () => {
 
     it('should be parsed for non-default settings', async () => {
       const params = new URLSearchParams
-      params.set('ver', '0')
+      params.set('v', '0')
       params.set('p1n', 'player1')
       params.set('p2n', 'player2')
       params.set('board', 'T..-.d.-..T')

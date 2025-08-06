@@ -543,7 +543,7 @@ export class GameState extends EventTarget {
   private addGameParams(params: URLSearchParams) {
     // Not all players have played. Include any non-default game settings.
     const defaults = new Settings
-    params.set('ver', this.settings.version)
+    params.set('v', this.settings.version)
     if (!playersEqual(this.settings.players, defaults.players)) {
       this.settings.players.forEach((p, index) => {
         params.set(`p${index + 1}n`, p.name)
@@ -580,7 +580,7 @@ export class GameState extends EventTarget {
 
   static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
     const settings = new Settings
-    const verParam = params.get('ver')
+    const verParam = params.get('v')
     if (verParam && verParam !== settings.version) {
       throw new Error(`Protocol version not supported: ${verParam}`)
     }
