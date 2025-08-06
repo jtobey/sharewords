@@ -37,6 +37,10 @@
   margin-top: 20px;
 }
 
+#buttons-container button {
+  margin-bottom: 4px;
+}
+
 #rack-container, #exchange-container {
   display: flex;
   flex-direction: row;
