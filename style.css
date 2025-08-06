@@ -93,7 +93,7 @@
 }
 
 .placed {
-  background-color: #lightgreen;
+  background-color: rgba(144, 238, 144, 0.7);
   touch-action: none;
 }
 
@@ -282,7 +282,7 @@ dialog button {
   }
 
   .placed {
-    background-color: #282;
+    background-color: rgba(34, 136, 34, 0.7);
   }
 
   .square.dl { background-color: #533; }
