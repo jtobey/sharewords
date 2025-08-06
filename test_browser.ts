@@ -86,4 +86,8 @@ export class TestBrowser implements Browser {
   hasClipboard(): boolean {
     return true;
   }
+
+  addPasteListener(listener: (text: string) => void): void {
+    // Do nothing in tests for now.
+  }
 }
