@@ -66,9 +66,13 @@ export class View {
         } else {
           const placedTile = this.gameState.tilesHeld.find(p => p.row === r && p.col === c)
           if (placedTile) {
-            this.addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
-            squareDiv.classList.add('placed')
-            squareDiv.tabIndex = 0
+            const placedTileDiv = this.doc.createElement('div')
+            placedTileDiv.className = 'tile placed'
+            placedTileDiv.dataset.row = String(r)
+            placedTileDiv.dataset.col = String(c)
+            this.addTileToElement(placedTileDiv, placedTile.tile, placedTile.assignedLetter)
+            placedTileDiv.tabIndex = 0
+            squareDiv.appendChild(placedTileDiv)
           } else {
             const bonusSpan = this.doc.createElement('span')
             bonusSpan.className = 'bonus-text'
@@ -201,7 +205,13 @@ export class View {
   }
 
   getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {
-    return this.doc.querySelector(`[data-row="${row}"][data-col="${col}"]`)
+    // Find the most specific element for a given location.
+    // An occupied spot on the board will have a .square and a .tile.placed;
+    // we want the latter. A spot on the rack will have a .tile or a .tile-spot.
+    return this.doc.querySelector(
+      `.tile[data-row="${row}"][data-col="${col}"],` +
+      `.tile-spot[data-row="${row}"][data-col="${col}"],` +
+      `.square[data-row="${row}"][data-col="${col}"]`)
   }
 
   clearDropTarget() {
