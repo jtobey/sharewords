@@ -411,6 +411,19 @@ export class View {
     bingoContainer.appendChild(bingoInput);
     content.appendChild(bingoContainer);
 
+    // Seed
+    const seedContainer = this.doc.createElement('div');
+    seedContainer.className = 'settings-group';
+    const seedHeader = this.doc.createElement('h3');
+    seedHeader.textContent = 'Random Seed';
+    seedContainer.appendChild(seedHeader);
+    const seedInput = this.doc.createElement('input');
+    seedInput.type = 'text';
+    seedInput.id = 'random-seed';
+    seedInput.value = this.gameState.settings.seed;
+    seedContainer.appendChild(seedInput);
+    content.appendChild(seedContainer);
+
     dialog.appendChild(content);
 
     // Buttons
@@ -445,7 +458,8 @@ export class View {
       params.set('bingo', bingoBonus);
 
       // Seed for new game
-      params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
+      const seed = (this.doc.getElementById('random-seed') as HTMLInputElement).value;
+      params.set('seed', seed || String(Math.floor(1000000 * this.browser.getRandom())));
 
       this.browser.setHash(params.toString());
 
