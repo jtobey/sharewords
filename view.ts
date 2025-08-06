@@ -420,7 +420,7 @@ export class View {
     const seedInput = this.doc.createElement('input');
     seedInput.type = 'text';
     seedInput.id = 'random-seed';
-    seedInput.value = this.gameState.settings.seed;
+    seedInput.value = this.gameState.settings.tileSystemSettings.seed;
     seedContainer.appendChild(seedInput);
     content.appendChild(seedContainer);
 
