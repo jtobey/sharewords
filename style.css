@@ -199,6 +199,35 @@ dialog {
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
+#settings-dialog {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 1em;
+  background-color: #f9f9f9;
+  margin-top: 1em;
+}
+
+.settings-group {
+  margin-bottom: 1em;
+}
+
+.player-entry {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5em;
+}
+
+.player-entry input {
+  margin-right: 0.5em;
+}
+
+@media (prefers-color-scheme: dark) {
+  #settings-dialog {
+    background-color: #333;
+    color: #eee;
+  }
+}
+
 dialog::backdrop {
   background-color: rgba(0,0,0,0.5);
 }

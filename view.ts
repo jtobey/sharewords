@@ -1,6 +1,7 @@
 import { Dialog } from './dialog.js';
 import type { GameState } from './game_state.js'
 import type { BoardPlacement, Tile, TilePlacementRow } from './tile.js'
+import type { Browser } from './browser.js';
 
 export class View {
   private gameContainer: HTMLElement
@@ -12,10 +13,13 @@ export class View {
   private gameState: GameState
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
   private doc: Document
+  private browser: Browser
+  settingsDialog: HTMLElement | null = null
 
-  constructor(gameState: GameState, doc: Document) {
+  constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState
-    this.doc = doc
+    this.browser = browser
+    this.doc = browser.getDocument()
     this.gameContainer = this.doc.getElementById('game-container')!
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!
     this.rackContainer = this.gameContainer.querySelector<HTMLElement>('#rack-container')!
@@ -272,5 +276,186 @@ export class View {
       confirmed: result === 'OK',
       copyUrl: result === 'OK' && (copyUrlCheckbox?.checked ?? false),
     };
+  }
+
+  showSettingsDialog() {
+    if (this.settingsDialog) {
+      this.settingsDialog.remove();
+      this.settingsDialog = null;
+      return;
+    }
+
+    const dialog = this.doc.createElement('div');
+    dialog.id = 'settings-dialog';
+
+    const content = this.doc.createElement('div');
+    content.className = 'content';
+
+    // Players
+    const playersContainer = this.doc.createElement('div');
+    playersContainer.className = 'settings-group';
+    const playersHeader = this.doc.createElement('h3');
+    playersHeader.textContent = 'Players';
+    playersContainer.appendChild(playersHeader);
+
+    const playerList = this.doc.createElement('div');
+    playerList.id = 'player-list';
+
+    const updatePlayerList = (players: {name: string}[]) => {
+      playerList.innerHTML = '';
+      players.forEach((player, index) => {
+        const playerEntry = this.doc.createElement('div');
+        playerEntry.className = 'player-entry';
+        const input = this.doc.createElement('input');
+        input.type = 'text';
+        input.value = player.name;
+        input.placeholder = `Player ${index + 1}`;
+        playerEntry.appendChild(input);
+
+        const removeButton = this.doc.createElement('button');
+        removeButton.textContent = '-';
+        removeButton.onclick = () => {
+          const currentPlayers = Array.from(playerList.querySelectorAll('input')).map(i => ({name: i.value}));
+          currentPlayers.splice(index, 1);
+          updatePlayerList(currentPlayers);
+        };
+        playerEntry.appendChild(removeButton);
+        playerList.appendChild(playerEntry);
+      });
+    };
+
+    updatePlayerList(this.gameState.players.map(p => ({name: p.name})));
+
+    const addButton = this.doc.createElement('button');
+    addButton.textContent = '+';
+    addButton.onclick = () => {
+      const currentPlayers = Array.from(playerList.querySelectorAll('input')).map(i => ({name: i.value}));
+      currentPlayers.push({name: ''});
+      updatePlayerList(currentPlayers);
+    };
+
+    playersContainer.appendChild(playerList);
+    playersContainer.appendChild(addButton);
+    content.appendChild(playersContainer);
+
+    // Dictionary
+    const dictionaryContainer = this.doc.createElement('div');
+    dictionaryContainer.className = 'settings-group';
+    const dictionaryHeader = this.doc.createElement('h3');
+    dictionaryHeader.textContent = 'Dictionary';
+    dictionaryContainer.appendChild(dictionaryHeader);
+
+    const dictOptions = [
+      { value: 'permissive', text: 'Anything is a word' },
+      { value: 'freeapi', text: 'freeapi' },
+      { value: 'custom', text: 'custom' },
+    ];
+
+    const urlInputContainer = this.doc.createElement('div');
+    urlInputContainer.style.display = 'none';
+    const urlInput = this.doc.createElement('input');
+    urlInput.type = 'text';
+    urlInput.id = 'dictionary-url';
+    urlInput.placeholder = 'URL';
+    const urlLabel = this.doc.createElement('label');
+    urlLabel.textContent = 'URL: ';
+    urlInputContainer.appendChild(urlLabel);
+    urlInputContainer.appendChild(urlInput);
+
+    const dictSelect = this.doc.createElement('select');
+    dictSelect.id = 'dictionary-type';
+
+    dictOptions.forEach(opt => {
+      const option = this.doc.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.text;
+      if (this.gameState.settings.dictionaryType === opt.value) {
+        option.selected = true;
+      }
+      dictSelect.appendChild(option);
+    });
+
+    dictionaryContainer.appendChild(dictSelect);
+
+    const handleDictChange = () => {
+      const selectedValue = dictSelect.value;
+      if (selectedValue === 'freeapi' || selectedValue === 'custom') {
+        urlInputContainer.style.display = 'block';
+        urlInput.required = selectedValue === 'custom';
+      } else {
+        urlInputContainer.style.display = 'none';
+      }
+    };
+
+    dictSelect.addEventListener('change', handleDictChange);
+
+    dictionaryContainer.appendChild(urlInputContainer);
+    content.appendChild(dictionaryContainer);
+
+    // Trigger change on initial load to set URL visibility
+    handleDictChange();
+    if (this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings === 'object' && 'url' in this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings.url === 'string') {
+      urlInput.value = this.gameState.settings.dictionarySettings.url;
+    }
+
+    // Bingo Bonus
+    const bingoContainer = this.doc.createElement('div');
+    bingoContainer.className = 'settings-group';
+    const bingoHeader = this.doc.createElement('h3');
+    bingoHeader.textContent = 'Bingo Bonus';
+    bingoContainer.appendChild(bingoHeader);
+    const bingoInput = this.doc.createElement('input');
+    bingoInput.type = 'number';
+    bingoInput.id = 'bingo-bonus';
+    bingoInput.value = String(this.gameState.settings.bingoBonus);
+    bingoContainer.appendChild(bingoInput);
+    content.appendChild(bingoContainer);
+
+    dialog.appendChild(content);
+
+    // Buttons
+    const buttonsContainer = this.doc.createElement('div');
+    buttonsContainer.className = 'buttons';
+    const startButton = this.doc.createElement('button');
+    startButton.id = 'start-game-with-settings';
+    startButton.textContent = 'Start Game with Settings';
+    startButton.addEventListener('click', () => {
+      const params = new URLSearchParams();
+
+      // Players
+      const playerInputs = Array.from(playerList.querySelectorAll('input'));
+      const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
+      if (playerNames.length > 0) {
+        params.set('p', playerNames.join(','));
+      }
+
+      // Dictionary
+      const dictionaryType = (this.doc.getElementById('dictionary-type') as HTMLSelectElement).value;
+      params.set('dt', dictionaryType);
+
+      if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
+        const url = (this.doc.getElementById('dictionary-url') as HTMLInputElement).value;
+        if (url) {
+          params.set('ds', url);
+        }
+      }
+
+      // Bingo bonus
+      const bingoBonus = (this.doc.getElementById('bingo-bonus') as HTMLInputElement).value;
+      params.set('bingo', bingoBonus);
+
+      // Seed for new game
+      params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
+
+      this.browser.setHash(params.toString());
+
+      // Close the dialog
+      this.showSettingsDialog();
+    });
+    buttonsContainer.appendChild(startButton);
+    dialog.appendChild(buttonsContainer);
+
+    this.settingsDialog = dialog;
+    this.gameContainer.querySelector('#controls-container')!.appendChild(dialog);
   }
 }

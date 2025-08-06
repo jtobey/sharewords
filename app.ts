@@ -52,7 +52,7 @@ export class App {
       this.saveGameState();
       this.updateUrl();
 
-      this.view = new View(this.gameState, this.browser.getDocument());
+      this.view = new View(this.gameState, this.browser);
       this.controller = new Controller(this.gameState, this.view, this.browser);
 
       this.view.renderBoard();
