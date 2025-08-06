@@ -31,6 +31,9 @@ export interface Browser {
 
   // Checks if the browser has clipboard support.
   hasClipboard(): boolean;
+
+  // Adds a listener for paste events.
+  addPasteListener(listener: (text: string) => void): void;
 }
 
 export class DomBrowser implements Browser {
@@ -76,5 +79,14 @@ export class DomBrowser implements Browser {
 
   hasClipboard(): boolean {
     return 'clipboard' in navigator;
+  }
+
+  addPasteListener(listener: (text: string) => void): void {
+    window.addEventListener('paste', (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData('text/plain');
+      if (text) {
+        listener(text);
+      }
+    });
   }
 }

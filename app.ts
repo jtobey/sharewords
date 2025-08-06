@@ -87,7 +87,25 @@ export class App {
     };
 
     this.browser.addHashChangeListener(handleGameChange);
+    this.browser.addPasteListener(this.handlePaste.bind(this));
     await handleGameChange();
+  }
+
+  async handlePaste(pastedText: string) {
+    try {
+      const url = new URL(pastedText);
+      const Href = this.browser.getHref();
+      if (url.origin !== new URL(Href).origin || url.pathname !== new URL(Href).pathname) {
+        return;
+      }
+      const params = this.browser.getURLSearchParams(url.hash.substring(1));
+      if (!params.has('gid')) {
+        return;
+      }
+      await this.gameState.applyTurnParams(params);
+    } catch (e) {
+      // Not a valid URL, ignore.
+    }
   }
 }
 
