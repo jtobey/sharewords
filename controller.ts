@@ -1,5 +1,5 @@
 import type { GameState } from './game_state.js'
-import type { View } from './view.js'
+import type { View } from './view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from './tile.js'
 import { PlayRejectedError } from './dictionary.js'
 import { KeyHandler } from './key_handler.js'
