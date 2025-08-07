@@ -1,10 +1,10 @@
-import type { GameState } from './game_state.js'
-import type { View } from './view/view.js'
-import { isBoardPlacementRow, type TilePlacementRow } from './tile.js'
-import { PlayRejectedError } from './dictionary.js'
+import type { GameState } from '../game_state.js'
+import type { View } from '../view/view.js'
+import { isBoardPlacementRow, type TilePlacementRow } from '../tile.js'
+import { PlayRejectedError } from '../dictionary.js'
 import { KeyHandler } from './key_handler.js'
 import { PointerHandler } from './pointer_handler.js'
-import type { Browser } from './browser.js'
+import type { Browser } from '../browser.js'
 
 export class Controller {
   private gameState: GameState

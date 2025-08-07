@@ -1,6 +1,6 @@
-import type { GameState } from './game_state.js'
-import type { View } from './view.js'
-import { isBoardPlacementRow, type TilePlacementRow } from './tile.js'
+import type { GameState } from '../game_state.js'
+import type { View } from '../view/view.js'
+import { isBoardPlacementRow, type TilePlacementRow } from '../tile.js'
 
 export class KeyHandler {
   private gameState: GameState

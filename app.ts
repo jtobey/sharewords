@@ -2,7 +2,7 @@ import { toGameId } from './settings.js'
 import { GameState } from './game_state.js'
 import { isBoardPlacementRow } from './tile.js'
 import { View } from './view/view.js'
-import { Controller } from './controller.js'
+import { Controller } from './controller/controller.js'
 import { type Browser, DomBrowser } from './browser.js'
 
 export class App {
