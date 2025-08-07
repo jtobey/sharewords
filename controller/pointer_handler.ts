@@ -1,6 +1,6 @@
-import type { GameState } from '../game_state.js'
+import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
-import { isBoardPlacementRow, type TilePlacementRow } from '../tile.js'
+import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 
 export class PointerHandler {
   private gameState: GameState

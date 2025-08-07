@@ -1,7 +1,7 @@
 import { expect, describe, it } from 'bun:test'
 import { App } from './app.js'
 import { TestBrowser } from './test_browser.js'
-import { fromTurnNumber } from './turn.js'
+import { fromTurnNumber } from './game/turn.js'
 
 describe('multi-player', () => {
   it('should allow two players to take turns', async () => {

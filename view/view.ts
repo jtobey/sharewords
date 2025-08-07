@@ -1,6 +1,6 @@
 import { Dialog } from './dialog.js';
-import type { GameState } from '../game_state.js'
-import type { BoardPlacement, Tile, TilePlacementRow } from '../tile.js'
+import type { GameState } from '../game/game_state.js'
+import type { BoardPlacement, Tile, TilePlacementRow } from '../game/tile.js'
 import type { Browser } from '../browser.js';
 
 export class View {

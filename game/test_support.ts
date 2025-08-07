@@ -1,6 +1,6 @@
-import { Square, generateRowStrings, Board } from './board.ts'
-import type { BoardPlacement } from './tile.ts'
-import { Tile } from './tile.ts'
+import { Square, generateRowStrings, Board } from './board.js'
+import type { BoardPlacement } from './tile.js'
+import { Tile } from './tile.js'
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 const DIGITS = '0123456789' + SUBSCRIPTS

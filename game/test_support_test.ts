@@ -2,7 +2,7 @@
 
 import { expect, describe, it } from 'bun:test'
 import { TestBoard, parseBoards, diffBoards } from './test_support.js'
-import { Tile } from './tile.ts'
+import { Tile } from './tile.js'
 
 describe('test support', () => {
   it('should parse a board', () => {
