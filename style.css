@@ -71,7 +71,7 @@
   position: absolute;
   bottom: 2px;
   left: 4px;
-  font-size: 12px;
+  font-size: 50%;
 }
 
 .tile-spot {
@@ -186,10 +186,6 @@
     width: auto;
     height: auto;
     font-size: 3.2vw;
-  }
-
-  .value {
-    font-size: 50%;
   }
 
   .bonus-text {
