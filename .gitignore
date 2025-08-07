@@ -4,3 +4,6 @@ tmp/
 logs
 *.log
 *~
+empty_test.ts
+publish.sh
+io.sh
