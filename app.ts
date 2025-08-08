@@ -64,6 +64,8 @@ export class App {
       this.gameState.addEventListener('tilemove', (evt: any) => {
         if (!isBoardPlacementRow(evt.detail.fromRow) || !isBoardPlacementRow(evt.detail.placement.row)) {
           this.view.renderRack();
+        }
+        if ((evt.detail.fromRow === 'exchange') !== (evt.detail.placement.row === 'exchange')) {
           this.view.renderPassExchangeButton();
         }
         if (isBoardPlacementRow(evt.detail.fromRow) || isBoardPlacementRow(evt.detail.placement.row)) {
