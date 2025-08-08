@@ -120,6 +120,7 @@ export class GameState extends EventTarget {
   }
 
   get playerWhoseTurnItIs() {
+    if (this.isGameOver) return null
     return this.players[(fromTurnNumber(this.nextTurnNumber) - 1) % this.players.length]
   }
 
