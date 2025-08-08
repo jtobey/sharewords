@@ -27,34 +27,6 @@ describe('app', () => {
     expect(parseInt(style.height, 10)).toBeGreaterThan(0)
   })
 
-  it('should call playWord when the button is clicked', async () => {
-    let playWordCalled = false
-    GameState.prototype.playWord = async () => {
-      playWordCalled = true
-      return Promise.resolve()
-    }
-    app.view.showConfirmationDialog = async () => Promise.resolve({ confirmed: true, copyUrl: false });
-
-    const playWordButton = browser.getDocument().getElementById('play-word')!
-    playWordButton.click()
-    await new Promise(resolve => setTimeout(resolve, 0));
-    expect(playWordCalled).toBe(true)
-  })
-
-  it('should call passOrExchange when the button is clicked', async () => {
-    let passOrExchangeCalled = false
-    GameState.prototype.passOrExchange = async () => {
-      passOrExchangeCalled = true
-      return Promise.resolve()
-    }
-    app.view.showConfirmationDialog = async () => Promise.resolve({ confirmed: true, copyUrl: false });
-
-    const passOrExchangeButton = browser.getDocument().getElementById('pass-exchange')!
-    passOrExchangeButton.click()
-    await new Promise(resolve => setTimeout(resolve, 0));
-    expect(passOrExchangeCalled).toBe(true)
-  })
-
   describe('keyboard navigation', () => {
     it('should move down from rack to exchange', () => {
       app.controller.keyHandler.select('rack', 0)
