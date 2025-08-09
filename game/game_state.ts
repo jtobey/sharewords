@@ -293,9 +293,10 @@ export class GameState extends EventTarget {
   }
 
   recallTiles() {
-    const rackSpots = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
     const placedTiles = this.tilesHeld.filter(p => p.row !== 'rack')
     for (const placement of placedTiles) {
+      // Find the first empty spot on the rack.
+      const rackSpots = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
       let rackCol = 0
       while (rackSpots.has(rackCol)) {
         rackCol++
@@ -305,13 +306,7 @@ export class GameState extends EventTarget {
         console.error('No space in rack to recall tile')
         break
       }
-      const fromRow = placement.row
-      const fromCol = placement.col
-      placement.row = 'rack'
-      placement.col = rackCol
-      delete placement.assignedLetter
-      rackSpots.add(rackCol)
-      this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement}}))
+      this.moveTile(placement.row, placement.col, 'rack', rackCol)
     }
   }
 
