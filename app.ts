@@ -42,8 +42,8 @@ export class App {
 
       const savedGame = gidParam && this.browser.getLocalStorageItem(`sharewords_${gidParam}`);
       if (savedGame) {
-        this.gameState = await GameState.fromJSON(JSON.parse(savedGame));
         console.log(`Loaded ${gameId} from local storage${this.gameState ? ' and switched from ' + this.gameState.gameId + ' to it' : ''}.`)
+        this.gameState = await GameState.fromJSON(JSON.parse(savedGame));
       } else {
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         this.gameState = await GameState.fromParams(params);
