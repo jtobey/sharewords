@@ -1,4 +1,4 @@
-import { toGameId } from './game/settings.js'
+import { toGameId, fromGameId } from './game/settings.js'
 import { GameState } from './game/game_state.js'
 import { isBoardPlacementRow } from './game/tile.js'
 import { View } from './view/view.js'
@@ -101,7 +101,7 @@ export class App {
         return;
       }
       const params = this.browser.getURLSearchParams(url.hash.substring(1));
-      if (!params.has('gid')) {
+      if (!(this.gameState && fromGameId(this.gameState.gameId) === params.get('gid'))) {
         return;
       }
       await this.gameState.applyTurnParams(params);
