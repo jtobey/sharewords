@@ -97,7 +97,7 @@ describe('multi-player', () => {
     const final_p1_tile1_placement = app1.gameState.tilesHeld.find(p => p.tile === p1_tile1_placement.tile)
     expect(final_p1_tile1_placement?.row).toBe('rack')
 
-    // 3. Player 1's other placed tile remains on its square. (This may fail)
+    // 3. Player 1's other placed tile remains on its square.
     const final_p1_tile2_placement = app1.gameState.tilesHeld.find(p => p.tile === p1_tile2_placement.tile)
     expect(final_p1_tile2_placement?.row).toBe(7)
     expect(final_p1_tile2_placement?.col).toBe(8)
