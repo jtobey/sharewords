@@ -121,6 +121,14 @@ describe('multi-player', () => {
     // Player 1 passes their turn
     await app1.gameState.passOrExchange()
     const player1Hash = browser1.getHash()
+    expect(player1Hash).toEqual(`#${new URLSearchParams([
+      ['gid', app1.gameState.gameId],
+      ['v', '0'],
+      ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
+      ['tn', '1'],
+      ['ex', ''],
+      ['p1n', 'Sir Reginald'],
+    ])}`)
 
     // Player 2 gets the hash from player 1
     browser2.setHash(player1Hash.substring(1))
@@ -147,6 +155,13 @@ describe('multi-player', () => {
     // Player 1 takes their first turn
     await app1.gameState.passOrExchange()
     const player1Hash1 = browser1.getHash()
+    expect(player1Hash1).toEqual(`#${new URLSearchParams([
+      ['gid', app1.gameState.gameId],
+      ['v', '0'],
+      ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
+      ['tn', '1'],
+      ['ex', ''],
+    ])}`)
 
     // Player 2 syncs with Player 1
     browser2.setHash(player1Hash1.substring(1))
@@ -171,6 +186,12 @@ describe('multi-player', () => {
     // The pending name change will be included in this turn.
     await app1.gameState.passOrExchange()
     const player1Hash2 = browser1.getHash()
+    expect(player1Hash2).toEqual(`#${new URLSearchParams([
+      ['gid', app1.gameState.gameId],
+      ['tn', '3'],
+      ['ex', ''],
+      ['p1n', 'Dame Judi'],
+    ])}`)
 
     // Player 2 syncs with Player 1's second turn
     browser2.setHash(player1Hash2.substring(1))
