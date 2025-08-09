@@ -5,7 +5,7 @@
 import { Player } from './player.js'
 import type { TilesState } from './tiles_state.js'
 import { checkIndicesForExchange } from './tiles_state.js'
-import { Turn } from './turn.js'
+import { Turn, toTurnNumber } from './turn.js'
 import { Tile } from './tile.js'
 import { HonorSystemBag } from './honor_system_bag.js'
 import { BagEvent } from './events.js'
@@ -41,9 +41,10 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
 
   playTurns(...turnsToPlay: Array<Turn>) {
     for (const turn of turnsToPlay) {
+      if (this.isGameOver) return Promise.resolve(toTurnNumber(this.numberOfTurnsPlayed))
       this.playOneTurn(turn)
     }
-    return Promise.resolve(this.stateId)
+    return Promise.resolve(null)
   }
 
   private playOneTurn(turn: Turn) {

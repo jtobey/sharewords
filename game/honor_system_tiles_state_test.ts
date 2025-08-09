@@ -49,11 +49,11 @@ describe('honor system tiles state', () => {
       4,
     )
     const daveWord = makeTestTiles({A:3, B:1}).map((tile, col) => ({row:1, col, tile}))
-    const stateId = await state.playTurns(
+    const finalTurnNumber = await state.playTurns(
       new Turn('John', toTurnNumber(1), {exchangeTileIndices: []}),
       new Turn('Dave', toTurnNumber(2), {playTiles: daveWord}),
     )
-    expect(stateId).toEqual(2)
+    expect(finalTurnNumber).toBe(null)
     expect(state.numberOfTilesInBag).toEqual(0)
     expect(state.stateId).toEqual(2)
     expect(state.countTiles('John')).toEqual(4)

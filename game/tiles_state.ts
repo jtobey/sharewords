@@ -8,7 +8,7 @@
  */
 
 import { Tile } from './tile.js'
-import { Turn } from './turn.js'
+import { Turn, type TurnNumber } from './turn.js'
 import { checkIndices } from './validation.ts'
 
 export interface TilesState extends EventTarget {
@@ -36,12 +36,11 @@ export interface TilesState extends EventTarget {
   /**
    * Records turns played in the order given.
    *
-   * `stateId = await tilesState.playTurns(...turnsToPlay)` is equivalent to:
+   * `await tilesState.playTurns(...turnsToPlay)` is equivalent to:
    * ```
    * for (const turn of turnsToPlay) {
    *   await tilesState.playTurns(turn)
    * }
-   * stateId = tilesState.stateId
    * ```
    *
    * When a `playTiles` turn succeeds, tiles are transferred from the bag to the player's rack
@@ -50,14 +49,14 @@ export interface TilesState extends EventTarget {
    * When an `exchangeTileIndices` turn succeeds, replacement tiles are drawn from the bag to
    * the player's rack, and the exchanged tiles are shuffled into the bag.
    *
-   * @returns {any} The resulting {@link stateId} value.
+   * @returns {TurnNumber | null} Number of the game's final turn if game over, otherwise null.
    * @throws Will throw if it is not a specified player's turn.
    * @throws Will throw if the player does not hold tiles specified to play.
    * @throws {RangeError} Will throw if a return tile index is out of range.
    * @throws Will throw if the exchange tile indices contain duplicates.
    * @throws Will throw if the bag holds fewer tiles than specified for exchange.
    */
-  playTurns(...turnsToPlay: Array<Turn>): Promise<any>
+  playTurns(...turnsToPlay: Array<Turn>): Promise<TurnNumber | null>
   toJSON(): any
 }
 

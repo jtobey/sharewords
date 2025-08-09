@@ -15,12 +15,10 @@ import { SharedState } from './shared_state.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
-import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
-import type { TurnNumber } from './turn.js'
+import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber, updateTurnHistory } from './turn.js'
+import type { TurnNumber, TurnData } from './turn.js'
 import { indicesOk } from './validation.js'
 import { TileEvent, GameEvent, BoardEvent, BagEvent } from './events.js'
-
-type TurnData = {turnNumber: TurnNumber, params: string}
 
 export class GameState extends EventTarget {
   readonly shared: SharedState
@@ -109,7 +107,7 @@ export class GameState extends EventTarget {
     if (turnHistory.length) {
       entries.push(['tn', String(firstHistoryTurnNumber)])
       turnHistory.forEach((turnData: TurnData) => {
-        entries.push(...new URLSearchParams(turnData.params))
+        entries.push(...new URLSearchParams(turnData.paramsStr))
       })
     } else {
       entries.push(['tn', '1'])
@@ -119,7 +117,11 @@ export class GameState extends EventTarget {
 
   get playerWhoseTurnItIs() {
     if (this.isGameOver) return null
-    return this.players[(fromTurnNumber(this.nextTurnNumber) - 1) % this.players.length]
+    return this.getPlayerForTurnNumber(this.nextTurnNumber)
+  }
+
+  getPlayerForTurnNumber(turnNumber: TurnNumber) {
+    return this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!
   }
 
   tiledraw(evt: any) {
@@ -336,56 +338,31 @@ export class GameState extends EventTarget {
       }
     }
     // Draw/exchange tiles between bag and racks.
-    await this.tilesState.playTurns(...turns)
+    const finalTurnNumber = await this.tilesState.playTurns(...turns)
 
     // Update history.
-    let wroteHistory = false
-    for (const turn of turns) {
-      // Convert {playerId, turnNumber, move} to TurnData.
-      if (fromTurnNumber(turn.turnNumber) >= this.nextTurnNumber) {
-        // `this.shared.playTurns` must have returned early.
-        break
-      }
-      if (this.history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(this.history.slice(-1)[0]!.turnNumber)) {
-        continue
-      }
-      const params = new URLSearchParams
-      const addExtra = () => {
-        if (turn.extraParams) {
-          for (const [key, value] of turn.extraParams) {
-            params.set(key, value)
-          }
+    const { wroteHistory } = updateTurnHistory({
+      history: this.history,
+      nextTurnNumber: this.nextTurnNumber,
+      finalTurnNumber,
+      turns,
+    })
+    if (finalTurnNumber !== null) {
+      const finalTurnPlayerId = this.getPlayerForTurnNumber(finalTurnNumber).id
+      console.log(`Player ${finalTurnPlayerId} ends game after turn ${finalTurnNumber}.`)
+      let allTilesSum = 0
+      for (const player of this.players) {
+        if (player.id !== finalTurnPlayerId) {
+          const playerTiles = await this.getTiles(player.id)
+          const tilesSum = playerTiles.reduce((sum, curr) => sum + curr.value, 0)
+          this.board.scores.set(player.id, (this.board.scores.get(player.id) ?? 0) - tilesSum)
+          console.log(`Transfering ${tilesSum} from Player ${player.id}.`)
+          allTilesSum += tilesSum
         }
       }
-      if ('playTiles' in turn.move) {
-        params.set('wl', `${turn.row}.${turn.col}`)
-        addExtra()
-        if (turn.blanks?.length) params.set('bt', turn.blanks.join('.'))
-        // Keep the word last so that it stands out in the URL.
-        params.set(turn.vertical ? 'wv' : 'wh', turn.mainWord!)
-      } else if ('exchangeTileIndices' in turn.move) {
-        params.set('ex', turn.move.exchangeTileIndices.join('.'))
-        addExtra()
-      }
-      this.history.push({turnNumber: turn.turnNumber, params: String(params)})
-      wroteHistory = true
-      if (this.isGameOver) {
-        console.log(`Player ${turn.playerId} ends game after turn ${turn.turnNumber}.`)
-        let allTilesSum = 0
-        for (const player of this.players) {
-          if (player.id !== turn.playerId) {
-            const playerTiles = await this.getTiles(player.id)
-            const tilesSum = playerTiles.reduce((sum, curr) => sum + curr.value, 0)
-            this.board.scores.set(player.id, (this.board.scores.get(player.id) ?? 0) - tilesSum)
-            console.log(`Transfering ${tilesSum} from Player ${player.id}.`)
-            allTilesSum += tilesSum
-          }
-        }
-        console.log(`Transfering ${allTilesSum} to Player ${turn.playerId}.`)
-        this.board.scores.set(turn.playerId, (this.board.scores.get(turn.playerId) ?? 0) + allTilesSum)
-        this.dispatchEvent(new GameEvent('gameover'))
-        break
-      }
+      console.log(`Transfering ${allTilesSum} to Player ${finalTurnPlayerId}.`)
+      this.board.scores.set(finalTurnPlayerId, (this.board.scores.get(finalTurnPlayerId) ?? 0) + allTilesSum)
+      this.dispatchEvent(new GameEvent('gameover'))
     }
     if (!this.keepAllHistory) {
       const turnsToKeep = this.players.length - 1;
