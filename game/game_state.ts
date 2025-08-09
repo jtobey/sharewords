@@ -8,8 +8,7 @@
  * players. The game must parse and apply turn URLs received.
  */
 
-import { Settings, toGameId } from './settings.js'
-import type { GameId } from './settings.js'
+import { Settings, toGameId, fromGameId, type GameId } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './validation.js'
 import { SharedState } from './shared_state.js'
@@ -100,25 +99,22 @@ export class GameState extends EventTarget {
   }
 
   get turnUrlParams() {
-    const urlParams = new URLSearchParams([['gid', this.gameId]])
+    const entries = [['gid', fromGameId(this.gameId)]]
     const turnHistory = this.history.slice(1 - this.players.length)
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
     if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      for (const [name, value] of this.gameParams) urlParams.append(name, value)
+      entries.push(...this.gameParams)
     }
     if (turnHistory.length) {
-      urlParams.append('tn', String(firstHistoryTurnNumber))
-      const turnParams = [] as Array<URLSearchParams>
+      entries.push(['tn', String(firstHistoryTurnNumber)])
       turnHistory.forEach((turnData: TurnData) => {
-        turnParams.push(new URLSearchParams(turnData.params))
+        entries.push(...new URLSearchParams(turnData.params))
       })
-      const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
-      return new URLSearchParams([...urlParams, ...flatTurnParams])
     } else {
-      urlParams.append('tn', '1')
-      return urlParams
+      entries.push(['tn', '1'])
     }
+    return new URLSearchParams(entries)
   }
 
   get playerWhoseTurnItIs() {
