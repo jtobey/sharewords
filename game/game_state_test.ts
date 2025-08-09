@@ -247,8 +247,7 @@ describe('game state', () => {
       settings.dictionaryType = 'permissive'
       settings.dictionarySettings = 'http://example.com'
       const gameState = new GameState('1', settings)
-      const params = new URLSearchParams
-      gameState['addGameParams'](params)
+      const params = gameState['gameParams']
       expect(params.get('v')).toEqual(settings.version)
       expect(params.get('p1n')).toEqual('player1')
       expect(params.get('p2n')).toEqual('player2')

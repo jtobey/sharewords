@@ -26,6 +26,7 @@ type TurnData = {turnNumber: TurnNumber, params: string}
 export class GameState extends EventTarget {
   readonly shared: SharedState
   private pendingExtraParams = new URLSearchParams
+  private readonly gameParams: URLSearchParams
 
   constructor(
     readonly playerId: string,  // The local player.
@@ -48,6 +49,7 @@ export class GameState extends EventTarget {
       shared = new SharedState(settings)
     }
     this.shared = shared
+    this.gameParams = this.getGameParams()
     if (!this.shared.settings.players.some(p => p.id === playerId)) {
       throw new Error(`Player ID "${playerId}" is not listed in settings.`)
     }
@@ -98,24 +100,24 @@ export class GameState extends EventTarget {
   }
 
   get turnUrlParams() {
-    const gameParams = new URLSearchParams([['gid', this.gameId]])
+    const urlParams = new URLSearchParams([['gid', this.gameId]])
     const turnHistory = this.history.slice(1 - this.players.length)
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
     if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      this.addGameParams(gameParams)
+      for (const [name, value] of this.gameParams) urlParams.append(name, value)
     }
     if (turnHistory.length) {
-      gameParams.append('tn', String(firstHistoryTurnNumber))
+      urlParams.append('tn', String(firstHistoryTurnNumber))
       const turnParams = [] as Array<URLSearchParams>
       turnHistory.forEach((turnData: TurnData) => {
         turnParams.push(new URLSearchParams(turnData.params))
       })
       const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
-      return new URLSearchParams([...gameParams, ...flatTurnParams])
+      return new URLSearchParams([...urlParams, ...flatTurnParams])
     } else {
-      gameParams.append('tn', '1')
-      return gameParams
+      urlParams.append('tn', '1')
+      return urlParams
     }
   }
 
@@ -551,7 +553,8 @@ export class GameState extends EventTarget {
     await this.playTurns(...turns)
   }
 
-  private addGameParams(params: URLSearchParams) {
+  private getGameParams() {
+    const params = new URLSearchParams
     // Not all players have played. Include any non-default game settings.
     const defaults = new Settings
     params.set('v', this.settings.version)
@@ -587,6 +590,7 @@ export class GameState extends EventTarget {
     if (typeof this.settings.dictionarySettings === 'string') {
       params.set('ds', this.settings.dictionarySettings)
     }
+    return params
   }
 
   static async fromParams(allParams: Readonly<URLSearchParams>, playerId?: string) {
