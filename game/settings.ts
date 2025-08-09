@@ -18,6 +18,10 @@ export function fromGameId(gameId: GameId) {
   return gameId as string
 }
 
+export function makeGameId() {
+  return `game-${Date.now()}.${Math.floor(1e9*Math.random())}`
+}
+
 const DEFAULT_PLAYER_LIST = [
   new Player({id: '1'}),
   new Player({id: '2'}),

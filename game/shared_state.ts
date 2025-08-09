@@ -31,21 +31,18 @@
  */
 
 import { arraysEqual } from './validation.js'
-import { Settings } from './settings.js'
-import type { GameId } from './settings.js'
-import { checkIndicesForExchange } from './tiles_state.js'
-import type { TilesState } from './tiles_state.js'
+import { Settings, makeGameId, type GameId } from './settings.js'
+import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
 import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
-import { makeTiles } from './tile.js'
-import type { BoardPlacement } from './tile.js'
+import { type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
 
 export class SharedState {
   constructor(
     readonly settings: Readonly<Settings>,
-    readonly gameId = settings.gameId ?? `game-${Date.now()}` as GameId,
+    readonly gameId = settings.gameId ?? makeGameId() as GameId,
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),

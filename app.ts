@@ -1,4 +1,4 @@
-import { toGameId, fromGameId } from './game/settings.js'
+import { toGameId, fromGameId, makeGameId } from './game/settings.js'
 import { GameState } from './game/game_state.js'
 import { isBoardPlacementRow } from './game/tile.js'
 import { View } from './view/view.js'
@@ -33,7 +33,7 @@ export class App {
     const handleGameChange = async () => {
       const params = this.browser.getURLSearchParams(this.browser.getHash()?.substring(1) || '');
       const gidParam = params.get('gid');
-      const gameId = gidParam ? toGameId(gidParam) : `game-${Date.now()}`;
+      const gameId = gidParam ? toGameId(gidParam) : makeGameId();
 
       if (this.gameState?.gameId === gameId) {
         await this.gameState.applyTurnParams(params);
