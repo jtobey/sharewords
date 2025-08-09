@@ -1,13 +1,12 @@
 import { expect, describe, it } from 'bun:test'
 import { GameState } from './game_state.js'
-import { Settings } from './settings.js'
-import type { GameId } from './settings.js'
+import { Settings, type GameId } from './settings.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
 import { Turn, nextTurnNumber } from './turn.js'
 import { toTurnNumber } from './turn.js'
 import { Player } from './player.js'
-import { Tile } from './tile.js'
+import { Tile, type TilePlacement } from './tile.js'
 
 describe('game state', () => {
   it.skip('should take turns', async () => {
@@ -336,7 +335,7 @@ describe('game state', () => {
     const settings = new Settings
     const gameState = new GameState('1', settings, false, undefined, [])
 
-    const blankTilePlacement = {
+    const blankTilePlacement: TilePlacement = {
       tile: new Tile({letter: '', value: 0}),
       row: 7,
       col: 7,
