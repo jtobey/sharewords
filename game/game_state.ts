@@ -114,7 +114,7 @@ export class GameState extends EventTarget {
       const flatTurnParams = turnParams.map((p: URLSearchParams) => [...p]).flat()
       return new URLSearchParams([...gameParams, ...flatTurnParams])
     } else {
-      gameParams.set('tn', '1')
+      gameParams.append('tn', '1')
       return gameParams
     }
   }
@@ -583,22 +583,32 @@ export class GameState extends EventTarget {
     }
   }
 
-  static async fromParams(params: Readonly<URLSearchParams>, playerId?: string) {
-    const settings = new Settings
-    const verParam = params.get('v')
-    if (verParam && verParam !== settings.version) {
-      throw new Error(`Protocol version not supported: ${verParam}`)
+  static async fromParams(allParams: Readonly<URLSearchParams>, playerId?: string) {
+    // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
+    const gameParams = new URLSearchParams
+    const turnParams = new URLSearchParams
+    for (const [name, value] of allParams) {
+      if (turnParams.size || name === 'tn') {
+        turnParams.append(name, value)
+      } else {
+        gameParams.append(name, value)
+      }
     }
-    const gidParam = params.get('gid')
+    const settings = new Settings
+    const vParam = gameParams.get('v')
+    if (vParam && vParam !== settings.version) {
+      throw new Error(`Protocol version not supported: ${vParam}`)
+    }
+    const gidParam = gameParams.get('gid')
     if (gidParam) settings.gameId = toGameId(gidParam)
     const newPlayers: Array<Player> = []
     for (let playerNumber = 1; ; ++playerNumber) {
-      const pnParam = params.get(`p${playerNumber}n`)
+      const pnParam = gameParams.get(`p${playerNumber}n`)
       if (!pnParam) break
       newPlayers.push(new Player({id: String(playerNumber), name: pnParam.slice(0, settings.maxPlayerNameLength)}))
     }
     if (newPlayers.length) settings.players = newPlayers
-    const bagParam = params.get('bag')
+    const bagParam = gameParams.get('bag')
     if (bagParam) {
       const letterCounts: {[key: string]: number} = {}
       const letterValues: {[key: string]: number} = {}
@@ -613,36 +623,36 @@ export class GameState extends EventTarget {
       settings.letterCounts = letterCounts
       settings.letterValues = letterValues
     }
-    const boardParam = params.get('board')
+    const boardParam = gameParams.get('board')
     if (boardParam) settings.boardLayout = boardParam.split('-')
-    const bingoParam = params.get('bingo')
+    const bingoParam = gameParams.get('bingo')
     if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
-    const racksizeParam = params.get('racksize')
+    const racksizeParam = gameParams.get('racksize')
     if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
     const tileSystemType: 'honor' = settings.tileSystemType
-    const seedParam = params.get('seed')
+    const seedParam = gameParams.get('seed')
     if (!seedParam) throw new Error('No random seed in URL.')
     settings.tileSystemSettings = {seed: seedParam}
-    const dtParam = params.get('dt')
+    const dtParam = gameParams.get('dt')
     if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
       settings.dictionaryType = dtParam
     } else if (dtParam) {
       throw new Error(`Unknown dictionary type: "${dtParam}".`)
     }
-    const dsParam = params.get('ds')
+    const dsParam = gameParams.get('ds')
     if (dsParam) settings.dictionarySettings = dsParam
     else if (settings.dictionaryType === 'custom') {
       throw new Error('Custom dictionary requires a URL.')
     }
     if (!playerId) {
-      const urlTurnNumber = parseInt(params.get('tn')!) || 1
-      const turnNumber = urlTurnNumber + params.getAll('wl').length + params.getAll('ex').length
+      const urlTurnNumber = parseInt(turnParams.get('tn')!) || 1
+      const turnNumber = urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length
       playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
       console.log(`Joining as Player ${playerId}.`)
     }
     const gameState = new GameState(playerId, settings)
     await gameState.init()
-    await gameState.applyTurnParams(params)
+    await gameState.applyTurnParams(turnParams)
     return gameState
   }
 
