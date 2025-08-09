@@ -545,9 +545,11 @@ export class GameState extends EventTarget {
     // Not all players have played. Include any non-default game settings.
     const defaults = new Settings
     params.set('v', this.settings.version)
-    this.settings.players.forEach((p, index) => {
-      params.set(`p${index + 1}n`, p.name)
-    })
+    if (!playersEqual(this.settings.players, defaults.players)) {
+      this.settings.players.forEach((p, index) => {
+        params.set(`p${index + 1}n`, p.name)
+      })
+    }
     if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
       params.set('board', this.settings.boardLayout.join('-'))
     }
