@@ -331,4 +331,24 @@ describe('game state', () => {
     expect(gameState.tilesHeld.find(p => p.row === 7 && p.col === 7)).toBeUndefined()
     expect(gameState.tilesHeld.find(p => p.tile.equals(tileToPlace.tile))?.row).toBe('rack')
   })
+
+  it('should clear assigned letter on recall', async () => {
+    const settings = new Settings
+    const gameState = new GameState('1', settings, false, undefined, [])
+
+    const blankTilePlacement = {
+      tile: new Tile({letter: '', value: 0}),
+      row: 7,
+      col: 7,
+      assignedLetter: 'Z'
+    }
+    gameState.tilesHeld.push(blankTilePlacement)
+
+    // Recall the tile
+    gameState.recallTiles()
+
+    // The tile should be back in the rack and its assignedLetter should be cleared
+    expect(blankTilePlacement.row).toBe('rack')
+    expect(blankTilePlacement.assignedLetter).toBeUndefined()
+  })
 })

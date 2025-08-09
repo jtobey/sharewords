@@ -309,6 +309,7 @@ export class GameState extends EventTarget {
       const fromCol = placement.col
       placement.row = 'rack'
       placement.col = rackCol
+      delete placement.assignedLetter
       rackSpots.add(rackCol)
       this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow, fromCol, placement}}))
     }
