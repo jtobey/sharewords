@@ -356,18 +356,22 @@ export class GameState extends EventTarget {
         continue
       }
       const params = new URLSearchParams
-      if (turn.extraParams) {
-        for (const [key, value] of turn.extraParams) {
-          params.set(key, value)
+      const addExtra = () => {
+        if (turn.extraParams) {
+          for (const [key, value] of turn.extraParams) {
+            params.set(key, value)
+          }
         }
       }
       if ('playTiles' in turn.move) {
         params.set('wl', `${turn.row}.${turn.col}`)
+        addExtra()
         if (turn.blanks?.length) params.set('bt', turn.blanks.join('.'))
         // Keep the word last so that it stands out in the URL.
         params.set(turn.vertical ? 'wv' : 'wh', turn.mainWord!)
       } else if ('exchangeTileIndices' in turn.move) {
         params.set('ex', turn.move.exchangeTileIndices.join('.'))
+        addExtra()
       }
       this.history.push({turnNumber: turn.turnNumber, params: String(params)})
       wroteHistory = true
