@@ -417,21 +417,15 @@ export class GameState extends EventTarget {
 
   async applyTurnParams(params: URLSearchParams) {
     if (this.isGameOver) return
-    for (const [key, value] of params) {
-      const match = key.match(/^p(\d+)n$/)
-      if (match) {
-        const playerIndex = parseInt(match[1]!) - 1
-        const player = this.players[playerIndex]
-        if (player) {
-          player.name = value
-        }
-      }
+    const iterator = params[Symbol.iterator]()
+    let urlTurnNumberStr
+    for (const [key, value] of iterator) {
+      if (key !== 'tn') continue
+      urlTurnNumberStr = value
+      break
     }
-    this.dispatchEvent(new GameEvent('turnchange'))
-
-    const urlTurnNumberStr = params.get('tn')
     if (!urlTurnNumberStr) {
-      console.info('applyTurnParams: no turn number')
+      console.info('applyTurnParams: no turn number found.')
       return
     }
     const turns = [] as Array<Turn>
@@ -518,8 +512,17 @@ export class GameState extends EventTarget {
       wordPlayed = null
       exchangeIndicesStr = null
     }
-    for (const [key, value] of params) {
-      if (key === 'wl') {
+    for (const [key, value] of iterator) {
+      const pnMatch = key.match(/^p(\d+)n$/)
+      if (pnMatch) {
+        const playerIndex = parseInt(pnMatch[1]!) - 1
+        const player = this.players[playerIndex]
+        if (player) {
+          player.name = value
+        } else {
+          throw new Error(`Invalid turn URL: Player ID "${pnMatch[1]}" should be in 1-${this.players.length}.`)
+        }
+      } else if (key === 'wl') {
         // `wl` marks a new word play move.
         processPendingMoveIfAny()
         wordLocationStr = value
@@ -538,10 +541,13 @@ export class GameState extends EventTarget {
         }
         direction = key
         wordPlayed = value
+      } else {
+        throw new Error(`Invalid turn URL: Unrecognized parameter name: "${key}"`)
       }
     }
     // We are out of turn params.
     processPendingMoveIfAny()
+    this.dispatchEvent(new GameEvent('turnchange'))
     await this.playTurns(...turns)
   }
 
