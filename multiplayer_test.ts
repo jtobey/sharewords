@@ -102,4 +102,33 @@ describe('multi-player', () => {
     expect(final_p1_tile2_placement?.row).toBe(7)
     expect(final_p1_tile2_placement?.col).toBe(8)
   })
+
+  it('should sync player name changes', async () => {
+    // Player 1's environment
+    const browser1 = new TestBrowser()
+    const app1 = new App(browser1)
+    await app1.init()
+
+    // Player 2's environment
+    const browser2 = new TestBrowser()
+    const app2 = new App(browser2)
+    await app2.init()
+
+    // Player 1 changes their name
+    const newPlayer1Name = 'Sir Reginald'
+    app1.gameState.changePlayerName('1', newPlayer1Name)
+
+    // Player 1 passes their turn
+    await app1.gameState.passOrExchange()
+    const player1Hash = browser1.getHash()
+
+    // Player 2 gets the hash from player 1
+    browser2.setHash(player1Hash.substring(1))
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Now, player 2's game state should be synced with player 1's
+    expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
+    // And player 2's name should be unchanged.
+    expect(app2.gameState.players[1]!.name).toBe(app1.gameState.players[1]!.name)
+  })
 })
