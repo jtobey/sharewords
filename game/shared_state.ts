@@ -21,6 +21,7 @@
  * - letter assignments to blank tiles played
  * - number of tiles in the bag
  * - each player's shared state
+ *   - name
  *   - number of tiles on rack
  *   - score
  *

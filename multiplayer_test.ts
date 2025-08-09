@@ -103,101 +103,161 @@ describe('multi-player', () => {
     expect(final_p1_tile2_placement?.col).toBe(8)
   })
 
-  it('should sync player name changes', async () => {
-    // Player 1's environment
-    const browser1 = new TestBrowser()
-    const app1 = new App(browser1)
-    await app1.init()
+  describe('player name change', () => {
+    it('should sync player name changes', async () => {
+      // Player 1's environment
+      const browser1 = new TestBrowser()
+      const app1 = new App(browser1)
+      await app1.init()
 
-    // Player 2's environment
-    const browser2 = new TestBrowser()
-    const app2 = new App(browser2)
-    await app2.init()
+      // Player 2's environment
+      const browser2 = new TestBrowser()
+      const app2 = new App(browser2)
+      await app2.init()
 
-    // Player 1 changes their name
-    const newPlayer1Name = 'Sir Reginald'
-    app1.gameState.changePlayerName('1', newPlayer1Name)
+      // Player 1 changes their name
+      const newPlayer1Name = 'Sir Reginald'
+      app1.gameState.changePlayerName('1', newPlayer1Name)
 
-    // Player 1 passes their turn
-    await app1.gameState.passOrExchange()
-    const player1Hash = browser1.getHash()
-    expect(player1Hash).toEqual(`#${new URLSearchParams([
-      ['gid', app1.gameState.gameId],
-      ['v', '0'],
-      ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
-      ['tn', '1'],
-      ['ex', ''],
-      ['p1n', 'Sir Reginald'],
-    ])}`)
+      // Player 1 passes their turn
+      await app1.gameState.passOrExchange()
+      const player1Hash = browser1.getHash()
+      expect(player1Hash).toEqual(`#${new URLSearchParams([
+        ['gid', app1.gameState.gameId],
+        ['v', '0'],
+        ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
+        ['tn', '1'],
+        ['ex', ''],
+        ['p1n', 'Sir Reginald'],
+      ])}`)
 
-    // Player 2 gets the hash from player 1
-    browser2.setHash(player1Hash.substring(1))
-    await new Promise(resolve => setTimeout(resolve, 0));
+      // Player 2 gets the hash from player 1
+      browser2.setHash(player1Hash.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-    // Now, player 2's game state should be synced with player 1's
-    expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
-    // And player 2's name should be unchanged.
-    expect(app2.gameState.players[1]!.name).toBe(app1.gameState.players[1]!.name)
-  })
+      // Now, player 2's game state should be synced with player 1's
+      expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
+      // And player 2's name should be unchanged.
+      expect(app2.gameState.players[1]!.name).toBe(app1.gameState.players[1]!.name)
+    })
 
-  it('should sync player name changes after the first turn', async () => {
-    // Player 1's environment
-    const browser1 = new TestBrowser()
-    const app1 = new App(browser1)
-    await app1.init()
-    const originalPlayer1Name = app1.gameState.players[0]!.name
+    it('should sync player name changes after the first turn', async () => {
+      // Player 1's environment
+      const browser1 = new TestBrowser()
+      const app1 = new App(browser1)
+      await app1.init()
+      const originalPlayer1Name = app1.gameState.players[0]!.name
 
-    // Player 2's environment
-    const browser2 = new TestBrowser()
-    const app2 = new App(browser2)
-    await app2.init()
+      // Player 2's environment
+      const browser2 = new TestBrowser()
+      const app2 = new App(browser2)
+      await app2.init()
 
-    // Player 1 takes their first turn
-    await app1.gameState.passOrExchange()
-    const player1Hash1 = browser1.getHash()
-    expect(player1Hash1).toEqual('#' + new URLSearchParams([
-      ['gid', app1.gameState.gameId],
-      ['v', '0'],
-      ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
-      ['tn', '1'],
-      ['ex', ''],
-    ]))
+      // Player 1 takes their first turn
+      await app1.gameState.passOrExchange()
+      const player1Hash1 = browser1.getHash()
+      expect(player1Hash1).toEqual('#' + new URLSearchParams([
+        ['gid', app1.gameState.gameId],
+        ['v', '0'],
+        ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
+        ['tn', '1'],
+        ['ex', ''],
+      ]))
 
-    // Player 2 syncs with Player 1
-    browser2.setHash(player1Hash1.substring(1))
-    await new Promise(resolve => setTimeout(resolve, 0));
+      // Player 2 syncs with Player 1
+      browser2.setHash(player1Hash1.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-    // At this point, Player 2 should see the original name
-    expect(app2.gameState.players[0]!.name).toBe(originalPlayer1Name)
+      // At this point, Player 2 should see the original name
+      expect(app2.gameState.players[0]!.name).toBe(originalPlayer1Name)
 
-    // Now, Player 1 changes their name. This happens while it is Player 2's turn.
-    const newPlayer1Name = 'Dame Judi'
-    app1.gameState.changePlayerName('1', newPlayer1Name)
+      // Now, Player 1 changes their name. This happens while it is Player 2's turn.
+      const newPlayer1Name = 'Dame Judi'
+      app1.gameState.changePlayerName('1', newPlayer1Name)
 
-    // Player 2 takes their turn
-    await app2.gameState.passOrExchange()
-    const player2Hash = browser2.getHash()
+      // Player 2 takes their turn
+      await app2.gameState.passOrExchange()
+      const player2Hash = browser2.getHash()
 
-    // Player 1 syncs with Player 2's turn
-    browser1.setHash(player2Hash.substring(1))
-    await new Promise(resolve => setTimeout(resolve, 0));
+      // Player 1 syncs with Player 2's turn
+      browser1.setHash(player2Hash.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-    // Now it's Player 1's turn again. Player 1 passes.
-    // The pending name change will be included in this turn.
-    await app1.gameState.passOrExchange()
-    const player1Hash2 = browser1.getHash()
-    expect(player1Hash2).toEqual('#' + new URLSearchParams([
-      ['gid', app1.gameState.gameId],
-      ['tn', '3'],
-      ['ex', ''],
-      ['p1n', 'Dame Judi'],
-    ]))
+      // Now it's Player 1's turn again. Player 1 passes.
+      // The pending name change will be included in this turn.
+      await app1.gameState.passOrExchange()
+      const player1Hash2 = browser1.getHash()
+      expect(player1Hash2).toEqual('#' + new URLSearchParams([
+        ['gid', app1.gameState.gameId],
+        ['tn', '3'],
+        ['ex', ''],
+        ['p1n', 'Dame Judi'],
+      ]))
 
-    // Player 2 syncs with Player 1's second turn
-    browser2.setHash(player1Hash2.substring(1))
-    await new Promise(resolve => setTimeout(resolve, 0));
+      // Player 2 syncs with Player 1's second turn
+      browser2.setHash(player1Hash2.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-    // Now, Player 2 should see the new name
-    expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
+      // Now, Player 2 should see the new name
+      expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
+    })
+
+    it.skip('should sync player name changes after a reload', async () => {
+      // Player 1's environment
+      const browser1 = new TestBrowser()
+      const originalApp1 = new App(browser1)
+      await originalApp1.init()
+      const originalPlayer1Name = originalApp1.gameState.players[0]!.name
+
+      // Player 2's environment
+      const browser2 = new TestBrowser()
+      const app2 = new App(browser2)
+      await app2.init()
+
+      // Player 1 takes their first turn
+      await originalApp1.gameState.passOrExchange()
+      const player1Hash1 = browser1.getHash()
+
+      // Player 2 syncs with Player 1
+      browser2.setHash(player1Hash1.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // At this point, Player 2 should see the original name
+      expect(app2.gameState.players[0]!.name).toBe(originalPlayer1Name)
+
+      // Now, Player 1 changes their name. This happens while it is Player 2's turn.
+      const newPlayer1Name = 'Dame Judi'
+      originalApp1.gameState.changePlayerName('1', newPlayer1Name)
+
+      // Player 2 takes their turn
+      await app2.gameState.passOrExchange()
+      const player2Hash = browser2.getHash()
+
+      // Player 1 syncs with Player 2's turn
+      browser1.setHash(player2Hash.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Player 1 reloads the page.
+      const reloadedApp1 = new App(browser1)
+      await reloadedApp1.init()
+
+      // Now it's Player 1's turn again. Player 1 passes.
+      // The pending name change will be included in this turn.
+      await reloadedApp1.gameState.passOrExchange()
+      const player1Hash2 = browser1.getHash()
+      expect(player1Hash2).toEqual('#' + new URLSearchParams([
+        ['gid', reloadedApp1.gameState.gameId],
+        ['tn', '3'],
+        ['ex', ''],
+        ['p1n', 'Dame Judi'],
+      ]))
+
+      // Player 2 syncs with Player 1's second turn
+      browser2.setHash(player1Hash2.substring(1))
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Now, Player 2 should see the new name
+      expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
+    })
   })
 })

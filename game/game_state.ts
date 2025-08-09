@@ -22,7 +22,6 @@ import { TileEvent, GameEvent, BoardEvent, BagEvent } from './events.js'
 
 export class GameState extends EventTarget {
   readonly shared: SharedState
-  private pendingExtraParams = new URLSearchParams
   private readonly gameParams: URLSearchParams
 
   constructor(
@@ -37,6 +36,7 @@ export class GameState extends EventTarget {
      * made by each player except the player whose turn it is.
      */
     readonly history = [] as Array<TurnData>,
+    private pendingExtraParams = new URLSearchParams,
   ) {
     super()
     if (!shared) {
@@ -651,6 +651,7 @@ export class GameState extends EventTarget {
         return json
       }),
       history: this.history,
+      pendingExtraParams: this.pendingExtraParams.toString(),
     }
   }
 
@@ -661,7 +662,7 @@ export class GameState extends EventTarget {
     if (typeof json !== 'object') fail('Not an object')
     if (!arraysEqual(
       [...Object.keys(json)],
-      ['shared', 'playerId', 'keepAllHistory', 'tilesHeld', 'history']
+      ['shared', 'playerId', 'keepAllHistory', 'tilesHeld', 'history', 'pendingExtraParams']
     )) {
       fail('Wrong keys or key order')
     }
@@ -669,6 +670,7 @@ export class GameState extends EventTarget {
     if (typeof json.keepAllHistory !== 'boolean') fail('keepAllHistory is not a boolean')
     if (!Array.isArray(json.tilesHeld)) fail('tilesHeld is not an array')
     if (!Array.isArray(json.history)) fail('History is not an array')
+    if (typeof json.pendingExtraParams !== 'string') fail('pendingExtraParams is not a string')
 
     const tilesHeld = json.tilesHeld.map((tileJson: any) => {
       if (typeof tileJson !== 'object') fail('tilesHeld element is not an object')
@@ -704,6 +706,7 @@ export class GameState extends EventTarget {
       SharedState.fromJSON(json.shared),
       tilesHeld,
       json.history,
+      new URLSearchParams(json.pendingExtraParams),
     )
     await gameState.init()
     return gameState
