@@ -317,9 +317,9 @@ export class View {
 
       const playerInputs = Array.from(this.playerList.querySelectorAll('input'));
       const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
-      if (playerNames.length > 0) {
-        params.set('p', playerNames.join(','));
-      }
+      playerNames.map((name, index) => {
+        params.set(`p${index + 1}n`, name)
+      })
 
       const dictionaryType = this.dictionaryType.value;
       params.set('dt', dictionaryType);
