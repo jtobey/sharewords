@@ -76,6 +76,10 @@ export class TestBrowser implements Browser {
     this.hash = hash
   }
 
+  reload() {
+    this.reset(this.hash)
+  }
+
   getHash(): string {
     return this.hash;
   }

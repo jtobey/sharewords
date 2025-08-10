@@ -1,4 +1,7 @@
 export interface Browser {
+  // Reloads the page.
+  reload(): void;
+
   // Returns the part of the URL after the #
   getHash(): string;
 
@@ -40,6 +43,11 @@ export interface Browser {
 }
 
 export class DomBrowser implements Browser {
+  reload(): void {
+    console.log(`Reloading: ${window.location}`)
+    window.location.reload()
+  }
+
   getHash(): string {
     return window.location.hash;
   }

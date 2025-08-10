@@ -334,9 +334,8 @@ export class View {
       params.set('bingo', this.bingoBonus.value);
       params.set('seed', this.randomSeed.value || String(Math.floor(1000000 * this.browser.getRandom())));
 
-      const newUrl = new URL(this.browser.getHref());
-      newUrl.hash = params.toString();
-      this.browser.setLocation(newUrl.toString());
+      this.browser.setHash(params.toString())
+      this.browser.reload()
     });
 
     this.cancelSettingsButton.addEventListener('click', () => {
