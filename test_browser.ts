@@ -7,6 +7,7 @@ export class TestBrowser implements Browser {
   private storage: Map<string, string> = new Map();
   private hashChangeListeners: (() => void)[] = [];
   public clipboard: string = '';
+  public location: string = '';
 
   constructor() {
     this.window = new Window();
@@ -32,6 +33,38 @@ export class TestBrowser implements Browser {
             <button id="pass-exchange"></button>
             <button id="recall-tiles"></button>
             <button id="game-setup"></button>
+          </div>
+          <div id="settings-dialog" hidden>
+            <div class="content">
+              <div class="settings-group">
+                <h3>Players</h3>
+                <div id="player-list"></div>
+                <button id="add-player-button">+</button>
+              </div>
+              <div class="settings-group">
+                <h3>Dictionary</h3>
+                <select id="dictionary-type">
+                  <option value="permissive">Anything is a word</option>
+                  <option value="freeapi">freeapi</option>
+                  <option value="custom">custom</option>
+                </select>
+                <div id="dictionary-url-container" hidden>
+                  <label>URL: <input type="text" id="dictionary-url" placeholder="URL"></label>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h3>Bingo Bonus</h3>
+                <input type="number" id="bingo-bonus">
+              </div>
+              <div class="settings-group">
+                <h3>Random Seed</h3>
+                <input type="text" id="random-seed">
+              </div>
+            </div>
+            <div class="buttons">
+              <button id="start-game-with-settings">Start Game with Settings</button>
+              <button id="cancel-settings">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -95,5 +128,11 @@ export class TestBrowser implements Browser {
 
   addPasteListener(listener: (text: string) => void): void {
     // Do nothing in tests for now.
+  }
+
+  setLocation(url: string): void {
+    this.location = url;
+    const u = new URL(url);
+    this.setHash(u.hash);
   }
 }

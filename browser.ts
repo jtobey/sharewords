@@ -34,6 +34,9 @@ export interface Browser {
 
   // Adds a listener for paste events.
   addPasteListener(listener: (text: string) => void): void;
+
+  // Navigates to a new URL.
+  setLocation(url: string): void;
 }
 
 export class DomBrowser implements Browser {
@@ -88,5 +91,9 @@ export class DomBrowser implements Browser {
         listener(text);
       }
     });
+  }
+
+  setLocation(url: string): void {
+    window.location.href = url;
   }
 }

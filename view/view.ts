@@ -14,7 +14,19 @@ export class View {
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
   private doc: Document
   private browser: Browser
-  settingsDialog: HTMLElement | null = null
+
+  // Settings Dialog elements
+  private settingsDialog: HTMLElement
+  private playerList: HTMLElement
+  private addPlayerButton: HTMLButtonElement
+  private dictionaryType: HTMLSelectElement
+  private dictionaryUrlContainer: HTMLElement
+  private dictionaryUrl: HTMLInputElement
+  private bingoBonus: HTMLInputElement
+  private randomSeed: HTMLInputElement
+  private startGameButton: HTMLButtonElement
+  private cancelSettingsButton: HTMLButtonElement
+
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState
@@ -26,7 +38,20 @@ export class View {
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
     this.scorePanel = this.gameContainer.querySelector<HTMLElement>('#score-panel')!
     this.bagTileCountContainer = this.gameContainer.querySelector<HTMLElement>('#bag-tile-count-container')!
+
+    this.settingsDialog = this.doc.getElementById('settings-dialog')!
+    this.playerList = this.doc.getElementById('player-list')!
+    this.addPlayerButton = this.doc.getElementById('add-player-button')! as HTMLButtonElement
+    this.dictionaryType = this.doc.getElementById('dictionary-type')! as HTMLSelectElement
+    this.dictionaryUrlContainer = this.doc.getElementById('dictionary-url-container')!
+    this.dictionaryUrl = this.doc.getElementById('dictionary-url')! as HTMLInputElement
+    this.bingoBonus = this.doc.getElementById('bingo-bonus')! as HTMLInputElement
+    this.randomSeed = this.doc.getElementById('random-seed')! as HTMLInputElement
+    this.startGameButton = this.doc.getElementById('start-game-with-settings')! as HTMLButtonElement
+    this.cancelSettingsButton = this.doc.getElementById('cancel-settings')! as HTMLButtonElement
+
     this.gameState.addEventListener('turnchange', () => this.renderScores())
+    this._bindSettingsDialogEvents();
   }
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
@@ -278,198 +303,106 @@ export class View {
     };
   }
 
-  showSettingsDialog() {
-    if (this.settingsDialog) {
-      this.settingsDialog.remove();
-      this.settingsDialog = null;
-      return;
-    }
-
-    const dialog = this.doc.createElement('div');
-    dialog.id = 'settings-dialog';
-
-    const content = this.doc.createElement('div');
-    content.className = 'content';
-
-    // Players
-    const playersContainer = this.doc.createElement('div');
-    playersContainer.className = 'settings-group';
-    const playersHeader = this.doc.createElement('h3');
-    playersHeader.textContent = 'Players';
-    playersContainer.appendChild(playersHeader);
-
-    const playerList = this.doc.createElement('div');
-    playerList.id = 'player-list';
-
-    const updatePlayerList = (players: {name: string}[]) => {
-      playerList.innerHTML = '';
-      players.forEach((player, index) => {
-        const playerEntry = this.doc.createElement('div');
-        playerEntry.className = 'player-entry';
-        const input = this.doc.createElement('input');
-        input.type = 'text';
-        input.value = player.name;
-        input.placeholder = `Player ${index + 1}`;
-        playerEntry.appendChild(input);
-
-        const removeButton = this.doc.createElement('button');
-        removeButton.textContent = '-';
-        removeButton.onclick = () => {
-          const currentPlayers = Array.from(playerList.querySelectorAll('input')).map(i => ({name: i.value}));
-          currentPlayers.splice(index, 1);
-          updatePlayerList(currentPlayers);
-        };
-        playerEntry.appendChild(removeButton);
-        playerList.appendChild(playerEntry);
-      });
-    };
-
-    updatePlayerList(this.gameState.players.map(p => ({name: p.name})));
-
-    const addButton = this.doc.createElement('button');
-    addButton.textContent = '+';
-    addButton.onclick = () => {
-      const currentPlayers = Array.from(playerList.querySelectorAll('input')).map(i => ({name: i.value}));
+  private _bindSettingsDialogEvents() {
+    this.addPlayerButton.addEventListener('click', () => {
+      const currentPlayers = Array.from(this.playerList.querySelectorAll('input')).map(i => ({name: i.value}));
       currentPlayers.push({name: ''});
-      updatePlayerList(currentPlayers);
-    };
-
-    playersContainer.appendChild(playerList);
-    playersContainer.appendChild(addButton);
-    content.appendChild(playersContainer);
-
-    // Dictionary
-    const dictionaryContainer = this.doc.createElement('div');
-    dictionaryContainer.className = 'settings-group';
-    const dictionaryHeader = this.doc.createElement('h3');
-    dictionaryHeader.textContent = 'Dictionary';
-    dictionaryContainer.appendChild(dictionaryHeader);
-
-    const dictOptions = [
-      { value: 'permissive', text: 'Anything is a word' },
-      { value: 'freeapi', text: 'freeapi' },
-      { value: 'custom', text: 'custom' },
-    ];
-
-    const urlInputContainer = this.doc.createElement('div');
-    urlInputContainer.style.display = 'none';
-    const urlInput = this.doc.createElement('input');
-    urlInput.type = 'text';
-    urlInput.id = 'dictionary-url';
-    urlInput.placeholder = 'URL';
-    const urlLabel = this.doc.createElement('label');
-    urlLabel.textContent = 'URL: ';
-    urlInputContainer.appendChild(urlLabel);
-    urlInputContainer.appendChild(urlInput);
-
-    const dictSelect = this.doc.createElement('select');
-    dictSelect.id = 'dictionary-type';
-
-    dictOptions.forEach(opt => {
-      const option = this.doc.createElement('option');
-      option.value = opt.value;
-      option.textContent = opt.text;
-      if (this.gameState.settings.dictionaryType === opt.value) {
-        option.selected = true;
-      }
-      dictSelect.appendChild(option);
+      this._updatePlayerList(currentPlayers);
     });
 
-    dictionaryContainer.appendChild(dictSelect);
+    this.dictionaryType.addEventListener('change', () => this._handleDictChange());
 
-    const handleDictChange = () => {
-      const selectedValue = dictSelect.value;
-      if (selectedValue === 'freeapi' || selectedValue === 'custom') {
-        urlInputContainer.style.display = 'block';
-        urlInput.required = selectedValue === 'custom';
-      } else {
-        urlInputContainer.style.display = 'none';
-      }
-    };
-
-    dictSelect.addEventListener('change', handleDictChange);
-
-    dictionaryContainer.appendChild(urlInputContainer);
-    content.appendChild(dictionaryContainer);
-
-    // Trigger change on initial load to set URL visibility
-    handleDictChange();
-    if (this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings === 'object' && 'url' in this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings.url === 'string') {
-      urlInput.value = this.gameState.settings.dictionarySettings.url;
-    }
-
-    // Bingo Bonus
-    const bingoContainer = this.doc.createElement('div');
-    bingoContainer.className = 'settings-group';
-    const bingoHeader = this.doc.createElement('h3');
-    bingoHeader.textContent = 'Bingo Bonus';
-    bingoContainer.appendChild(bingoHeader);
-    const bingoInput = this.doc.createElement('input');
-    bingoInput.type = 'number';
-    bingoInput.id = 'bingo-bonus';
-    bingoInput.value = String(this.gameState.settings.bingoBonus);
-    bingoContainer.appendChild(bingoInput);
-    content.appendChild(bingoContainer);
-
-    // Seed
-    const seedContainer = this.doc.createElement('div');
-    seedContainer.className = 'settings-group';
-    const seedHeader = this.doc.createElement('h3');
-    seedHeader.textContent = 'Random Seed';
-    seedContainer.appendChild(seedHeader);
-    const seedInput = this.doc.createElement('input');
-    seedInput.type = 'text';
-    seedInput.id = 'random-seed';
-    seedInput.value = this.gameState.settings.tileSystemSettings.seed;
-    seedContainer.appendChild(seedInput);
-    content.appendChild(seedContainer);
-
-    dialog.appendChild(content);
-
-    // Buttons
-    const buttonsContainer = this.doc.createElement('div');
-    buttonsContainer.className = 'buttons';
-    const startButton = this.doc.createElement('button');
-    startButton.id = 'start-game-with-settings';
-    startButton.textContent = 'Start Game with Settings';
-    startButton.addEventListener('click', () => {
+    this.startGameButton.addEventListener('click', () => {
       const params = new URLSearchParams();
 
-      // Players
-      const playerInputs = Array.from(playerList.querySelectorAll('input'));
+      const playerInputs = Array.from(this.playerList.querySelectorAll('input'));
       const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
       if (playerNames.length > 0) {
         params.set('p', playerNames.join(','));
       }
 
-      // Dictionary
-      const dictionaryType = (this.doc.getElementById('dictionary-type') as HTMLSelectElement).value;
+      const dictionaryType = this.dictionaryType.value;
       params.set('dt', dictionaryType);
 
       if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-        const url = (this.doc.getElementById('dictionary-url') as HTMLInputElement).value;
+        const url = this.dictionaryUrl.value;
         if (url) {
           params.set('ds', url);
         }
       }
 
-      // Bingo bonus
-      const bingoBonus = (this.doc.getElementById('bingo-bonus') as HTMLInputElement).value;
-      params.set('bingo', bingoBonus);
+      params.set('bingo', this.bingoBonus.value);
+      params.set('seed', this.randomSeed.value || String(Math.floor(1000000 * this.browser.getRandom())));
 
-      // Seed for new game
-      const seed = (this.doc.getElementById('random-seed') as HTMLInputElement).value;
-      params.set('seed', seed || String(Math.floor(1000000 * this.browser.getRandom())));
-
-      this.browser.setHash(params.toString());
-
-      // Close the dialog
-      this.showSettingsDialog();
+      const newUrl = new URL(this.browser.getHref());
+      newUrl.hash = params.toString();
+      this.browser.setLocation(newUrl.toString());
     });
-    buttonsContainer.appendChild(startButton);
-    dialog.appendChild(buttonsContainer);
 
-    this.settingsDialog = dialog;
-    this.gameContainer.querySelector('#controls-container')!.appendChild(dialog);
+    this.cancelSettingsButton.addEventListener('click', () => {
+      this.settingsDialog.hidden = true;
+    });
+  }
+
+  private _updatePlayerList(players: {name: string}[]) {
+    this.playerList.innerHTML = '';
+    players.forEach((player, index) => {
+      const playerEntry = this.doc.createElement('div');
+      playerEntry.className = 'player-entry';
+      const input = this.doc.createElement('input');
+      input.type = 'text';
+      input.value = player.name;
+      input.placeholder = `Player ${index + 1}`;
+      playerEntry.appendChild(input);
+
+      const removeButton = this.doc.createElement('button');
+      removeButton.textContent = '-';
+      removeButton.onclick = () => {
+        const currentPlayers = Array.from(this.playerList.querySelectorAll('input')).map(i => ({name: i.value}));
+        currentPlayers.splice(index, 1);
+        this._updatePlayerList(currentPlayers);
+      };
+      playerEntry.appendChild(removeButton);
+      this.playerList.appendChild(playerEntry);
+    });
+  }
+
+  private _handleDictChange() {
+    const selectedValue = this.dictionaryType.value;
+    if (selectedValue === 'freeapi' || selectedValue === 'custom') {
+      this.dictionaryUrlContainer.hidden = false;
+      this.dictionaryUrl.required = selectedValue === 'custom';
+    } else {
+      this.dictionaryUrlContainer.hidden = true;
+    }
+  }
+
+  private _populateSettingsDialog() {
+    // Players
+    this._updatePlayerList(this.gameState.players.map(p => ({name: p.name})));
+
+    // Dictionary
+    this.dictionaryType.value = this.gameState.settings.dictionaryType;
+    this._handleDictChange();
+    if (this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings === 'object' && 'url' in this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings.url === 'string') {
+      this.dictionaryUrl.value = this.gameState.settings.dictionarySettings.url;
+    } else {
+      this.dictionaryUrl.value = '';
+    }
+
+    // Bingo Bonus
+    this.bingoBonus.value = String(this.gameState.settings.bingoBonus);
+
+    // Seed
+    this.randomSeed.value = this.gameState.settings.tileSystemSettings.seed;
+  }
+
+  showSettingsDialog() {
+    if (this.settingsDialog.hidden) {
+      this._populateSettingsDialog();
+      this.settingsDialog.hidden = false;
+    } else {
+      this.settingsDialog.hidden = true;
+    }
   }
 }
