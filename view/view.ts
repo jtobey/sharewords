@@ -58,7 +58,7 @@ export class View {
     element.textContent = ''
     const letterDiv = this.doc.createElement('div')
     letterDiv.className = 'letter'
-    letterDiv.textContent = (tile.isBlank && !assignedLetter) ? '?' : (assignedLetter || tile.letter)
+    letterDiv.textContent = assignedLetter || tile.letter || '?'
     element.appendChild(letterDiv)
     if (!tile.isBlank) {
       const valueDiv = this.doc.createElement('div')
