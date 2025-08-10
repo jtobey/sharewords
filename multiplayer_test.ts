@@ -202,7 +202,7 @@ describe('multi-player', () => {
       expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
     })
 
-    it.skip('should sync player name changes after a reload', async () => {
+    it('should sync player name changes after a reload', async () => {
       // Player 1's environment
       const browser1 = new TestBrowser()
       const originalApp1 = new App(browser1)
@@ -238,6 +238,7 @@ describe('multi-player', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Player 1 reloads the page.
+      browser1.reset(browser1.getHash())
       const reloadedApp1 = new App(browser1)
       await reloadedApp1.init()
 

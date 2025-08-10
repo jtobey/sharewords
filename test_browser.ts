@@ -38,6 +38,11 @@ export class TestBrowser implements Browser {
     `
   }
 
+  reset(hash: string) {
+    this.hashChangeListeners.length = 0
+    this.hash = hash
+  }
+
   getHash(): string {
     return this.hash;
   }
