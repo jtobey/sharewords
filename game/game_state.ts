@@ -259,6 +259,26 @@ export class GameState extends EventTarget {
     return { success: true, placement, toRow, toCol, pushDirection, toPush }
   }
 
+  /** Moves all uncommitted tiles back to the rack. */
+  recallTiles() {
+    const placedTiles = this.tilesHeld.filter(p => p.row !== 'rack')
+    const occupiedRackSpots = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
+    let nextFreeSpot = 0
+    for (const placement of placedTiles) {
+      // Find the next empty spot on the rack.
+      while (occupiedRackSpots.has(nextFreeSpot)) {
+        ++nextFreeSpot
+      }
+      if (nextFreeSpot >= this.settings.rackCapacity) {
+        // Should not happen
+        console.error('No space in rack to recall tile.')
+        break
+      }
+      this.moveTile(placement.row, placement.col, 'rack', nextFreeSpot)
+      ++nextFreeSpot
+    }
+  }
+
   /**
    * Forms a `playTiles` turn from the `heldTiles` currently on the board.
    * Passes the resulting `Turn` to `playTurns`.
@@ -288,25 +308,6 @@ export class GameState extends EventTarget {
     turn.extraParams = this.pendingExtraParams
     this.pendingExtraParams = new URLSearchParams
     await this.playTurns(turn)
-  }
-
-  recallTiles() {
-    const placedTiles = this.tilesHeld.filter(p => p.row !== 'rack')
-    const occupiedRackSpots = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
-    let nextFreeSpot = 0
-    for (const placement of placedTiles) {
-      // Find the next empty spot on the rack.
-      while (occupiedRackSpots.has(nextFreeSpot)) {
-        ++nextFreeSpot
-      }
-      if (nextFreeSpot >= this.settings.rackCapacity) {
-        // Should not happen
-        console.error('No space in rack to recall tile.')
-        break
-      }
-      this.moveTile(placement.row, placement.col, 'rack', nextFreeSpot)
-      ++nextFreeSpot
-    }
   }
 
   /**
@@ -408,7 +409,7 @@ export class GameState extends EventTarget {
     let wordPlayed: string | null = null
     let exchangeIndicesStr: string | null = null
     const processPendingMoveIfAny = () => {
-      const playerId = this.players[(urlTurnNumber - 1) % this.players.length]!.id
+      const playerId = this.getPlayerForTurnNumber(toTurnNumber(urlTurnNumber)).id
       if (wordPlayed && direction && wordLocationStr) {
         if (exchangeIndicesStr) {
           throw new Error(`URL contains both word and exchange data for turn ${urlTurnNumber}`)
@@ -519,7 +520,6 @@ export class GameState extends EventTarget {
     }
     // We are out of turn params.
     processPendingMoveIfAny()
-    this.dispatchEvent(new GameEvent('turnchange'))
     await this.playTurns(...turns)
   }
 
@@ -650,7 +650,9 @@ export class GameState extends EventTarget {
         if (placement.assignedLetter) json.assignedLetter = placement.assignedLetter
         return json
       }),
-      history: this.history,
+      history: this.history.map(turnData => {
+        return {turnNumber: turnData.turnNumber, params: turnData.paramsStr}
+      }),
       pendingExtraParams: this.pendingExtraParams.toString(),
     }
   }
@@ -683,7 +685,7 @@ export class GameState extends EventTarget {
       if (typeof tileJson.row !== 'number' && tileJson.row !== 'rack' && tileJson.row !== 'exchange') {
         fail('Invalid tilesHeld[].row')
       }
-      if (typeof tileJson.col !== 'number') fail ('Invalid tilesHeld[].col')
+      if (typeof tileJson.col !== 'number') fail('Invalid tilesHeld[].col')
       if (tileJson.assignedLetter !== undefined && typeof tileJson.assignedLetter !== 'string') {
         fail('Invalid tilesHeld[].assignedLetter')
       }
@@ -697,7 +699,14 @@ export class GameState extends EventTarget {
       if (tileJson.assignedLetter) result.assignedLetter = tileJson.assignedLetter
       return result
     })
-    // TODO - Check json.history element types.
+    const history = json.history.map((turnDataJson: any) => {
+      if (!arraysEqual([...Object.keys(turnDataJson)], ['turnNumber', 'params'])) {
+        fail('Wrong history element keys or key order')
+      }
+      if (typeof turnDataJson.turnNumber !== 'number') fail('turnNumber is not a number')
+      if (typeof turnDataJson.params !== 'string') fail('params is not a string')
+      return {turnNumber: toTurnNumber(turnDataJson.turnNumber), paramsStr: turnDataJson.params}
+    })
 
     const gameState = new GameState(
       json.playerId,
@@ -705,7 +714,7 @@ export class GameState extends EventTarget {
       json.keepAllHistory,
       SharedState.fromJSON(json.shared),
       tilesHeld,
-      json.history,
+      history,
       new URLSearchParams(json.pendingExtraParams),
     )
     await gameState.init()

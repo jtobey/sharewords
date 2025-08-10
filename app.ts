@@ -36,20 +36,24 @@ export class App {
       const gameId = gidParam ? toGameId(gidParam) : makeGameId();
 
       if (this.gameState?.gameId === gameId) {
-        await this.gameState.applyTurnParams(params);
+        const hash = this.browser.getHash()?.substring(1)
+        const paramsStr = this.gameState.turnUrlParams.toString()
+        if (hash !== paramsStr) {
+          await this.gameState.applyTurnParams(params);
+        }
         return;
       }
 
       const savedGame = gidParam && this.browser.getLocalStorageItem(`sharewords_${gidParam}`);
       if (savedGame) {
-        console.log(`Loaded ${gameId} from local storage${this.gameState ? ' and switched from ' + this.gameState.gameId + ' to it' : ''}.`)
+        console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
         this.gameState = await GameState.fromJSON(JSON.parse(savedGame));
       } else {
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         this.gameState = await GameState.fromParams(params);
+        this.saveGameState();
       }
 
-      this.saveGameState();
       this.updateUrl();
 
       this.view = new View(this.gameState, this.browser);

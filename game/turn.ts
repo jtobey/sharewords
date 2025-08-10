@@ -53,8 +53,9 @@ export function updateTurnHistory({
       // `gameState.shared.playTurns` must have returned early.
       break
     }
-    if (history.length && fromTurnNumber(turn.turnNumber) <= fromTurnNumber(history.slice(-1)[0]!.turnNumber)) {
-      continue
+    if (history.length) {
+      const latestTurnNumber = fromTurnNumber(history.slice(-1)[0]!.turnNumber)
+      if (fromTurnNumber(turn.turnNumber) <= latestTurnNumber) continue
     }
     const params = new URLSearchParams
     const addExtra = () => {
@@ -76,9 +77,7 @@ export function updateTurnHistory({
     }
     history.push({turnNumber: turn.turnNumber, paramsStr: String(params)})
     wroteHistory = true
-    if (turn.turnNumber === finalTurnNumber) {
-      return {wroteHistory}
-    }
+    if (turn.turnNumber === finalTurnNumber) break
   }
   return {wroteHistory}
 }
