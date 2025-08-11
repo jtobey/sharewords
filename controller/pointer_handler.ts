@@ -26,8 +26,8 @@ export class PointerHandler {
 
   private updateTransform() {
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-    const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
-    const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
+    const maxPanX = this.scale * boardRect.width - boardRect.width
+    const maxPanY = this.scale * boardRect.height - boardRect.height
     this.panX = Math.max(-maxPanX, Math.min(0, this.panX))
     this.panY = Math.max(-maxPanY, Math.min(0, this.panY))
 
