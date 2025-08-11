@@ -17,7 +17,6 @@ export class View {
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
   private doc: Document
   private browser: Browser
-  private logContainer: HTMLElement | null = null
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState
@@ -300,17 +299,5 @@ export class View {
 
   getBoardContainer(): HTMLElement {
     return this.boardContainer;
-  }
-
-  log(message: string) {
-    if (!this.logContainer) {
-      this.logContainer = this.doc.createElement('div')
-      this.logContainer.id = 'log-container'
-      this.doc.body.appendChild(this.logContainer)
-    }
-    const line = this.doc.createElement('div')
-    line.textContent = message
-    this.logContainer.appendChild(line)
-    this.logContainer.scrollTop = this.logContainer.scrollHeight
   }
 }

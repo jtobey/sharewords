@@ -1,4 +1,3 @@
-import type { App } from '../app.js'
 import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
@@ -6,7 +5,6 @@ import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 export class PointerHandler {
   private gameState: GameState
   private view: View
-  private app: App
   private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
   private ghostTile: HTMLElement | null = null
 
@@ -18,16 +16,13 @@ export class PointerHandler {
   private isPanning = false
   private lastTap = 0
   private pointerMoved = false
-  private downTs = 0
 
-  constructor(gameState: GameState, view: View, app: App) {
+  constructor(gameState: GameState, view: View) {
     this.gameState = gameState
     this.view = view
-    this.app = app
   }
 
   private updateTransform() {
-    this.app.log(`updateTransform: scale=${this.scale.toFixed(2)}, panX=${this.panX.toFixed(2)}, panY=${this.panY.toFixed(2)}`)
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
     const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
     const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
@@ -38,13 +33,10 @@ export class PointerHandler {
   }
 
   public pointerCancel(evt: PointerEvent) {
-    this.app.log('pointercancel')
     this.isPanning = false
   }
 
   pointerDown(evt: PointerEvent) {
-    this.downTs = Date.now()
-    this.app.log(`pointerdown: button=${evt.button}`)
     if (evt.button !== 0) return
 
     const target = evt.target as HTMLElement
@@ -60,13 +52,11 @@ export class PointerHandler {
     const tileTarget = target.closest('.tile, .placed')
 
     if (tileTarget instanceof HTMLElement) {
-      this.app.log('pointerdown: tile target found')
       const col = parseInt(tileTarget.dataset.col!, 10)
       const rowStr = tileTarget.dataset.row!
       const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
       this.draggingTile = { row, col, element: tileTarget }
     } else if (isBoardInteraction) {
-      this.app.log('pointerdown: starting pan')
       this.isPanning = true
       this.panStart.x = evt.clientX - this.panX
       this.panStart.y = evt.clientY - this.panY
@@ -77,9 +67,8 @@ export class PointerHandler {
     const prevX = evt.clientX
     const prevY = evt.clientY
 
-    if (Math.hypot(evt.clientX - prevX, evt.clientY - prevY) > 5 && !this.pointerMoved) {
+    if (Math.hypot(evt.clientX - prevX, evt.clientY - prevY) > 5) {
       this.pointerMoved = true
-      this.app.log(`pointermove: moved > 5px. downTs=${this.downTs}`)
     }
 
     if (this.isPanning || this.draggingTile) {
@@ -94,7 +83,6 @@ export class PointerHandler {
       }
     } else if (this.draggingTile && this.pointerMoved) {
       if (!this.ghostTile) {
-        this.app.log('pointermove: creating ghost tile')
         this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
         this.draggingTile.element.classList.add('dragging')
       }
@@ -120,10 +108,8 @@ export class PointerHandler {
   }
 
   pointerUp(evt: PointerEvent) {
-    this.app.log(`pointerup: moved=${this.pointerMoved}, isPanning=${this.isPanning}, ghost=${!!this.ghostTile}, downTs=${this.downTs}`)
     const target = evt.target as HTMLElement
     if (this.ghostTile) { // It was a drag
-      this.app.log('pointerup: drop')
       const dropTarget = this.view.getDropTarget()
       if (dropTarget) {
         try {
@@ -151,9 +137,7 @@ export class PointerHandler {
       this.draggingTile!.element.classList.remove('dragging')
     } else if (target.closest('#board-container') && !this.pointerMoved) {
       const now = Date.now()
-      this.app.log(`pointerup: tap detected. delta=${now - this.lastTap}`)
       if (now - this.lastTap < 300) { // Double tap
-        this.app.log('pointerup: double tap detected')
         if (this.scale > 1) {
           this.scale = 1
           this.panX = 0

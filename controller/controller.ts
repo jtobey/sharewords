@@ -1,4 +1,3 @@
-import type { App } from '../app.js'
 import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
@@ -14,12 +13,12 @@ export class Controller {
   keyHandler: KeyHandler
   private pointerHandler: PointerHandler
 
-  constructor(gameState: GameState, view: View, browser: Browser, app: App) {
+  constructor(gameState: GameState, view: View, browser: Browser) {
     this.gameState = gameState
     this.view = view
     this.browser = browser
     this.keyHandler = new KeyHandler(gameState, view)
-    this.pointerHandler = new PointerHandler(gameState, view, app)
+    this.pointerHandler = new PointerHandler(gameState, view)
     this.attachEventListeners()
   }
 
