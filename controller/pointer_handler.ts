@@ -26,8 +26,8 @@ export class PointerHandler {
 
   private updateTransform() {
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-    const maxPanX = this.scale * boardRect.width - boardRect.width
-    const maxPanY = this.scale * boardRect.height - boardRect.height
+    const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
+    const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
     this.panX = Math.max(-maxPanX, Math.min(0, this.panX))
     this.panY = Math.max(-maxPanY, Math.min(0, this.panY))
 
@@ -147,8 +147,8 @@ export class PointerHandler {
           const boardRect = this.view.getBoardContainer().getBoundingClientRect()
           const boardX = evt.clientX - boardRect.left
           const boardY = evt.clientY - boardRect.top
-          this.panX = boardX * (1 - this.scale)
-          this.panY = boardY * (1 - this.scale)
+          this.panX = boardX * (1 - this.scale) / this.scale
+          this.panY = boardY * (1 - this.scale) / this.scale
         }
         this.updateTransform()
       }
