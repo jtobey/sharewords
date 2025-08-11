@@ -57,7 +57,7 @@ export class App {
       this.updateUrl();
 
       this.view = new View(this.gameState, this.browser);
-      this.controller = new Controller(this.gameState, this.view, this.browser);
+      this.controller = new Controller(this.gameState, this.view, this.browser, this);
 
       this.view.renderBoard();
       this.view.renderRack();
@@ -112,6 +112,10 @@ export class App {
     } catch (e) {
       // Not a valid URL, ignore.
     }
+  }
+
+  log(message: string) {
+    this.view.log(message)
   }
 }
 

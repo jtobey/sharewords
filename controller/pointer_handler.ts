@@ -1,3 +1,4 @@
+import type { App } from '../app.js'
 import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
@@ -5,6 +6,7 @@ import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 export class PointerHandler {
   private gameState: GameState
   private view: View
+  private app: App
   private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
   private ghostTile: HTMLElement | null = null
 
@@ -19,17 +21,21 @@ export class PointerHandler {
   private downX = 0
   private downY = 0
 
-  constructor(gameState: GameState, view: View) {
+  constructor(gameState: GameState, view: View, app: App) {
     this.gameState = gameState
     this.view = view
+    this.app = app
   }
 
   private updateTransform() {
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-    const maxPanX = this.scale * boardRect.width - boardRect.width
-    const maxPanY = this.scale * boardRect.height - boardRect.height
-    this.panX = Math.max(-maxPanX, Math.min(0, this.panX))
-    this.panY = Math.max(-maxPanY, Math.min(0, this.panY))
+    const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
+    const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
+    const finalPanX = Math.max(-maxPanX, Math.min(0, this.panX))
+    const finalPanY = Math.max(-maxPanY, Math.min(0, this.panY))
+    this.app.log(`panX after clamp: ${finalPanX.toFixed(2)} (was ${this.panX.toFixed(2)})`)
+    this.panX = finalPanX
+    this.panY = finalPanY
 
     this.view.setBoardTransform(this.scale, this.panX, this.panY)
   }
@@ -147,8 +153,12 @@ export class PointerHandler {
           const boardRect = this.view.getBoardContainer().getBoundingClientRect()
           const boardX = evt.clientX - boardRect.left
           const boardY = evt.clientY - boardRect.top
-          this.panX = boardX * (1 - this.scale)
-          this.panY = boardY * (1 - this.scale)
+          const panX = boardX * (1 - this.scale)
+          const panY = boardY * (1 - this.scale)
+          this.app.log(`boardX=${boardX.toFixed(2)}, clientX=${evt.clientX}, rectLeft=${boardRect.left.toFixed(2)}`)
+          this.app.log(`panX=${panX.toFixed(2)}`)
+          this.panX = panX
+          this.panY = panY
         }
         this.updateTransform()
       }
