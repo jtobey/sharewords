@@ -16,6 +16,8 @@ export class PointerHandler {
   private isPanning = false
   private lastTap = 0
   private pointerMoved = false
+  private downX = 0
+  private downY = 0
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -41,6 +43,8 @@ export class PointerHandler {
 
     const target = evt.target as HTMLElement
     this.pointerMoved = false
+    this.downX = evt.clientX
+    this.downY = evt.clientY
 
     const tileTarget = target.closest('.tile, .placed')
     if (tileTarget instanceof HTMLElement) {
@@ -63,10 +67,7 @@ export class PointerHandler {
   }
 
   pointerMove(evt: PointerEvent) {
-    const prevX = evt.clientX
-    const prevY = evt.clientY
-
-    if (Math.hypot(evt.clientX - prevX, evt.clientY - prevY) > 5) {
+    if (!this.pointerMoved && Math.hypot(evt.clientX - this.downX, evt.clientY - this.downY) > 5) {
       this.pointerMoved = true
     }
 
