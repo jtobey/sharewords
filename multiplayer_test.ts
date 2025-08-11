@@ -51,6 +51,40 @@ describe('multi-player', () => {
     expect(JSON.stringify(app1.gameState.shared)).toEqual(JSON.stringify(app2.gameState.shared))
   })
 
+  it('should allow tab closure between turns', async () => {
+    // Player 1's environment
+    const browser1 = new TestBrowser()
+    const app1 = new App(browser1)
+    await app1.init()
+
+    // Player 2's environment
+    const browser2 = new TestBrowser()
+    const app2 = new App(browser2)
+    // Initially, player 2 has no hash, so they will create their own game.
+    await app2.init()
+
+    // Player 1 passes their turn
+    await app1.gameState.passOrExchange()
+    const player1Hash = browser1.getHash()
+
+    // Player 2 gets the hash from player 1 (e.g. via a chat message)
+    browser2.setHash(player1Hash.substring(1))
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    // Player 2 makes a move
+    await app2.gameState.passOrExchange()
+    const player2Hash = browser2.getHash()
+
+    // Player 1 opens the URL from player 2 in another tab
+    browser1.reset(player2Hash)
+    const reloadedApp1 = new App(browser1)
+    await reloadedApp1.init()
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    // Now, player 1's game state should be synced with player 2's
+    expect(app1.gameState.shared.toJSON()).toEqual(app2.gameState.shared.toJSON())
+  })
+
   it('should handle collisions in pending placements', async () => {
     // Player 1's environment
     const browser1 = new TestBrowser()
