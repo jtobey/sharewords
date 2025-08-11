@@ -42,21 +42,20 @@ export class PointerHandler {
     const target = evt.target as HTMLElement
     this.pointerMoved = false
 
-    let isBoardInteraction = false
-    if (target.closest('#board-container')) {
-      isBoardInteraction = true
+    const tileTarget = target.closest('.tile, .placed')
+    if (tileTarget instanceof HTMLElement) {
       evt.preventDefault()
       evt.stopPropagation()
-    }
-
-    const tileTarget = target.closest('.tile, .placed')
-
-    if (tileTarget instanceof HTMLElement) {
       const col = parseInt(tileTarget.dataset.col!, 10)
       const rowStr = tileTarget.dataset.row!
       const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
       this.draggingTile = { row, col, element: tileTarget }
-    } else if (isBoardInteraction) {
+      return
+    }
+
+    if (target.closest('#board-container')) {
+      evt.preventDefault()
+      evt.stopPropagation()
       this.isPanning = true
       this.panStart.x = evt.clientX - this.panX
       this.panStart.y = evt.clientY - this.panY
