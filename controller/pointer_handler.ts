@@ -16,9 +16,11 @@ export class PointerHandler {
   private pinchStartDistance = 0
   private pinchStartScale = 1
   private panStart = { x: 0, y: 0 }
+  private pinchFixedPoint = { x: 0, y: 0 }
   private isPanning = false
   private isPinching = false
   private lastTap = 0
+  private pointerMoved = false
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -103,8 +105,8 @@ export class PointerHandler {
       this.pinchStartDistance = this.getPointerDistance()
       this.pinchStartScale = this.scale
       const midpoint = this.getPointerMidpoint()
-      this.panStart.x = midpoint.x - this.panX
-      this.panStart.y = midpoint.y - this.panY
+      this.pinchFixedPoint.x = (midpoint.x - this.panX) / this.scale
+      this.pinchFixedPoint.y = (midpoint.y - this.panY) / this.scale
     }
   }
 
@@ -120,8 +122,9 @@ export class PointerHandler {
       this.scale = Math.max(1, Math.min(this.scale, 4)) // Clamp scale
 
       const midpoint = this.getPointerMidpoint()
-      this.panX = midpoint.x - this.panStart.x
-      this.panY = midpoint.y - this.panStart.y
+      this.panX = midpoint.x - this.pinchFixedPoint.x * this.scale
+      this.panY = midpoint.y - this.pinchFixedPoint.y * this.scale
+
       this.updateTransform()
     } else if (this.isPanning) {
       evt.preventDefault()
