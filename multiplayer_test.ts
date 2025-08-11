@@ -82,7 +82,7 @@ describe('multi-player', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
 
     // Now, player 1's game state should be synced with player 2's
-    expect(app1.gameState.shared.toJSON()).toEqual(app2.gameState.shared.toJSON())
+    expect(reloadedApp1.gameState.shared.toJSON()).toEqual(app2.gameState.shared.toJSON())
   })
 
   it('should handle collisions in pending placements', async () => {
