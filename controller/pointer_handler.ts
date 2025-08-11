@@ -1,3 +1,4 @@
+import type { App } from '../app.js'
 import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
@@ -5,6 +6,7 @@ import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 export class PointerHandler {
   private gameState: GameState
   private view: View
+  private app: App
   private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
   private ghostTile: HTMLElement | null = null
 
@@ -12,40 +14,20 @@ export class PointerHandler {
   private scale = 1
   private panX = 0
   private panY = 0
-  private activePointers: PointerEvent[] = []
-  private pinchStartDistance = 0
-  private pinchStartScale = 1
   private panStart = { x: 0, y: 0 }
-  private pinchFixedPoint = { x: 0, y: 0 }
   private isPanning = false
-  private isPinching = false
   private lastTap = 0
   private pointerMoved = false
+  private downTs = 0
 
-  constructor(gameState: GameState, view: View) {
+  constructor(gameState: GameState, view: View, app: App) {
     this.gameState = gameState
     this.view = view
-  }
-
-  private getPointerIndex(evt: PointerEvent): number {
-    return this.activePointers.findIndex(p => p.pointerId === evt.pointerId)
-  }
-
-  private getPointerDistance(): number {
-    if (this.activePointers.length < 2) return 0
-    const p1 = this.activePointers[0]!
-    const p2 = this.activePointers[1]!
-    return Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY)
-  }
-
-  private getPointerMidpoint(): { x: number, y: number } {
-    const p = this.activePointers
-    if (p.length === 0) return { x: 0, y: 0 }
-    if (p.length === 1) return { x: p[0]!.clientX, y: p[0]!.clientY }
-    return { x: (p[0]!.clientX + p[1]!.clientX) / 2, y: (p[0]!.clientY + p[1]!.clientY) / 2 }
+    this.app = app
   }
 
   private updateTransform() {
+    this.app.log(`updateTransform: scale=${this.scale.toFixed(2)}, panX=${this.panX.toFixed(2)}, panY=${this.panY.toFixed(2)}`)
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
     const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
     const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
@@ -56,23 +38,18 @@ export class PointerHandler {
   }
 
   public pointerCancel(evt: PointerEvent) {
-    this.removePointer(evt)
-    if (this.activePointers.length < 2) this.isPinching = false
-    if (this.activePointers.length < 1) this.isPanning = false
-  }
-
-  private removePointer(evt: PointerEvent) {
-    const index = this.getPointerIndex(evt)
-    if (index > -1) this.activePointers.splice(index, 1)
+    this.app.log('pointercancel')
+    this.isPanning = false
   }
 
   pointerDown(evt: PointerEvent) {
+    this.downTs = Date.now()
+    this.app.log(`pointerdown: button=${evt.button}`)
     if (evt.button !== 0) return
 
     const target = evt.target as HTMLElement
-    this.activePointers.push(evt)
+    this.pointerMoved = false
 
-    // Default to panning on the board, but check for exceptions
     let isBoardInteraction = false
     if (target.closest('#board-container')) {
       isBoardInteraction = true
@@ -82,61 +59,42 @@ export class PointerHandler {
 
     const tileTarget = target.closest('.tile, .placed')
 
-    if (this.activePointers.length === 1) {
-      if (tileTarget instanceof HTMLElement) {
-        // Dragging a tile from rack or an uncommitted tile from board
-        const col = parseInt(tileTarget.dataset.col!, 10)
-        const rowStr = tileTarget.dataset.row!
-        const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
-        this.draggingTile = { row, col, element: tileTarget }
-      } else if (isBoardInteraction) {
-        // Panning the board
-        this.isPanning = true
-        this.panStart.x = evt.clientX - this.panX
-        this.panStart.y = evt.clientY - this.panY
-      }
-    }
-
-    if (this.activePointers.length >= 2 && isBoardInteraction) {
-      // Pinching starts, cancel any drag or pan
-      this.draggingTile = null
-      this.isPanning = false
-      this.isPinching = true
-      this.pinchStartDistance = this.getPointerDistance()
-      this.pinchStartScale = this.scale
-      const midpoint = this.getPointerMidpoint()
-      this.pinchFixedPoint.x = (midpoint.x - this.panX) / this.scale
-      this.pinchFixedPoint.y = (midpoint.y - this.panY) / this.scale
+    if (tileTarget instanceof HTMLElement) {
+      this.app.log('pointerdown: tile target found')
+      const col = parseInt(tileTarget.dataset.col!, 10)
+      const rowStr = tileTarget.dataset.row!
+      const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
+      this.draggingTile = { row, col, element: tileTarget }
+    } else if (isBoardInteraction) {
+      this.app.log('pointerdown: starting pan')
+      this.isPanning = true
+      this.panStart.x = evt.clientX - this.panX
+      this.panStart.y = evt.clientY - this.panY
     }
   }
 
   pointerMove(evt: PointerEvent) {
-    const index = this.getPointerIndex(evt)
-    if (index === -1) return
-    this.activePointers[index] = evt
+    const prevX = evt.clientX
+    const prevY = evt.clientY
 
-    if (this.isPinching) {
+    if (Math.hypot(evt.clientX - prevX, evt.clientY - prevY) > 5 && !this.pointerMoved) {
+      this.pointerMoved = true
+      this.app.log(`pointermove: moved > 5px. downTs=${this.downTs}`)
+    }
+
+    if (this.isPanning || this.draggingTile) {
       evt.preventDefault()
-      const dist = this.getPointerDistance()
-      this.scale = this.pinchStartScale * (dist / this.pinchStartDistance)
-      this.scale = Math.max(1, Math.min(this.scale, 4)) // Clamp scale
+    }
 
-      const midpoint = this.getPointerMidpoint()
-      this.panX = midpoint.x - this.pinchFixedPoint.x * this.scale
-      this.panY = midpoint.y - this.pinchFixedPoint.y * this.scale
-
-      this.updateTransform()
-    } else if (this.isPanning) {
-      evt.preventDefault()
+    if (this.isPanning) {
       if (this.scale > 1) {
         this.panX = evt.clientX - this.panStart.x
         this.panY = evt.clientY - this.panStart.y
         this.updateTransform()
       }
-    } else if (this.draggingTile) {
-      evt.preventDefault()
+    } else if (this.draggingTile && this.pointerMoved) {
       if (!this.ghostTile) {
-        // Start ghost on first move
+        this.app.log('pointermove: creating ghost tile')
         this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
         this.draggingTile.element.classList.add('dragging')
       }
@@ -162,8 +120,10 @@ export class PointerHandler {
   }
 
   pointerUp(evt: PointerEvent) {
+    this.app.log(`pointerup: moved=${this.pointerMoved}, isPanning=${this.isPanning}, ghost=${!!this.ghostTile}, downTs=${this.downTs}`)
     const target = evt.target as HTMLElement
     if (this.ghostTile) { // It was a drag
+      this.app.log('pointerup: drop')
       const dropTarget = this.view.getDropTarget()
       if (dropTarget) {
         try {
@@ -189,9 +149,11 @@ export class PointerHandler {
       }
       this.view.removeGhostTile(this.ghostTile)
       this.draggingTile!.element.classList.remove('dragging')
-    } else if (target.closest('#board-container') && this.activePointers.length === 1 && !this.isPanning && !this.isPinching) {
+    } else if (target.closest('#board-container') && !this.pointerMoved) {
       const now = Date.now()
+      this.app.log(`pointerup: tap detected. delta=${now - this.lastTap}`)
       if (now - this.lastTap < 300) { // Double tap
+        this.app.log('pointerup: double tap detected')
         if (this.scale > 1) {
           this.scale = 1
           this.panX = 0
@@ -201,23 +163,17 @@ export class PointerHandler {
           const boardRect = this.view.getBoardContainer().getBoundingClientRect()
           const boardX = evt.clientX - boardRect.left
           const boardY = evt.clientY - boardRect.top
-          this.panX = -boardX * (this.scale - 1)
-          this.panY = -boardY * (this.scale - 1)
+          this.panX = boardX * (1 - this.scale)
+          this.panY = boardY * (1 - this.scale)
         }
         this.updateTransform()
       }
       this.lastTap = now
     }
 
-    this.removePointer(evt)
-    if (this.activePointers.length < 2) {
-      this.isPinching = false
-    }
-    if (this.activePointers.length < 1) {
-      this.isPanning = false
-      this.draggingTile = null
-      this.ghostTile = null
-      this.view.clearDropTarget()
-    }
+    this.isPanning = false
+    this.draggingTile = null
+    this.ghostTile = null
+    this.view.clearDropTarget()
   }
 }
