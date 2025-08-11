@@ -15,7 +15,9 @@ describe('app', () => {
 
   it('should render the board', () => {
     const boardContainer = browser.getDocument().getElementById('board-container')!
-    expect(boardContainer.children.length).toBe(225)
+    const boardTransformer = boardContainer.querySelector('#board-transformer')
+    expect(boardTransformer).not.toBeNull()
+    expect(boardTransformer!.children.length).toBe(225)
   })
 
   it('should render rack tiles with non-zero dimensions', () => {

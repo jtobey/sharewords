@@ -4,13 +4,22 @@
 }
 
 #board-container {
-  display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
   border: 1px solid #ccc;
   width: 601px;
   height: 601px;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+#board-transformer {
+  width: 100%;
+  height: 100%;
   background-color: #ccc;
+  display: grid;
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
+  transform-origin: 0 0;
 }
 
 .square {
@@ -178,6 +187,9 @@
   #board-container {
     width: 98vw;
     height: 98vw;
+  }
+
+  #board-transformer {
     grid-template-columns: repeat(15, 1fr);
     grid-template-rows: repeat(15, 1fr);
   }
@@ -253,8 +265,11 @@ dialog button {
   }
 
   #board-container {
-    background-color: #111;
     border-color: #444;
+  }
+
+  #board-transformer {
+    background-color: #111;
   }
 
   .square {

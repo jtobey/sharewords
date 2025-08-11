@@ -7,6 +7,7 @@ import type { Browser } from '../browser.js';
 export class View {
   private gameContainer: HTMLElement
   private boardContainer: HTMLElement
+  private boardTransformer: HTMLElement
   private rackContainer: HTMLElement
   private exchangeContainer: HTMLElement
   private scorePanel: HTMLElement
@@ -23,6 +24,9 @@ export class View {
     this.doc = browser.getDocument()
     this.gameContainer = this.doc.getElementById('game-container')!
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!
+    this.boardTransformer = this.doc.createElement('div')
+    this.boardTransformer.id = 'board-transformer'
+    this.boardContainer.appendChild(this.boardTransformer)
     this.rackContainer = this.gameContainer.querySelector<HTMLElement>('#rack-container')!
     this.exchangeContainer = this.gameContainer.querySelector<HTMLElement>('#exchange-container')!
     this.scorePanel = this.gameContainer.querySelector<HTMLElement>('#score-panel')!
@@ -47,7 +51,7 @@ export class View {
   }
 
   renderBoard() {
-    this.boardContainer.innerHTML = ''
+    this.boardTransformer.innerHTML = ''
     const centerSquare = this.gameState.board.centerSquare
     for (let r = 0; r < this.gameState.board.squares.length; r++) {
       const row = this.gameState.board.squares[r]
@@ -82,7 +86,7 @@ export class View {
             if (bonusSpan.textContent) squareDiv.appendChild(bonusSpan)
           }
         }
-        this.boardContainer.appendChild(squareDiv)
+        this.boardTransformer.appendChild(squareDiv)
       }
     }
   }
@@ -146,11 +150,11 @@ export class View {
         })
       })
 
-      scoreDiv.appendChild(nameSpan)
-      scoreDiv.appendChild(scoreSpan)
       if (player.id === this.gameState.playerId) {
         scoreDiv.appendChild(editButton)
       }
+      scoreDiv.appendChild(nameSpan)
+      scoreDiv.appendChild(scoreSpan)
       this.scorePanel.appendChild(scoreDiv)
     }
   }
@@ -204,7 +208,11 @@ export class View {
   }
 
   getElementByLocation(row: TilePlacementRow, col: number): HTMLElement | null {
-    return this.doc.querySelector(`[data-row="${row}"][data-col="${col}"]`)
+    const selector = `[data-row="${row}"][data-col="${col}"]`
+    if (typeof row === 'number') {
+      return this.boardTransformer.querySelector(selector)
+    }
+    return this.doc.querySelector(selector)
   }
 
   clearDropTarget() {
@@ -283,5 +291,13 @@ export class View {
 
   showSettingsDialog() {
     this.gameSetup.showSettingsDialog()
+  }
+
+  setBoardTransform(scale: number, x: number, y: number) {
+    this.boardTransformer.style.transform = `scale(${scale}) translate(${x}px, ${y}px)`
+  }
+
+  getBoardContainer(): HTMLElement {
+    return this.boardContainer;
   }
 }
