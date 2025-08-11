@@ -150,11 +150,11 @@ export class View {
         })
       })
 
-      scoreDiv.appendChild(nameSpan)
-      scoreDiv.appendChild(scoreSpan)
       if (player.id === this.gameState.playerId) {
         scoreDiv.appendChild(editButton)
       }
+      scoreDiv.appendChild(nameSpan)
+      scoreDiv.appendChild(scoreSpan)
       this.scorePanel.appendChild(scoreDiv)
     }
   }
