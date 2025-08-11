@@ -210,10 +210,14 @@ export class PointerHandler {
     }
 
     this.removePointer(evt)
-    if (this.activePointers.length < 2) this.isPinching = false
-    if (this.activePointers.length < 1) this.isPanning = false
-    this.draggingTile = null
-    this.ghostTile = null
-    this.view.clearDropTarget()
+    if (this.activePointers.length < 2) {
+      this.isPinching = false
+    }
+    if (this.activePointers.length < 1) {
+      this.isPanning = false
+      this.draggingTile = null
+      this.ghostTile = null
+      this.view.clearDropTarget()
+    }
   }
 }
