@@ -1,7 +1,7 @@
 import { Dialog } from './dialog.js';
 import { GameSetup } from './game_setup.js';
 import type { GameState } from '../game/game_state.js'
-import type { BoardPlacement, Tile, TilePlacementRow } from '../game/tile.js'
+import type { Tile, TilePlacementRow } from '../game/tile.js'
 import type { Browser } from '../browser.js';
 
 export class View {
@@ -16,11 +16,9 @@ export class View {
   private gameSetup: GameSetup
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
   private doc: Document
-  private browser: Browser
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState
-    this.browser = browser
     this.doc = browser.getDocument()
     this.gameContainer = this.doc.getElementById('game-container')!
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!

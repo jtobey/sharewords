@@ -86,7 +86,6 @@ describe('shared state', () => {
 
     await sharedState.playTurns(turn)
 
-    const player2Id = settings.players[1]!.id
     const player2Tiles = await sharedState.tilesState.getTiles(player1Id)
     turn = new Turn(
       settings.players[1]!.id,
