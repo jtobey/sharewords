@@ -11,7 +11,7 @@
 import { Settings, toGameId, fromGameId, type GameId } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual, objectsEqual } from './validation.js'
-import { SharedState } from './shared_state.js'
+import { SharedState, UrlError } from './shared_state.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
 import { Player } from './player.js'
@@ -121,7 +121,7 @@ export class GameState extends EventTarget {
   }
 
   getPlayerForTurnNumber(turnNumber: TurnNumber) {
-    return this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!
+    return this.shared.getPlayerForTurnNumber(turnNumber)
   }
 
   tiledraw(evt: any) {
@@ -401,126 +401,11 @@ export class GameState extends EventTarget {
       console.info('applyTurnParams: no turn number found.')
       return
     }
-    const turns = [] as Array<Turn>
-    let urlTurnNumber = parseInt(urlTurnNumberStr)
-    let wordLocationStr: string | null = null
-    let blankTileIndicesStr: string | null = null
-    let direction: null | 'wv' | 'wh' = null
-    let wordPlayed: string | null = null
-    let exchangeIndicesStr: string | null = null
-    const processPendingMoveIfAny = () => {
-      const playerId = this.getPlayerForTurnNumber(toTurnNumber(urlTurnNumber)).id
-      if (wordPlayed && direction && wordLocationStr) {
-        if (exchangeIndicesStr) {
-          throw new Error(`URL contains both word and exchange data for turn ${urlTurnNumber}`)
-        }
-        const blankTileAssignments = [] as Array<string>
-        if (blankTileIndicesStr) {
-          blankTileIndicesStr.split('.').forEach((s: string) => {
-            const match = s.match(/^(\d+)$/)
-            if (!match) { throw new Error(`Invalid "bt" URL parameter component: ${s}`) }
-            const index = parseInt(match[1]!)
-            if (index in blankTileAssignments) {
-              throw new Error(`Duplicate blank tile assignment index: bt=${blankTileIndicesStr}`)
-            }
-            const assignedLetter = wordPlayed![index]
-            if (!assignedLetter) {
-              throw new RangeError(`Blank tile assignment index ${index} out of range: no "${wordPlayed}"[${index}].`)
-            }
-            blankTileAssignments[index] = assignedLetter
-          })
-        }
-        const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
-        if (!match) { throw new Error(`Invalid wl parameter in URL: ${wordLocationStr}`) }
-        let row = parseInt(match[1]!)
-        let col = parseInt(match[2]!)
-        const placements = [] as Array<BoardPlacement>
-        wordPlayed.split('').map((letter, letterIndex) => {
-          const square = this.board.squares[row]?.[col]
-          if (!square) throw new RangeError(`Attempted to play a word out of bounds: ${row},${col}.`)
-          if (!square.tile) {
-            // It must be a new tile from the player's rack.
-            const assignedLetter = blankTileAssignments[letterIndex] ?? ''
-            if (assignedLetter) {
-              placements.push({tile: new Tile({letter: '', value: 0}), row, col, assignedLetter})
-            } else {
-              const value = this.settings.letterValues[letter]
-              if (value === undefined) throw new Error(`Attempt to play an invalid letter: "${letter}"`)
-              placements.push({tile: new Tile({letter, value}), row, col})
-            }
-          } else if (square.letter !== letter) {
-            throw new Error(`Attempt word requires "${letter}" at ${row},${col}, but "${square.letter}" is there.`)
-          }
-          if (direction === 'wv') { row += 1 }
-          else { col += 1 }
-        })
-        if (blankTileAssignments.length > wordPlayed!.length) {
-          throw new RangeError(
-            `"bt" URL parameter has index ${blankTileAssignments.length - 1} out of range 0-${wordPlayed!.length - 1}`
-          )
-        }
-        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {playTiles: placements}))
-      } else if (exchangeIndicesStr != null) {
-        if (wordPlayed || direction || wordLocationStr || blankTileIndicesStr) {
-          throw new Error(
-            `Incomplete URL data for turn ${urlTurnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileIndicesStr}`)
-        }
-        const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
-        const numberOfTilesInRack = this.tilesState.countTiles(playerId)
-        const exchangeTileIndices = exchangeIndexStrs.map(s => parseInt(s, 10))
-        exchangeTileIndices.forEach((index: number) => {
-          if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
-            throw new RangeError(`Exchange tile index ${index} in URL is out of range 0-${numberOfTilesInRack - 1}`)
-          }
-        })
-        turns.push(new Turn(playerId, toTurnNumber(urlTurnNumber), {exchangeTileIndices}))
-      } else {
-        // Nothing to see here, don't bump the turn number.
-        return
-      }
-      urlTurnNumber++
-      wordLocationStr = null
-      blankTileIndicesStr = null
-      direction = null
-      wordPlayed = null
-      exchangeIndicesStr = null
+    const turnNumber = toTurnNumber(parseInt(urlTurnNumberStr))
+    if (isNaN(turnNumber)) {
+      throw new UrlError(`"tn" param is not a turn number: "${urlTurnNumberStr}"`)
     }
-    for (const [key, value] of iterator) {
-      const pnMatch = key.match(/^p(\d+)n$/)
-      if (pnMatch) {
-        const playerIndex = parseInt(pnMatch[1]!) - 1
-        const player = this.players[playerIndex]
-        if (player) {
-          player.name = value
-        } else {
-          throw new Error(`Invalid turn URL: Player ID "${pnMatch[1]}" should be in 1-${this.players.length}.`)
-        }
-      } else if (key === 'wl') {
-        // `wl` marks a new word play move.
-        processPendingMoveIfAny()
-        wordLocationStr = value
-      } else if (key === 'ex') {
-        // `ex` marks a new pass/exchange move.
-        processPendingMoveIfAny()
-        exchangeIndicesStr = value
-      } else if (key === 'bt') {
-        if (blankTileIndicesStr) {
-          throw new Error(`Duplicate "bt" parameter in URL data for turn ${urlTurnNumber}`)
-        }
-        blankTileIndicesStr = value
-      } else if (key === 'wv' || key === 'wh') {
-        if (direction) {
-          throw new Error(`Duplicate word parameters in URL data for turn ${urlTurnNumber}`)
-        }
-        direction = key
-        wordPlayed = value
-      } else {
-        throw new Error(`Invalid turn URL: Unrecognized parameter name: "${key}"`)
-      }
-    }
-    // We are out of turn params.
-    processPendingMoveIfAny()
-    await this.playTurns(...turns)
+    await this.playTurns(...this.shared.turnsFromParams(iterator, turnNumber))
   }
 
   private getGameParams() {
