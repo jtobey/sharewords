@@ -106,6 +106,7 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
     for (const [playerId, rack] of this.racks.entries()) {
       const drawnTiles = this.bag.draw(this.rackCapacity)
       for (const tile of drawnTiles) {
+        // TODO - Dispatching events from the constructor is no use.
         this.dispatchEvent(new BagEvent('tiledraw', { detail: { playerId, tile } }))
       }
       rack.push(...drawnTiles)
