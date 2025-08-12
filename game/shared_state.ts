@@ -81,7 +81,7 @@ export class SharedState {
   get isGameOver() { return this.tilesState.isGameOver }
 
   getPlayerForTurnNumber(turnNumber: TurnNumber) {
-    return this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!
+    return getPlayerForTurnNumber(this.players, turnNumber)
   }
 
   getTurnUrlParams(turnHistory: ReadonlyArray<TurnData>) {
@@ -123,7 +123,7 @@ export class SharedState {
         console.warn(`Ignoring out-of-order turn number ${turn.turnNumber}; expected ${turnNumber}.`)
         break
       }
-      const playerId = this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!.id
+      const playerId = this.getPlayerForTurnNumber(turnNumber).id
       if (turn.playerId !== playerId) {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
@@ -367,7 +367,7 @@ function gameParamsFromSettings(settings: Settings) {
   return params
 }
 
-export async function parseGameParams(allParams: Readonly<URLSearchParams>, playerId?: string) {
+export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
   const gameParams = new URLSearchParams
   const turnParams = new URLSearchParams
@@ -427,10 +427,11 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>, play
   else if (settings.dictionaryType === 'custom') {
     throw new Error('Custom dictionary requires a URL.')
   }
+  let playerId = gameParams.get('pid') ?? undefined
   if (!playerId) {
     const urlTurnNumber = parseInt(turnParams.get('tn')!) || 1
-    const turnNumber = urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length
-    playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
+    const turnNumber = toTurnNumber(urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length)
+    playerId = getPlayerForTurnNumber(settings.players, turnNumber).id
     console.log(`Joining as Player ${playerId}.`)
   }
   return { settings, playerId, turnParams }
@@ -459,4 +460,8 @@ function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
     if (!ps1[index]!.equals(ps2[index])) return false
   }
   return true
+}
+
+function getPlayerForTurnNumber(players: ReadonlyArray<Player>, turnNumber: TurnNumber) {
+  return players[(fromTurnNumber(turnNumber) - 1) % players.length]!
 }

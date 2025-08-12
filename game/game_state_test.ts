@@ -31,7 +31,7 @@ describe('game state', () => {
     expect(params.get('ex')).toEqual('0.2.6')
 
     // A new game state created from the params should have the same rack.
-    const player2GameState = await GameState.fromParams(params, '2')
+    const player2GameState = await GameState.fromParams(params)
     const player2Rack = await player2GameState.getTiles('1')
     expect(player2Rack.map(t => t.letter).join('')).toEqual('TUTNKEE')
   })
@@ -154,7 +154,7 @@ describe('game state', () => {
       params.set('ds', 'http://example.com')
       params.set('tn', '1')
 
-      const gameState = await GameState.fromParams(params, '1')
+      const gameState = await GameState.fromParams(params)
       const settings = gameState.settings
 
       expect(settings.version).toEqual('0')
@@ -174,13 +174,13 @@ describe('game state', () => {
       params.set('bag', 'A-10')
       params.set('seed', '123')
       params.set('tn', '1')
-      await expect(GameState.fromParams(params, '1')).rejects.toThrow('Invalid letter configuration in URL: A-10')
+      await expect(GameState.fromParams(params)).rejects.toThrow('Invalid letter configuration in URL: A-10')
     })
 
     it('should throw on missing seed param', async () => {
       const params = new URLSearchParams
       params.set('tn', '1')
-      await expect(GameState.fromParams(params, '1')).rejects.toThrow('No random seed in URL.')
+      await expect(GameState.fromParams(params)).rejects.toThrow('No random seed in URL.')
     })
 
     it('should throw on custom dictionary without URL', async () => {
@@ -188,7 +188,7 @@ describe('game state', () => {
       params.set('dt', 'custom')
       params.set('seed', '123')
       params.set('tn', '1')
-      await expect(GameState.fromParams(params, '1')).rejects.toThrow('Custom dictionary requires a URL.')
+      await expect(GameState.fromParams(params)).rejects.toThrow('Custom dictionary requires a URL.')
     })
   })
 

@@ -25,7 +25,7 @@ export class GameState extends EventTarget {
   constructor(
     readonly playerId: string,  // The local player.
     settings?: Settings,
-    public keepAllHistory = false,
+    public keepAllHistory = true,
     shared?: SharedState,
     readonly tilesHeld: Array<TilePlacement> = [],
     /**
@@ -104,6 +104,10 @@ export class GameState extends EventTarget {
 
   get turnUrlParams() {
     return this.shared.getTurnUrlParams(this.history.slice(1 - this.players.length))
+  }
+
+  getHistoryUrlParamsForPlayer(playerId: string) {
+    return new URLSearchParams([['pid', playerId], ...this.shared.getTurnUrlParams(this.history)])
   }
 
   get playerWhoseTurnItIs() {
@@ -436,8 +440,8 @@ export class GameState extends EventTarget {
     await this.playTurns(this.shared.turnsFromParams(iterator, turnNumber))
   }
 
-  static async fromParams(params: Readonly<URLSearchParams>, playerIdForTesting?: string) {
-    const { settings, playerId, turnParams } = await parseGameParams(params, playerIdForTesting)
+  static async fromParams(params: Readonly<URLSearchParams>) {
+    const { settings, playerId, turnParams } = await parseGameParams(params)
     const gameState = new GameState(playerId, settings)
     await gameState.init()
     await gameState.applyTurnParams(turnParams)
