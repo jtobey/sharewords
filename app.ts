@@ -25,7 +25,12 @@ export class App {
   saveGameState() {
     const gid = this.gameState.gameId
     if (gid) {
-      this.browser.setLocalStorageItem(`sharewords_${gid}`, JSON.stringify(this.gameState.toJSON()))
+      this.browser.setLocalStorageItem(`sharewords_${gid}`,
+        JSON.stringify({
+          game: this.gameState.toJSON(),
+          ts: Date.now(),
+        })
+      )
     }
   }
 
@@ -47,7 +52,7 @@ export class App {
       const savedGame = gidParam && this.browser.getLocalStorageItem(`sharewords_${gidParam}`);
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
-        this.gameState = await GameState.fromJSON(JSON.parse(savedGame));
+        this.gameState = await GameState.fromJSON(JSON.parse(savedGame).game);
         await this.gameState.applyTurnParams(params)
       } else {
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
