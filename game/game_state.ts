@@ -368,7 +368,7 @@ export class GameState extends EventTarget {
           }
         }
         // Draw/exchange tiles between bag and racks.
-        const finalTurnNumber = await this.tilesState.playTurns(turn)
+        finalTurnNumber = await this.tilesState.playTurns(turn)
         if (finalTurnNumber !== null) break
       }
     }

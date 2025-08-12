@@ -50,8 +50,8 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
 
   playTurns(...turnsToPlay: Array<Turn>) {
     for (const turn of turnsToPlay) {
-      if (this.isGameOver) return Promise.resolve(toTurnNumber(this.numberOfTurnsPlayed))
       this.playOneTurn(turn)
+      if (this.isGameOver) return Promise.resolve(toTurnNumber(this.numberOfTurnsPlayed))
     }
     return Promise.resolve(null)
   }
