@@ -244,18 +244,18 @@ export class Board extends EventTarget {
     }
   }
 
-  placeTiles(...tiles: Array<BoardPlacement>): void {
-    for (const tile of tiles) {
-      const square = this.squares[tile.row]?.[tile.col]
-      if (!square) throw new Error(`Invalid board coordinates: ${tile.row},${tile.col}.`)
-      if (square.tile) throw new Error(`Square ${tile.row}, ${tile.col} is occupied.`)
+  placeTiles(...placements: Array<BoardPlacement>): void {
+    for (const placement of placements) {
+      const square = this.squares[placement.row]?.[placement.col]
+      if (!square) throw new Error(`Invalid board coordinates: ${placement.row},${placement.col}.`)
+      if (square.tile) throw new Error(`Square ${placement.row}, ${placement.col} is occupied.`)
     }
-    for (const tile of tiles) {
-      const square = this.squares[tile.row]?.[tile.col]
+    for (const placement of placements) {
+      const square = this.squares[placement.row]?.[placement.col]
       if (square) {
-        square.tile = tile.tile
-        square.assignedLetter = tile.assignedLetter
-        this.dispatchEvent(new BoardEvent('tileplaced', { detail: { placement: tile } }))
+        square.tile = placement.tile
+        square.assignedLetter = placement.assignedLetter
+        this.dispatchEvent(new BoardEvent('tileplaced', { detail: { placement } }))
       }
     }
   }
