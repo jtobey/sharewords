@@ -20,8 +20,8 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
     readonly rackCapacity: number,
     // Args for fromJSON.
     private numberOfTurnsPlayed = 0,
-    private readonly racks = new Map(players.map(player => [player.id, [] as Array<Tile>])),
-    private readonly bag = new HonorSystemBag(tileSystemSettings.seed, tiles),
+    private racks = new Map(players.map(player => [player.id, [] as Array<Tile>])),
+    private bag = new HonorSystemBag(tileSystemSettings.seed, tiles),
     public isGameOver: boolean = false,
     init = true,
   ) {
@@ -30,6 +30,15 @@ export class HonorSystemTilesState extends EventTarget implements TilesState {
       throw new Error(`The player IDs are not unique: ${players.map(player => player.id)}`)
     }
     if (init) this.initRacks()
+  }
+
+  copyFrom(other: TilesState) {
+    // Assume constant fields are equal.
+    if (!(other instanceof HonorSystemTilesState)) throw new TypeError
+    this.numberOfTurnsPlayed = other.numberOfTurnsPlayed
+    this.racks = other.racks
+    this.bag = other.bag
+    this.isGameOver = other.isGameOver
   }
 
   get numberOfTilesInBag() { return this.bag.size }

@@ -20,6 +20,7 @@ import { TileEvent, GameEvent, BoardEvent } from './events.js'
 
 export class GameState extends EventTarget {
   readonly shared: SharedState
+  private inPlayTurns = false
 
   constructor(
     readonly playerId: string,  // The local player.
@@ -57,6 +58,15 @@ export class GameState extends EventTarget {
     })
     this.tilesState.addEventListener('tiledraw', this.tiledraw.bind(this))
     this.tilesState.addEventListener('tilereturn', this.tilereturn.bind(this))
+  }
+
+  copyFrom(other: GameState) {
+    // Assume that constant fields are equal.
+    this.shared.copyFrom(other.shared)
+    this.keepAllHistory = other.keepAllHistory  // TODO - Reconsider.
+    this.tilesHeld.splice(0, this.tilesHeld.length, ...other.tilesHeld)
+    this.history.splice(0, this.history.length, ...other.history)
+    this.pendingExtraParams = other.pendingExtraParams
   }
 
   /**
@@ -291,13 +301,31 @@ export class GameState extends EventTarget {
     await this.playTurns(turn)
   }
 
+  private async playTurns(...turns: Array<Turn>) {
+    if (this.inPlayTurns) throw new Error(`playTurns: recursion detected.`)
+    const json = this.toJSON()
+    let ok = false
+    try {
+      this.inPlayTurns = true
+      const result = await this.doPlayTurns(...turns)
+      ok = true
+      return result
+    } finally {
+      if (!ok) {
+        console.log('Rolling back game state.')
+        this.copyFrom(await GameState.fromJSON(json))
+      }
+      this.inPlayTurns = false
+    }
+  }
+
   /**
    * Commits turns to the board and players' racks.
    * @fires TileEvent#tilemove
    * @fires GameEvent#turnchange
    * @fires GameEvent#gameover
    */
-  private async playTurns(...turns: Array<Turn>) {
+  private async doPlayTurns(...turns: Array<Turn>) {
     if (this.isGameOver) {
       throw new Error('Game Over.')
     }

@@ -78,7 +78,7 @@ class WordPlacementError extends Error {
 
 export class Board extends EventTarget {
   readonly squares: ReadonlyArray<ReadonlyArray<Square>>
-  readonly scores = new Map<string, number>
+  scores = new Map<string, number>
   readonly centerSquare: Square
 
   constructor(...rowStrings: Array<string>) {
@@ -88,6 +88,18 @@ export class Board extends EventTarget {
     const centerSquare = centerRow?.[centerRow.length >> 1]
     if (!centerSquare) throw new Error(`Board lacks a center square: ${rowStrings}`)
     this.centerSquare = centerSquare
+  }
+
+  copyFrom(other: Board) {
+    // Assume constant fields are equal.
+    this.squares.forEach((rowSquares, row) => {
+      rowSquares.forEach((square, col) => {
+        const otherSquare = other.squares[row]![col]!
+        square.tile = otherSquare.tile
+        square.assignedLetter = otherSquare.assignedLetter
+      })
+    })
+    this.scores = other.scores
   }
 
   /**

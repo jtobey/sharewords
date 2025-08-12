@@ -67,6 +67,16 @@ export class SharedState {
     })
   }
 
+  copyFrom(other: SharedState) {
+    // Assume that constant fields are equal.
+    this.board.copyFrom(other.board)
+    this.tilesState.copyFrom(other.tilesState)
+    this.nextTurnNumber = other.nextTurnNumber
+    this.players.forEach((player, index) => {
+      player.name = other.players[index]!.name
+    })
+  }
+
   get players() { return this.settings.players }
   get isGameOver() { return this.tilesState.isGameOver }
 

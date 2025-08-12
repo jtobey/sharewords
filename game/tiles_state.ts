@@ -24,6 +24,8 @@ export interface TilesState extends EventTarget {
   /** True whenever the bag and any rack are empty. */
   readonly isGameOver: boolean
 
+  copyFrom(other: TilesState): void
+
   /**
    * @returns The number of tiles currently in the given player's rack.
    */
