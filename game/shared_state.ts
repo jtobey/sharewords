@@ -32,7 +32,7 @@
  */
 
 import { arraysEqual, objectsEqual } from './validation.js'
-import { Settings, makeGameId, type GameId } from './settings.js'
+import { Settings, makeGameId, toGameId, type GameId } from './settings.js'
 import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
 import { Turn, type TurnNumber, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
@@ -336,6 +336,76 @@ function gameParamsFromSettings(settings: Settings) {
     params.set('ds', settings.dictionarySettings)
   }
   return params
+}
+
+export async function parseGameParams(allParams: Readonly<URLSearchParams>, playerId?: string) {
+  // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
+  const gameParams = new URLSearchParams
+  const turnParams = new URLSearchParams
+  for (const [name, value] of allParams) {
+    if (turnParams.size || name === 'tn') {
+      turnParams.append(name, value)
+    } else {
+      gameParams.append(name, value)
+    }
+  }
+  const settings = new Settings
+  const vParam = gameParams.get('v')
+  if (vParam && vParam !== settings.version) {
+    throw new Error(`Protocol version not supported: ${vParam}`)
+  }
+  const gidParam = gameParams.get('gid')
+  if (gidParam) settings.gameId = toGameId(gidParam)
+  const newPlayers: Array<Player> = []
+  for (let playerNumber = 1; ; ++playerNumber) {
+    const pnParam = gameParams.get(`p${playerNumber}n`)
+    if (!pnParam) break
+    newPlayers.push(new Player({id: String(playerNumber), name: pnParam.slice(0, settings.maxPlayerNameLength)}))
+  }
+  if (newPlayers.length) settings.players = newPlayers
+  const bagParam = gameParams.get('bag')
+  if (bagParam) {
+    const letterCounts: {[key: string]: number} = {}
+    const letterValues: {[key: string]: number} = {}
+    const lettersCountsAndValues = bagParam.split('.').map((letterCountAndValue: string) => {
+      if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
+        throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
+      }
+      const parts = letterCountAndValue.split('-')
+      letterCounts[parts[0]!] = parseInt(parts[1]!)
+      letterValues[parts[0]!] = parseInt(parts[2]!)
+    })
+    settings.letterCounts = letterCounts
+    settings.letterValues = letterValues
+  }
+  const boardParam = gameParams.get('board')
+  if (boardParam) settings.boardLayout = boardParam.split('-')
+  const bingoParam = gameParams.get('bingo')
+  if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
+  const racksizeParam = gameParams.get('racksize')
+  if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
+  const tileSystemType: 'honor' = settings.tileSystemType
+  const seedParam = gameParams.get('seed')
+  if (!seedParam) throw new Error('No random seed in URL.')
+  settings.tileSystemSettings = {seed: seedParam}
+  const dtParam = gameParams.get('dt')
+  if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
+    settings.dictionaryType = dtParam
+  } else if (dtParam) {
+    throw new Error(`Unknown dictionary type: "${dtParam}".`)
+  }
+  const dsParam = gameParams.get('ds')
+  if (dsParam) settings.dictionarySettings = dsParam
+  else if (settings.dictionaryType === 'custom') {
+    throw new Error('Custom dictionary requires a URL.')
+  }
+  if (!playerId) {
+    const urlTurnNumber = parseInt(turnParams.get('tn')!) || 1
+    const turnNumber = urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length
+    playerId = settings.players[(turnNumber - 1) % settings.players.length]!.id
+    console.log(`Joining as Player ${playerId}.`)
+  }
+  return { settings, playerId, turnParams }
 }
 
 function makeTilesState(settings: Settings): TilesState {
