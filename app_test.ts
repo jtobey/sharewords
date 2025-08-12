@@ -1,5 +1,4 @@
 import { expect, describe, it, beforeEach } from 'bun:test'
-import { GameState } from './game/game_state.js'
 import { App } from './app.js'
 import { TestBrowser } from './test_browser.js'
 

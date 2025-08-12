@@ -59,11 +59,6 @@ function parseSquare(squareStr: string, row: number, col: number) {
   return square
 }
 
-const S = `
-. .     . .     . .
-. .     . .     . .
-`
-
 export function parseBoards(...strings: Array<string>) {
   const headerLines = [] as Array<string>
   const boardLines = [] as Array<string>

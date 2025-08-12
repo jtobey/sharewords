@@ -9,16 +9,14 @@
  */
 
 import { Settings } from './settings.js'
-import { Board } from './board.js'
 import { arraysEqual } from './validation.js'
 import { SharedState, UrlError, parseGameParams } from './shared_state.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
-import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
-import { Player } from './player.js'
-import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber, updateTurnHistory } from './turn.js'
+import type { TilePlacement, TilePlacementRow } from './tile.js'
+import { Turn, toTurnNumber, updateTurnHistory } from './turn.js'
 import type { TurnNumber, TurnData } from './turn.js'
 import { indicesOk } from './validation.js'
-import { TileEvent, GameEvent, BoardEvent, BagEvent } from './events.js'
+import { TileEvent, GameEvent, BoardEvent } from './events.js'
 
 export class GameState extends EventTarget {
   readonly shared: SharedState

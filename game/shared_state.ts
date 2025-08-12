@@ -386,7 +386,7 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>, play
   if (bagParam) {
     const letterCounts: {[key: string]: number} = {}
     const letterValues: {[key: string]: number} = {}
-    const lettersCountsAndValues = bagParam.split('.').map((letterCountAndValue: string) => {
+    bagParam.split('.').map((letterCountAndValue: string) => {
       if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
         throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
       }
@@ -403,7 +403,6 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>, play
   if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
   const racksizeParam = gameParams.get('racksize')
   if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
-  const tileSystemType: 'honor' = settings.tileSystemType
   const seedParam = gameParams.get('seed')
   if (!seedParam) throw new Error('No random seed in URL.')
   settings.tileSystemSettings = {seed: seedParam}
