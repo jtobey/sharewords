@@ -44,7 +44,7 @@ export function updateTurnHistory({
   history: Array<Readonly<TurnData>>,
   nextTurnNumber: TurnNumber,
   finalTurnNumber: TurnNumber | null,
-  turns: ReadonlyArray<Turn>,
+  turns: Iterable<Turn>,
 }) {
   let wroteHistory = false
   for (const turn of turns) {
