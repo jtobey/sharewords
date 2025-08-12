@@ -28,7 +28,7 @@ describe('multi-player', () => {
     expect(player1Hash).not.toBe('')
 
     // Player 2 gets the hash from player 1 (e.g. via a chat message)
-    browser2.setHash(player1Hash.substring(1))
+    browser2.setHash(player1Hash)
     // This will trigger a hashchange event, which will cause app2 to update.
     // We need to wait for the async operations to complete.
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -44,7 +44,7 @@ describe('multi-player', () => {
     expect(player2Hash).not.toBe(player1Hash)
 
     // Player 1 gets the hash from player 2
-    browser1.setHash(player2Hash.substring(1))
+    browser1.setHash(player2Hash)
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Now, player 1's game state should be synced with player 2's
@@ -68,7 +68,7 @@ describe('multi-player', () => {
     const player1Hash = browser1.getHash()
 
     // Player 2 gets the hash from player 1 (e.g. via a chat message)
-    browser2.setHash(player1Hash.substring(1))
+    browser2.setHash(player1Hash)
     await new Promise(resolve => setTimeout(resolve, 0))
 
     // Player 2 makes a move
@@ -108,7 +108,7 @@ describe('multi-player', () => {
     const player1Hash = browser1.getHash()
 
     // Player 2 gets the hash from player 1
-    browser2.setHash(player1Hash.substring(1))
+    browser2.setHash(player1Hash)
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Player 2's board is empty. Player 2 makes a valid move on the center square.
@@ -120,7 +120,7 @@ describe('multi-player', () => {
     const player2Hash = browser2.getHash()
 
     // Player 1 gets the hash from player 2
-    browser1.setHash(player2Hash.substring(1))
+    browser1.setHash(player2Hash)
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Assertions
@@ -166,7 +166,7 @@ describe('multi-player', () => {
       ])}`)
 
       // Player 2 gets the hash from player 1
-      browser2.setHash(player1Hash.substring(1))
+      browser2.setHash(player1Hash)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Now, player 2's game state should be synced with player 1's
@@ -199,7 +199,7 @@ describe('multi-player', () => {
       ]))
 
       // Player 2 syncs with Player 1
-      browser2.setHash(player1Hash1.substring(1))
+      browser2.setHash(player1Hash1)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // At this point, Player 2 should see the original name
@@ -214,7 +214,7 @@ describe('multi-player', () => {
       const player2Hash = browser2.getHash()
 
       // Player 1 syncs with Player 2's turn
-      browser1.setHash(player2Hash.substring(1))
+      browser1.setHash(player2Hash)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Now it's Player 1's turn again. Player 1 passes.
@@ -229,7 +229,7 @@ describe('multi-player', () => {
       ]))
 
       // Player 2 syncs with Player 1's second turn
-      browser2.setHash(player1Hash2.substring(1))
+      browser2.setHash(player1Hash2)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Now, Player 2 should see the new name
@@ -253,7 +253,7 @@ describe('multi-player', () => {
       const player1Hash1 = browser1.getHash()
 
       // Player 2 syncs with Player 1
-      browser2.setHash(player1Hash1.substring(1))
+      browser2.setHash(player1Hash1)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // At this point, Player 2 should see the original name
@@ -268,7 +268,7 @@ describe('multi-player', () => {
       const player2Hash = browser2.getHash()
 
       // Player 1 syncs with Player 2's turn
-      browser1.setHash(player2Hash.substring(1))
+      browser1.setHash(player2Hash)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Player 1 reloads the page.
@@ -288,7 +288,7 @@ describe('multi-player', () => {
       ]))
 
       // Player 2 syncs with Player 1's second turn
-      browser2.setHash(player1Hash2.substring(1))
+      browser2.setHash(player1Hash2)
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Now, Player 2 should see the new name

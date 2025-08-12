@@ -85,7 +85,7 @@ export class TestBrowser implements Browser {
   }
 
   setHash(hash: string): void {
-    const newHash = '#' + hash;
+    const newHash = '#' + hash.replace(/^#/, '')
     if (this.hash !== newHash) {
       this.hash = newHash;
       this.hashChangeListeners.forEach(l => l());
