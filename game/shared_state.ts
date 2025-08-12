@@ -73,6 +73,7 @@ export class SharedState {
   getPlayerForTurnNumber(turnNumber: TurnNumber) {
     return this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!
   }
+
   getTurnUrlParams(turnHistory: ReadonlyArray<TurnData>) {
     const entries = [['gid', fromGameId(this.gameId)]]
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
