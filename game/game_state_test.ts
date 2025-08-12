@@ -246,7 +246,7 @@ describe('game state', () => {
       settings.dictionaryType = 'permissive'
       settings.dictionarySettings = 'http://example.com'
       const gameState = new GameState('1', settings)
-      const params = gameState['gameParams']
+      const params = gameState.shared.gameParams
       expect(params.get('v')).toEqual(settings.version)
       expect(params.get('p1n')).toEqual('player1')
       expect(params.get('p2n')).toEqual('player2')

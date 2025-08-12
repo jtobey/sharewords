@@ -31,7 +31,7 @@
  * tile state.
  */
 
-import { arraysEqual } from './validation.js'
+import { arraysEqual, objectsEqual } from './validation.js'
 import { Settings, makeGameId, type GameId } from './settings.js'
 import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
 import { Turn, type TurnNumber, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
@@ -39,6 +39,7 @@ import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
+import { Player } from './player.js'
 
 export class UrlError extends Error {
   constructor(message: string) {
@@ -54,7 +55,8 @@ export class SharedState {
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
-    private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings)
+    private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings),
+    readonly gameParams = gameParamsFromSettings(settings),
   ) {
     this.settings.players.forEach((player, index) => {
       const expected = String(index + 1)
@@ -296,6 +298,46 @@ export class SharedState {
   }
 }
 
+function gameParamsFromSettings(settings: Settings) {
+  const params = new URLSearchParams
+  // Not all players have played. Include any non-default game settings.
+  const defaults = new Settings
+  params.set('v', settings.version)
+  if (!playersEqual(settings.players, defaults.players)) {
+    settings.players.forEach((p, index) => {
+      params.set(`p${index + 1}n`, p.name)
+    })
+  }
+  if (!arraysEqual(settings.boardLayout, defaults.boardLayout, false)) {
+    params.set('board', settings.boardLayout.join('-'))
+  }
+  if (settings.bingoBonus !== defaults.bingoBonus) {
+    params.set('bingo', String(settings.bingoBonus))
+  }
+  if (!(
+    objectsEqual(settings.letterCounts, defaults.letterCounts) &&
+      objectsEqual(settings.letterValues, defaults.letterValues)
+  )) {
+    const bagParam = Object.entries(settings.letterCounts).map(
+      ([letter, count]) => `${letter}-${count}-${settings.letterValues[letter] ?? 0}`
+    ).join('.')
+    params.set('bag', bagParam)
+  }
+  if (settings.rackCapacity !== defaults.rackCapacity) {
+    params.set('racksize', String(settings.rackCapacity))
+  }
+  if (settings.tileSystemType === 'honor') {
+    params.set('seed', settings.tileSystemSettings.seed)
+  }
+  if (settings.dictionaryType !== defaults.dictionaryType) {
+    params.set('dt', settings.dictionaryType)
+  }
+  if (typeof settings.dictionarySettings === 'string') {
+    params.set('ds', settings.dictionarySettings)
+  }
+  return params
+}
+
 function makeTilesState(settings: Settings): TilesState {
   if (settings.tileSystemType === 'honor') {
     return new HonorSystemTilesState(
@@ -311,4 +353,12 @@ function makeTilesState(settings: Settings): TilesState {
 function rehydrateTilesState(tileSystemType: string, tilesStateJson: any) {
   if (tileSystemType === 'honor') return HonorSystemTilesState.fromJSON(tilesStateJson)
   throw new TypeError(`Unknown tileSystemType: ${tileSystemType}`)
+}
+
+function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
+  if (ps1.length !== ps2.length) return false
+  for (const index in ps1) {
+    if (!ps1[index]!.equals(ps2[index])) return false
+  }
+  return true
 }

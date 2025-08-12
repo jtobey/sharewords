@@ -10,7 +10,7 @@
 
 import { Settings, toGameId, fromGameId, type GameId } from './settings.js'
 import { Board } from './board.js'
-import { arraysEqual, objectsEqual } from './validation.js'
+import { arraysEqual } from './validation.js'
 import { SharedState, UrlError } from './shared_state.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
@@ -22,7 +22,6 @@ import { TileEvent, GameEvent, BoardEvent, BagEvent } from './events.js'
 
 export class GameState extends EventTarget {
   readonly shared: SharedState
-  private readonly gameParams: URLSearchParams
 
   constructor(
     readonly playerId: string,  // The local player.
@@ -46,7 +45,6 @@ export class GameState extends EventTarget {
       shared = new SharedState(settings)
     }
     this.shared = shared
-    this.gameParams = this.getGameParams()
     if (!this.shared.settings.players.some(p => p.id === playerId)) {
       throw new Error(`Player ID "${playerId}" is not listed in settings.`)
     }
@@ -102,7 +100,7 @@ export class GameState extends EventTarget {
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
     // Include game settings in the URL at the start of the game.
     if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      entries.push(...this.gameParams)
+      entries.push(...this.shared.gameParams)
     }
     if (turnHistory.length) {
       entries.push(['tn', String(firstHistoryTurnNumber)])
@@ -408,46 +406,6 @@ export class GameState extends EventTarget {
     await this.playTurns(...this.shared.turnsFromParams(iterator, turnNumber))
   }
 
-  private getGameParams() {
-    const params = new URLSearchParams
-    // Not all players have played. Include any non-default game settings.
-    const defaults = new Settings
-    params.set('v', this.settings.version)
-    if (!playersEqual(this.settings.players, defaults.players)) {
-      this.settings.players.forEach((p, index) => {
-        params.set(`p${index + 1}n`, p.name)
-      })
-    }
-    if (!arraysEqual(this.settings.boardLayout, defaults.boardLayout, false)) {
-      params.set('board', this.settings.boardLayout.join('-'))
-    }
-    if (this.settings.bingoBonus !== defaults.bingoBonus) {
-      params.set('bingo', String(this.settings.bingoBonus))
-    }
-    if (!(
-      objectsEqual(this.settings.letterCounts, defaults.letterCounts) &&
-        objectsEqual(this.settings.letterValues, defaults.letterValues)
-    )) {
-      const bagParam = Object.entries(this.settings.letterCounts).map(
-        ([letter, count]) => `${letter}-${count}-${this.settings.letterValues[letter] ?? 0}`
-      ).join('.')
-      params.set('bag', bagParam)
-    }
-    if (this.settings.rackCapacity !== defaults.rackCapacity) {
-      params.set('racksize', String(this.settings.rackCapacity))
-    }
-    if (this.settings.tileSystemType === 'honor') {
-      params.set('seed', this.settings.tileSystemSettings.seed)
-    }
-    if (this.settings.dictionaryType !== defaults.dictionaryType) {
-      params.set('dt', this.settings.dictionaryType)
-    }
-    if (typeof this.settings.dictionarySettings === 'string') {
-      params.set('ds', this.settings.dictionarySettings)
-    }
-    return params
-  }
-
   static async fromParams(allParams: Readonly<URLSearchParams>, playerId?: string) {
     // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
     const gameParams = new URLSearchParams
@@ -605,12 +563,4 @@ export class GameState extends EventTarget {
     await gameState.init()
     return gameState
   }
-}
-
-function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
-  if (ps1.length !== ps2.length) return false
-  for (const index in ps1) {
-    if (!ps1[index]!.equals(ps2[index])) return false
-  }
-  return true
 }
