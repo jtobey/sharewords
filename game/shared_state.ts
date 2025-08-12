@@ -32,9 +32,10 @@
  */
 
 import { arraysEqual, objectsEqual } from './validation.js'
-import { Settings, makeGameId, toGameId, type GameId } from './settings.js'
+import { Settings, makeGameId, fromGameId, toGameId, type GameId } from './settings.js'
 import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
-import { Turn, type TurnNumber, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
+import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
+import type { TurnNumber, TurnData } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
@@ -71,6 +72,23 @@ export class SharedState {
 
   getPlayerForTurnNumber(turnNumber: TurnNumber) {
     return this.players[(fromTurnNumber(turnNumber) - 1) % this.players.length]!
+  }
+  getTurnUrlParams(turnHistory: ReadonlyArray<TurnData>) {
+    const entries = [['gid', fromGameId(this.gameId)]]
+    const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
+    // Include game settings in the URL at the start of the game.
+    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
+      entries.push(...this.gameParams)
+    }
+    if (turnHistory.length) {
+      entries.push(['tn', String(firstHistoryTurnNumber)])
+      turnHistory.forEach((turnData: TurnData) => {
+        entries.push(...new URLSearchParams(turnData.paramsStr))
+      })
+    } else {
+      entries.push(['tn', '1'])
+    }
+    return new URLSearchParams(entries)
   }
 
   async playTurns(...turns: Array<Turn>) {

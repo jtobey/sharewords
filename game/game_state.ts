@@ -8,7 +8,7 @@
  * players. The game must parse and apply turn URLs received.
  */
 
-import { Settings, fromGameId, type GameId } from './settings.js'
+import { Settings } from './settings.js'
 import { Board } from './board.js'
 import { arraysEqual } from './validation.js'
 import { SharedState, UrlError, parseGameParams } from './shared_state.js'
@@ -95,22 +95,7 @@ export class GameState extends EventTarget {
   }
 
   get turnUrlParams() {
-    const entries = [['gid', fromGameId(this.gameId)]]
-    const turnHistory = this.history.slice(1 - this.players.length)
-    const firstHistoryTurnNumber = turnHistory[0]?.turnNumber
-    // Include game settings in the URL at the start of the game.
-    if (firstHistoryTurnNumber === undefined || firstHistoryTurnNumber === toTurnNumber(1)) {
-      entries.push(...this.shared.gameParams)
-    }
-    if (turnHistory.length) {
-      entries.push(['tn', String(firstHistoryTurnNumber)])
-      turnHistory.forEach((turnData: TurnData) => {
-        entries.push(...new URLSearchParams(turnData.paramsStr))
-      })
-    } else {
-      entries.push(['tn', '1'])
-    }
-    return new URLSearchParams(entries)
+    return this.shared.getTurnUrlParams(this.history.slice(1 - this.players.length))
   }
 
   get playerWhoseTurnItIs() {
