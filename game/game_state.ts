@@ -51,7 +51,7 @@ export class GameState extends EventTarget {
       const { placement } = (evt as BoardEvent).detail
       const myTile = this.tilesHeld.find(p => p.row === placement.row && p.col === placement.col)
       if (myTile && myTile.tile !== placement.tile) {
-        console.log(`My tile at ${placement.row},${placement.col} is displaced. Moving it to rack.`)
+        console.debug(`My tile at ${placement.row},${placement.col} is displaced. Moving it to rack.`)
         // toCol=0 is arbitrary, moveTile will find a spot.
         this.moveTile(myTile.row, myTile.col, 'rack', 0)
       }
@@ -117,6 +117,7 @@ export class GameState extends EventTarget {
 
   tiledraw(evt: any) {
     if (evt.detail.playerId === this.playerId) {
+      console.debug(`I drew "${evt.detail.tile.letter}".`)
       const occupiedIndices = new Set(this.tilesHeld.filter(p => p.row === 'rack').map(p => p.col))
       for (let col = 0; col < this.settings.rackCapacity; ++col) {
         if (!occupiedIndices.has(col)) {
@@ -130,7 +131,8 @@ export class GameState extends EventTarget {
 
   tilereturn(evt: any) {
     if (evt.detail.playerId === this.playerId) {
-      const index = this.tilesHeld.findIndex(p => p.row === 'exchange' && p.tile.equals(evt.detail.tile))
+      let index = this.tilesHeld.findIndex(p => p.row === 'exchange' && p.tile.equals(evt.detail.tile))
+      if (index === -1) index = this.tilesHeld.findIndex(p => p.tile.equals(evt.detail.tile))
       if (index === -1) {
         console.error(`Tile not found for exchange: ${JSON.stringify(evt.detail.tile)}`)
       } else {
@@ -284,7 +286,7 @@ export class GameState extends EventTarget {
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     turn.extraParams = this.pendingExtraParams
     this.pendingExtraParams = new URLSearchParams
-    await this.playTurns(turn)
+    await this.playTurns([turn])
   }
 
   /**
@@ -298,25 +300,7 @@ export class GameState extends EventTarget {
     const turn = new Turn(this.playerId, this.nextTurnNumber, { exchangeTileIndices })
     turn.extraParams = this.pendingExtraParams
     this.pendingExtraParams = new URLSearchParams
-    await this.playTurns(turn)
-  }
-
-  private async playTurns(...turns: Array<Turn>) {
-    if (this.inPlayTurns) throw new Error(`playTurns: recursion detected.`)
-    const json = this.toJSON()
-    let ok = false
-    try {
-      this.inPlayTurns = true
-      const result = await this.doPlayTurns(...turns)
-      ok = true
-      return result
-    } finally {
-      if (!ok) {
-        console.log('Rolling back game state.')
-        this.copyFrom(await GameState.fromJSON(json))
-      }
-      this.inPlayTurns = false
-    }
+    await this.playTurns([turn])
   }
 
   /**
@@ -325,10 +309,40 @@ export class GameState extends EventTarget {
    * @fires GameEvent#turnchange
    * @fires GameEvent#gameover
    */
-  private async doPlayTurns(...turns: Array<Turn>) {
+  private async playTurns(turns: Iterable<Turn>) {
     if (this.isGameOver) {
       throw new Error('Game Over.')
     }
+
+    if (this.inPlayTurns) throw new Error(`playTurns: recursion detected.`)
+    const json = this.toJSON()
+    const oldNextTurnNumber = this.nextTurnNumber
+    let ok = false
+    try {
+      this.inPlayTurns = true
+      await this.doPlayTurns(turns)
+      ok = true
+    } finally {
+      if (!ok) {
+        console.log('Rolling back game state.')
+        this.copyFrom(await GameState.fromJSON(json))
+      }
+      this.inPlayTurns = false
+    }
+    if (this.nextTurnNumber !== oldNextTurnNumber) {
+      this.dispatchEvent(new GameEvent('turnchange'))
+    }
+    if (this.isGameOver) {
+      this.dispatchEvent(new GameEvent('gameover'))
+    }
+  }
+
+  /**
+   * Commits turns to the board and players' racks.
+   * @fires TileEvent#tilemove
+   */
+  private async doPlayTurns(turns: Iterable<Turn>) {
+    let finalTurnNumber: TurnNumber | null = null
 
     // `this.shared.playTurns` validates several turn properties.
     // For example:
@@ -337,22 +351,29 @@ export class GameState extends EventTarget {
     // * It updates the board and scores.
     // * It updates nextTurnNumber after each successfully processed turn.
     // On success, it updates tiles state (i.e., racks) and the board.
-    turns = await this.shared.playTurns(...turns)
+    // TODO - Consider async generators.
     for (const turn of turns) {
-      if (turn.playerId === this.playerId && 'playTiles' in turn.move) {
-        for (const placement of turn.move.playTiles) {
-          const index = this.tilesHeld.findIndex(p => p.row === placement.row && p.col === placement.col)
-          // TODO - Disable tile moves during the above `await`.
-          if (index === -1) throw new Error(`Could not find tile to place: ${JSON.stringify(placement)}`)
-          this.tilesHeld.splice(index, 1)
+      for (const newTurn of await this.shared.playTurns(turn)) {
+        if (newTurn.playerId === this.playerId && 'playTiles' in newTurn.move) {
+          console.debug(`Turn ${newTurn.turnNumber}: ${this.tilesHeld.map(p=>p.tile.letter)}`)
+          for (const placement of newTurn.move.playTiles) {
+            let index = this.tilesHeld.findIndex(p =>
+              p.row === placement.row &&
+                p.col === placement.col &&
+                p.tile.equals(placement.tile))
+            if (index === -1) index = this.tilesHeld.findIndex(p => p.tile.equals(placement.tile))
+            if (index === -1) index = this.tilesHeld.findIndex(p => p.tile.isBlank)
+            if (index === -1) throw new Error(`Could not find tile to place: ${JSON.stringify(placement)}`)
+            this.tilesHeld.splice(index, 1)
+          }
         }
+        // Draw/exchange tiles between bag and racks.
+        const finalTurnNumber = await this.tilesState.playTurns(turn)
+        if (finalTurnNumber !== null) break
       }
     }
-    // Draw/exchange tiles between bag and racks.
-    const finalTurnNumber = await this.tilesState.playTurns(...turns)
 
-    // Update history.
-    const { wroteHistory } = updateTurnHistory({
+    updateTurnHistory({
       history: this.history,
       nextTurnNumber: this.nextTurnNumber,
       finalTurnNumber,
@@ -373,7 +394,6 @@ export class GameState extends EventTarget {
       }
       console.log(`Transfering ${allTilesSum} to Player ${finalTurnPlayerId}.`)
       this.board.scores.set(finalTurnPlayerId, (this.board.scores.get(finalTurnPlayerId) ?? 0) + allTilesSum)
-      this.dispatchEvent(new GameEvent('gameover'))
     }
     if (!this.keepAllHistory) {
       const turnsToKeep = this.players.length - 1;
@@ -381,7 +401,6 @@ export class GameState extends EventTarget {
         this.history.splice(0, this.history.length - turnsToKeep);
       }
     }
-    if (wroteHistory) this.dispatchEvent(new GameEvent('turnchange'))
   }
 
   changePlayerName(playerId: string, name: string) {
@@ -414,7 +433,7 @@ export class GameState extends EventTarget {
     if (isNaN(turnNumber)) {
       throw new UrlError(`"tn" param is not a turn number: "${urlTurnNumberStr}"`)
     }
-    await this.playTurns(...this.shared.turnsFromParams(iterator, turnNumber))
+    await this.playTurns(this.shared.turnsFromParams(iterator, turnNumber))
   }
 
   static async fromParams(params: Readonly<URLSearchParams>, playerIdForTesting?: string) {

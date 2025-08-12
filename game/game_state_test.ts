@@ -3,84 +3,10 @@ import { GameState } from './game_state.js'
 import { Settings, type GameId } from './settings.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
-import { Turn, nextTurnNumber } from './turn.js'
-import { toTurnNumber } from './turn.js'
 import { Player } from './player.js'
 import { Tile, type TilePlacement } from './tile.js'
 
 describe('game state', () => {
-  it.skip('should take turns', async () => {
-    const settings = new Settings
-    settings.gameId = 'test' as GameId
-    let [[sharedBoard], ...pairs] = parseBoards(`
-
-          3 . ² . 3
-          . ³ . ³ .
-          ² . 2 . ²
-          . ³ . ³ .
-          3 . ² . 3
-
-
-          gid: test
-          v: 0
-          seed: 1
-          board: T.d.T-.t.t.-d.D.d-.t.t.-T.d.T  gid: test
-          tn: 1                                 tn: 2
-          wl: 2.0                               wl: 1.1
-          wh: VET                               wh: HEN
-
-          3 . ² . 3                             3 . ² . 3
-          . ³ . ³ .                             . H₄E₁N₁.
-          V₅E₁T₁. ²                             V₅E₁T₁. ²
-          . ³ . ³ .                             . ³ . ³ .
-          3 . ² . 3                             3 . ² . 3
-
-
-          gid: test                             gid: test
-          tn: 3                                 tn: 4
-          wl: 1.4                               wl: 4.1
-          wv: SIR                               wh: GLUE
-
-          3 . ² . 3                             3 . ² . 3
-          . H₄E₁N₁S₁                            . H₄E₁N₁S₁
-          V₅E₁T₁. I₁                            V₅E₁T₁. I₁
-          . ³ . ³ R₁                            . ³ . ³ R₁
-          3 . ² . 3                             3 G₃L₁U₂E₁
-
-      `) as any
-    settings.boardLayout = generateRowStrings(sharedBoard.squares)
-    settings.tileSystemSettings = {seed: '1'}
-    const player1GameState = new GameState('1', settings)
-    let player2GameState: GameState | undefined
-    let turnNumber = toTurnNumber(1)
-    for (const [player1Board, player2Board] of pairs) {
-      const player1Tiles = diffBoards(sharedBoard, player1Board)
-      for (const playerId of ['1', '2']) {
-        const tiles = await player1GameState.tilesState.getTiles(playerId)
-        const tilesStr = tiles.map(t => `${t.letter}(${t.value})`).join(' ')
-        console.log(`player ${playerId} tiles: ${tilesStr}`)
-      }
-      await player1GameState['playTurns'](new Turn('1', turnNumber, {playTiles: player1Tiles}))
-      expect(player1GameState.turnUrlParams).toEqual(player1Board.headers)
-      expect(diffBoards(player1GameState.board, player1Board)).toHaveLength(0)
-      if (player2GameState) {
-        await player2GameState.applyTurnParams(player1GameState.turnUrlParams)
-      } else {
-        player2GameState = await GameState.fromParams(player1GameState.turnUrlParams)
-      }
-      expect(diffBoards(player2GameState.board, player1Board)).toHaveLength(0)
-      turnNumber = nextTurnNumber(turnNumber)
-      const player2Tiles = diffBoards(player1Board, player2Board)
-      await player2GameState['playTurns'](new Turn('2',turnNumber, {playTiles: player2Tiles}))
-      expect(player2GameState.turnUrlParams).toEqual(player2Board.headers)
-      expect(diffBoards(player2GameState.board, player2Board)).toHaveLength(0)
-      await player1GameState.applyTurnParams(player2GameState.turnUrlParams)
-      expect(diffBoards(player1GameState.board, player2Board)).toHaveLength(0)
-      turnNumber = nextTurnNumber(turnNumber)
-      sharedBoard = player2Board
-    }
-  })
-
   it('should exchange tiles 1', async () => {
     const settings = new Settings
     settings.gameId = 'test' as GameId
@@ -189,48 +115,6 @@ describe('game state', () => {
     await gameState.passOrExchange()
     const rackAfterPass = gameState.tilesHeld.map(t => t.tile.letter).join('')
     expect(rackAfterPass).toBe('RVTSEIR')
-  })
-
-  // Skipping because the semantics of gameState['playTurns'] has changed.
-  it.skip('should handle end of game', async () => {
-    const settings = new Settings
-    settings.rackCapacity = 4
-    settings.letterCounts = {A: 10}
-    settings.letterValues = {A: 1}
-    let [[board0, board1, board2, board3]] = parseBoards(`
-
-        . . . . .     . . . . .     . . . . .     . . . . .
-        . . . . .     . . . . .     . . . . A₁    . . . . A₁
-        . . . . .     . A₁A₁A₁.     . A₁A₁A₁A₁    . A₁A₁A₁A₁
-        . . . . .     . . . . .     . . . . .     A₁A₁A₁. .
-        . . . . .     . . . . .     . . . . .     . . . . .
-
-      `) as any
-    settings.boardLayout = generateRowStrings(board0.squares)
-    settings.tileSystemSettings = {seed: '1'}
-    const player1GameState = new GameState('1', settings)
-
-    const turn1Tiles = diffBoards(board0, board1)
-    await player1GameState['playTurns'](new Turn('1', toTurnNumber(1), {playTiles: turn1Tiles}))
-    expect(player1GameState.isGameOver).toBeFalsy()
-    const player2GameState = await GameState.fromParams(player1GameState.turnUrlParams)
-    expect(player2GameState.isGameOver).toBeFalsy()
-
-    const turn2Tiles = diffBoards(board1, board2)
-    await player2GameState['playTurns'](new Turn('2',toTurnNumber(2), {playTiles: turn2Tiles}))
-    expect(player2GameState.isGameOver).toBeFalsy()
-    await player1GameState.applyTurnParams(player2GameState.turnUrlParams)
-    expect(player1GameState.isGameOver).toBeFalsy()
-
-    const turn3Tiles = diffBoards(board2, board3)
-    await player1GameState['playTurns'](new Turn('1',toTurnNumber(3), {playTiles: turn3Tiles}))
-    expect(player1GameState.isGameOver).toBeTruthy()
-    expect(player1GameState.board.scores.get('1')).toEqual(12)
-    expect(player1GameState.board.scores.get('2')).toEqual(4)
-    await player2GameState.applyTurnParams(player1GameState.turnUrlParams)
-    expect(player2GameState.isGameOver).toBeTruthy()
-    expect(player2GameState.board.scores.get('1')).toEqual(12)
-    expect(player2GameState.board.scores.get('2')).toEqual(4)
   })
 
   describe('params', () => {
