@@ -158,7 +158,7 @@ export class SharedState {
     }
     if (wordsToCheck.size) await this.checkWords(...wordsToCheck)
     if (turnsToPlayNow.length === 0) return turnsToPlayNow
-    console.log(`Turn validation success.`)
+    console.debug(`Turn validation success.`)
     for (const {playerId, score, placements} of boardChanges) {
       this.board.placeTiles(...placements)
       this.board.scores.set(playerId, (this.board.scores.get(playerId) ?? 0) + score)
