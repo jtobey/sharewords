@@ -136,6 +136,21 @@ describe('multi-player', () => {
       ['wl', '9.7'], ['wh', 'AA'],
       ['wl', '7.6'], ['wv', 'AA'],
     ])
+
+    // Player 2 loads Player 1's turn URL.
+    browser2.setHash(browser1.getHash())
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Player 2 catches up in another browser.
+    const browser2b = new TestBrowser('#' + gameUrl2)
+    const app2b = new App(browser2b)
+    await app2b.init()
+    expect(app2b.gameState.toJSON()).toEqual(app2.gameState.toJSON())
+
+    // Player 1 accidentally loads Player 2's URL.
+    browser1.setHash('#' + gameUrl2)
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(app1.gameState.playerId).toEqual('1')  // Still showing Player 1's tiles.
   })
 
   it('should handle collisions in pending placements', async () => {
