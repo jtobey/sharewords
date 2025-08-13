@@ -77,7 +77,7 @@ export class GameSetup {
     });
   }
 
-  private _updatePlayerList(players: {name: string}[]) {
+  private _updatePlayerList(players: {name: string, id?: string}[]) {
     this.playerList.innerHTML = '';
     players.forEach((player, index) => {
       const playerEntry = this.doc.createElement('div');
@@ -96,6 +96,16 @@ export class GameSetup {
         this._updatePlayerList(currentPlayers);
       };
       playerEntry.appendChild(removeButton);
+
+      if (this.gameState.keepAllHistory && player.id !== undefined) {
+        const historyParams = this.gameState.getHistoryUrlParamsForPlayer(player.id);
+        const replayLink = this.doc.createElement('a');
+        const gameUrl = this.browser.getHref().replace(this.browser.getHash(), '');
+        replayLink.href = gameUrl + '#' + historyParams;
+        const linkText = this.doc.createTextNode('join');
+        replayLink.appendChild(linkText);
+        playerEntry.appendChild(replayLink);
+      }
       this.playerList.appendChild(playerEntry);
     });
   }
@@ -112,7 +122,7 @@ export class GameSetup {
 
   private _populateSettingsDialog() {
     // Players
-    this._updatePlayerList(this.gameState.players.map(p => ({name: p.name})));
+    this._updatePlayerList(this.gameState.players);
 
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
