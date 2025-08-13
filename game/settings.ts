@@ -19,7 +19,18 @@ export function fromGameId(gameId: GameId) {
 }
 
 export function makeGameId() {
-  return `game-${Date.now()}.${Math.floor(1e9*Math.random())}`
+  const now = Date.now()
+  const array = new Uint8Array([
+    now >> 24,
+    now >> 16,
+    now >> 8,
+    now,
+    Math.random() * 0x100,
+    Math.random() * 0x100,
+  ])
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
 }
 
 const DEFAULT_PLAYER_LIST = [
