@@ -205,6 +205,29 @@ describe('multi-player', () => {
     expect(final_p1_tile2_placement?.col).toBe(8)
   })
 
+  it('should recover from an out-of-order turn', async () => {
+    // Player 1 begins a game and plays wl=7.7&wh=AA
+    const gameParams = 'gid=test&seed=1&bag=A-30-1&p1n=P1&p2n=P2&p3n=P3'
+    const browser1 = new TestBrowser('#' + gameParams)
+    const app1 = new App(browser1)
+    await app1.init()
+    app1.gameState.moveTile('rack', 0, 7, 7)
+    app1.gameState.moveTile('rack', 1, 7, 8)
+    await app1.gameState.playWord()
+
+    // Player 1 tries to play a word after their turn.
+    app1.gameState.moveTile('rack', 0, 8, 8)
+    const selector = '[data-row="8"][data-col="8"].placed'
+    app1.view.renderBoard()
+    expect(browser1.getDocument().querySelector(selector) === null).toBeFalse()
+    await expect(async () => await app1.gameState.playWord()).toThrow(
+      'Turn number 2 belongs to player "2", not "1".')
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // After the error, the view should be re-rendered, and the tile at (8,8) should be gone.
+    expect(browser1.getDocument().querySelector(selector) === null).toBeTrue()
+  })
+
   describe('player name change', () => {
     it('should sync player name changes', async () => {
       // Player 1's environment
