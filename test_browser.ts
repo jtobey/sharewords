@@ -3,13 +3,12 @@ import { Window } from 'happy-dom';
 
 export class TestBrowser implements Browser {
   private window: Window;
-  private hash: string = '';
   private storage: Map<string, string> = new Map();
   private hashChangeListeners: (() => void)[] = [];
   public clipboard: string = '';
   public location: string = '';
 
-  constructor() {
+  constructor(private hash = '') {
     this.window = new Window();
 
     // TODO - Try to share this with style.css.
@@ -85,7 +84,7 @@ export class TestBrowser implements Browser {
   }
 
   setHash(hash: string): void {
-    const newHash = '#' + hash.replace(/^#/, '')
+    const newHash = hash && '#' + hash.replace(/^#/, '')
     if (this.hash !== newHash) {
       this.hash = newHash;
       this.hashChangeListeners.forEach(l => l());
