@@ -46,11 +46,9 @@ export function updateTurnHistory({
   finalTurnNumber: TurnNumber | null,
   turns: Iterable<Turn>,
 }) {
-  let wroteHistory = false
   for (const turn of turns) {
     // Convert {playerId, turnNumber, move} to TurnData.
     if (fromTurnNumber(turn.turnNumber) >= nextTurnNumber) {
-      // `gameState.shared.playTurns` must have returned early.
       break
     }
     if (history.length) {
@@ -76,8 +74,6 @@ export function updateTurnHistory({
       addExtra()
     }
     history.push({turnNumber: turn.turnNumber, paramsStr: String(params)})
-    wroteHistory = true
     if (turn.turnNumber === finalTurnNumber) break
   }
-  return {wroteHistory}
 }

@@ -346,6 +346,7 @@ export class GameState extends EventTarget {
    * @fires TileEvent#tilemove
    */
   private async doPlayTurns(turns: Iterable<Turn>) {
+    const newTurns: Array<Turn> = []
     let finalTurnNumber: TurnNumber | null = null
 
     // `this.shared.playTurns` validates several turn properties.
@@ -359,7 +360,6 @@ export class GameState extends EventTarget {
     for (const turn of turns) {
       for (const newTurn of await this.shared.playTurns(turn)) {
         if (newTurn.playerId === this.playerId && 'playTiles' in newTurn.move) {
-          console.debug(`Turn ${newTurn.turnNumber}: ${this.tilesHeld.map(p=>p.tile.letter)}`)
           for (const placement of newTurn.move.playTiles) {
             let index = this.tilesHeld.findIndex(p =>
               p.row === placement.row &&
@@ -373,6 +373,7 @@ export class GameState extends EventTarget {
         }
         // Draw/exchange tiles between bag and racks.
         finalTurnNumber = await this.tilesState.playTurns(turn)
+        newTurns.push(turn)
         if (finalTurnNumber !== null) break
       }
     }
@@ -381,7 +382,7 @@ export class GameState extends EventTarget {
       history: this.history,
       nextTurnNumber: this.nextTurnNumber,
       finalTurnNumber,
-      turns,
+      turns: newTurns,
     })
     if (finalTurnNumber !== null) {
       const finalTurnPlayerId = this.getPlayerForTurnNumber(finalTurnNumber).id

@@ -85,6 +85,59 @@ describe('multi-player', () => {
     expect(reloadedApp1.gameState.shared.toJSON()).toEqual(app2.gameState.shared.toJSON())
   })
 
+  it('should generate a full history URL', async () => {
+    // Player 1 begins a game and plays wl=7.7&wh=AA
+    const gameParams = 'gid=test&seed=1&bag=A-30-1&p1n=P1&p2n=P2&p3n=P3'
+    const browser1 = new TestBrowser('#' + gameParams)
+    const app1 = new App(browser1)
+    await app1.init()
+    app1.gameState.moveTile('rack', 0, 7, 7)
+    app1.gameState.moveTile('rack', 1, 7, 8)
+    await app1.gameState.playWord()
+
+    // Player 2 joins and plays wl=8.8&wh=AA
+    const browser2 = new TestBrowser(browser1.getHash())
+    const app2 = new App(browser2)
+    await app2.init()
+    app2.gameState.moveTile('rack', 0, 8, 8)
+    app2.gameState.moveTile('rack', 1, 8, 9)
+    await app2.gameState.playWord()
+
+    console.log(`browser2: ${browser2.getHash()}`)
+
+    // Player 3 joins and plays wl=9.7&wh=AA
+    const browser3 = new TestBrowser(browser2.getHash())
+    const app3 = new App(browser3)
+    await app3.init()
+    app3.gameState.moveTile('rack', 0, 9, 7)
+    app3.gameState.moveTile('rack', 1, 9, 8)
+    await app3.gameState.playWord()
+
+    // Player 1 plays wl=7.6&wv=AA
+    browser1.setHash(browser3.getHash())
+    await new Promise(resolve => setTimeout(resolve, 0));
+    app1.gameState.moveTile('rack', 0, 7, 6)
+    app1.gameState.moveTile('rack', 1, 8, 6)
+    await app1.gameState.playWord()
+
+    const gameUrl2 = app1.gameState.getHistoryUrlParamsForPlayer('2')
+    expect([...gameUrl2.entries()]).toEqual([
+      ['pid', '2'],
+      ['gid', 'test'],
+      ['v', '0'],
+      ['p1n', 'P1'],
+      ['p2n', 'P2'],
+      ['p3n', 'P3'],
+      ['bag', 'A-30-1'],
+      ['seed', '1'],
+      ['tn', '1'],
+      ['wl', '7.7'], ['wh', 'AA'],
+      ['wl', '8.8'], ['wh', 'AA'],
+      ['wl', '9.7'], ['wh', 'AA'],
+      ['wl', '7.6'], ['wv', 'AA'],
+    ])
+  })
+
   it('should handle collisions in pending placements', async () => {
     // Player 1's environment
     const browser1 = new TestBrowser()
