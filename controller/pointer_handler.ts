@@ -145,8 +145,18 @@ export class PointerHandler {
         } else {
           this.scale = 1.8
           const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-          const boardX = evt.clientX - boardRect.left
-          const boardY = evt.clientY - boardRect.top
+          const square = target.closest('.square')?.getBoundingClientRect()
+
+          function toBoardCoordinate(evtCoordinate: number, boardLo: number, boardHi: number, squareLength: number) {
+            const boardCoordinate = evtCoordinate - boardLo
+            // Are we within a square's width of the board's left/top edge?
+            if (boardCoordinate < squareLength) return 0
+            // Are we within a square's width of the board's right/bottom edge?
+            if (boardCoordinate + squareLength > boardHi) return boardHi
+            return boardCoordinate
+          }
+          const boardX = toBoardCoordinate(evt.clientX, boardRect.left, boardRect.right, square ? square.right - square.left : 0)
+          const boardY = toBoardCoordinate(evt.clientY, boardRect.top, boardRect.bottom, square ? square.bottom - square.top : 0)
           this.panX = boardX * (1 - this.scale) / this.scale
           this.panY = boardY * (1 - this.scale) / this.scale
         }
