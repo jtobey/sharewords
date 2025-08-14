@@ -18,19 +18,18 @@ export function fromGameId(gameId: GameId) {
   return gameId as string
 }
 
-export function makeGameId() {
-  const now = Date.now()
-  const array = new Uint8Array([
-    now >> 24,
-    now >> 16,
-    now >> 8,
-    now,
-    Math.random() * 0x100,
-    Math.random() * 0x100,
-  ])
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
+export function makeGameId(
+  now = Date.now()
+) {
+  const ALPHABET = '123456789BCDFGHJKLMNPQRSTVWXYZbcdfghjkmnpqrstvwxyz'
+  const base = BigInt(ALPHABET.length)
+  let n = BigInt(Math.floor(now))
+  let id = ''
+  while (id.length < 7) {
+    id = ALPHABET[Number(n % base)]! + id
+    n /= base
+  }
+  return id
 }
 
 const DEFAULT_PLAYER_LIST = [
