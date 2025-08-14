@@ -5,6 +5,10 @@ import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
 import { type Browser, DomBrowser } from './browser.js'
 
+function makeStorageKey(gameId: string) {
+  return 'sharewords_' + gameId
+}
+
 export class App {
   browser: Browser
   gameState!: GameState
@@ -25,11 +29,10 @@ export class App {
   saveGameState() {
     const gid = this.gameState.gameId
     if (gid) {
-      this.browser.setLocalStorageItem(`sharewords_${gid}`,
-        JSON.stringify({
-          game: this.gameState.toJSON(),
-          ts: Date.now(),
-        })
+      const game = this.gameState.toJSON()
+      this.browser.setLocalStorageItem(
+        makeStorageKey(gid),
+        JSON.stringify({ game, ts: Date.now() })
       )
     }
   }
@@ -49,10 +52,10 @@ export class App {
         return;
       }
 
-      const savedGame = gidParam && this.browser.getLocalStorageItem(`sharewords_${gidParam}`);
+      const savedGame = gidParam && this.browser.getLocalStorageItem(makeStorageKey(gidParam));
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
-        this.gameState = await GameState.fromJSON(JSON.parse(savedGame).game);
+        this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
         await this.gameState.applyTurnParams(params)
       } else {
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));

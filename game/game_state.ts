@@ -85,7 +85,6 @@ export class GameState extends EventTarget {
     this.tilesHeld.forEach(p => {
       this.dispatchEvent(new TileEvent('tilemove', {detail: {placement: p}}))
     })
-    return this
   }
 
   get gameId()             { return this.shared.gameId }
@@ -471,7 +470,7 @@ export class GameState extends EventTarget {
     }
   }
 
-  static async fromJSON(json: any) {
+  static fromJSON(json: any) {
     function fail(msg: string): never {
       throw new TypeError(`${msg} in GameState serialization: ${JSON.stringify(json)}`)
     }
@@ -531,7 +530,6 @@ export class GameState extends EventTarget {
       history,
       new URLSearchParams(json.pendingExtraParams),
     )
-    await gameState.init()
     return gameState
   }
 }

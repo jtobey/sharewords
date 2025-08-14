@@ -219,13 +219,14 @@ describe('multi-player', () => {
     app1.gameState.moveTile('rack', 0, 8, 8)
     const selector = '[data-row="8"][data-col="8"].placed'
     app1.view.renderBoard()
-    expect(browser1.getDocument().querySelector(selector) === null).toBeFalse()
+    expect(browser1.getDocument().querySelector(selector)).toBeTruthy()
     await expect(async () => await app1.gameState.playWord()).toThrow(
       'Turn number 2 belongs to player "2", not "1".')
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    // After the error, the view should be re-rendered, and the tile at (8,8) should be gone.
-    expect(browser1.getDocument().querySelector(selector) === null).toBeTrue()
+    // After the error, the tile should remain where placed.
+    expect(browser1.getDocument().querySelector(selector)).toBeTruthy()
+    expect(app1.gameState.tilesHeld.find(p => p.row === 8 && p.col === 8)).toBeTruthy()
   })
 
   describe('player name change', () => {
