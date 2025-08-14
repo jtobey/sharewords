@@ -293,6 +293,11 @@ export class View {
 
   setBoardTransform(scale: number, x: number, y: number) {
     this.boardTransformer.style.transform = `scale(${scale}) translate(${x}px, ${y}px)`
+    if (scale > 1) {
+      this.boardContainer.style.touchAction = 'none'
+    } else {
+      this.boardContainer.style.touchAction = 'manipulation'
+    }
   }
 
   getBoardContainer(): HTMLElement {
