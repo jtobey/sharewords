@@ -58,11 +58,13 @@ export class PointerHandler {
     }
 
     if (target.closest('#board-container')) {
-      evt.preventDefault()
-      evt.stopPropagation()
-      this.isPanning = true
-      this.panStart.x = evt.clientX - this.panX
-      this.panStart.y = evt.clientY - this.panY
+      if (this.scale > 1) {
+        evt.preventDefault()
+        evt.stopPropagation()
+        this.isPanning = true
+        this.panStart.x = evt.clientX - this.panX
+        this.panStart.y = evt.clientY - this.panY
+      }
     }
   }
 
@@ -76,11 +78,9 @@ export class PointerHandler {
     }
 
     if (this.isPanning) {
-      if (this.scale > 1) {
-        this.panX = evt.clientX - this.panStart.x
-        this.panY = evt.clientY - this.panStart.y
-        this.updateTransform()
-      }
+      this.panX = evt.clientX - this.panStart.x
+      this.panY = evt.clientY - this.panStart.y
+      this.updateTransform()
     } else if (this.draggingTile && this.pointerMoved) {
       if (!this.ghostTile) {
         this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
