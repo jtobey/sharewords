@@ -14,6 +14,7 @@ export class App {
   gameState!: GameState
   view!: View
   controller!: Controller
+  bufferedLogs: string[] = [];
 
   constructor(browser: Browser) {
     this.browser = browser;
@@ -38,6 +39,10 @@ export class App {
   }
 
   async init() {
+    if (this.browser.getURLSearchParams(this.browser.getSearch()).has('debug')) {
+      this.initDebug();
+    }
+
     const handleGameChange = async () => {
       const params = this.browser.getURLSearchParams(this.browser.getHash()?.substring(1) || '');
       const gidParam = params.get('gid');
@@ -67,6 +72,11 @@ export class App {
 
       this.view = new View(this.gameState, this.browser);
       this.controller = new Controller(this.gameState, this.view, this.browser);
+
+      if (this.browser.getURLSearchParams(this.browser.getSearch()).has('debug')) {
+        this.view.gameSetup.initDebugDisplay(this.bufferedLogs);
+        this.bufferedLogs = [];
+      }
 
       this.view.renderBoard();
       this.view.renderRack();
@@ -104,6 +114,22 @@ export class App {
     this.browser.addHashChangeListener(handleGameChange);
     this.browser.addPasteListener(this.handlePaste.bind(this));
     await handleGameChange();
+  }
+
+  initDebug() {
+    const app = this;
+    for (const level of ['log', 'warn', 'error', 'info'] as const) {
+      const original = console[level];
+      console[level] = function(...args: any[]) {
+        original.apply(console, args);
+        const message = args.map(String).join(' ');
+        if (app.view?.gameSetup) {
+          (app.view.gameSetup as any).addDebugMessage(message);
+        } else {
+          app.bufferedLogs.push(message);
+        }
+      };
+    }
   }
 
   async handlePaste(pastedText: string) {
