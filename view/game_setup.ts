@@ -148,4 +148,35 @@ export class GameSetup {
       this.settingsDialog.hidden = true;
     }
   }
+
+  private debugContainer?: HTMLElement;
+
+  initDebugDisplay(bufferedLogs: string[]) {
+    const buttons = this.settingsDialog.querySelector('.buttons');
+    if (!buttons) return;
+
+    this.debugContainer = this.doc.createElement('div');
+    this.debugContainer.id = 'debug-console';
+    this.debugContainer.style.height = '150px';
+    this.debugContainer.style.overflowY = 'scroll';
+    this.debugContainer.style.border = '1px solid #ccc';
+    this.debugContainer.style.padding = '5px';
+    this.debugContainer.style.marginTop = '10px';
+    buttons.after(this.debugContainer);
+
+    for (const message of bufferedLogs) {
+      this.addDebugMessage(message);
+    }
+  }
+
+  addDebugMessage(message: string) {
+    if (!this.debugContainer) return;
+
+    const p = this.doc.createElement('pre');
+    p.style.margin = '0';
+    p.style.fontFamily = 'monospace';
+    p.textContent = message;
+    this.debugContainer.appendChild(p);
+    this.debugContainer.scrollTop = this.debugContainer.scrollHeight;
+  }
 }

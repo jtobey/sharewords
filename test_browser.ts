@@ -8,7 +8,7 @@ export class TestBrowser implements Browser {
   public clipboard: string = '';
   public location: string = '';
 
-  constructor(private hash = '') {
+  constructor(private hash = '', private search = '') {
     this.window = new Window();
 
     // TODO - Try to share this with style.css.
@@ -70,13 +70,14 @@ export class TestBrowser implements Browser {
     `
   }
 
-  reset(hash: string) {
+  reset(hash: string, search: string = '') {
     this.hashChangeListeners.length = 0
     this.hash = hash
+    this.search = search
   }
 
   reload() {
-    this.reset(this.hash)
+    this.reset(this.hash, this.search)
   }
 
   getHash(): string {
@@ -89,6 +90,10 @@ export class TestBrowser implements Browser {
       this.hash = newHash;
       this.hashChangeListeners.forEach(l => l());
     }
+  }
+
+  getSearch(): string {
+    return this.search;
   }
 
   addHashChangeListener(listener: () => void): void {

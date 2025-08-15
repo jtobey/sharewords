@@ -5,6 +5,9 @@ export interface Browser {
   // Returns the part of the URL after the #
   getHash(): string;
 
+  // Returns the query string part of the URL.
+  getSearch(): string;
+
   // Sets the part of the URL after the #
   setHash(hash: string): void;
 
@@ -50,6 +53,10 @@ export class DomBrowser implements Browser {
 
   getHash(): string {
     return window.location.hash;
+  }
+
+  getSearch(): string {
+    return window.location.search;
   }
 
   setHash(hash: string): void {
