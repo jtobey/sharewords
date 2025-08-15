@@ -296,7 +296,7 @@ export class View {
     if (scale > 1) {
       this.boardContainer.style.touchAction = 'none'
     } else {
-      this.boardContainer.style.touchAction = 'manipulation'
+      this.boardContainer.style.touchAction = 'pan-x pan-y'
     }
   }
 

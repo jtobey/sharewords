@@ -9,7 +9,7 @@
   height: 601px;
   overflow: hidden;
   position: relative;
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
 }
 
 #board-transformer {
