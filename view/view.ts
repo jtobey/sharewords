@@ -13,7 +13,7 @@ export class View {
   private scorePanel: HTMLElement
   private bagTileCountContainer: HTMLElement
   private gameState: GameState
-  private gameSetup: GameSetup
+  public gameSetup: GameSetup
   private dropTarget: { row: TilePlacementRow, col: number } | null = null
   private doc: Document
 
