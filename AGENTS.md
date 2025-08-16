@@ -1,10 +1,18 @@
 # Tests
 
+To run the full test suite, including a type-check, run:
+
     bun install
-    bun tsc
+    bun run test
+
+This is the recommended command to run before submitting changes. `bun run test` is a convenient alias for `bun run tsc && bun test`.
+
+For faster iteration, you can run the tests without a type-check. This is useful when you know the types are correct and want to save time. You can run either of the following commands:
+
+    bun run testjs
     bun test
 
-Consider running these tests *before* your change. If any fail and seem unrelated to the change, we may ignore those failures.
+Both commands are equivalent. You can pass arguments to them, for example: `bun test my_test.ts`.
 
 # Submitting code
 
