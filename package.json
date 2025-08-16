@@ -7,5 +7,10 @@
     "typescript": "^5.8.3"
   },
   "name": "lw2",
-  "private": true
+  "private": true,
+  "scripts": {
+    "tsc": "tsc --noEmit",
+    "test": "bun run tsc && bun run testjs",
+    "testjs": "bun test"
+  }
 }
