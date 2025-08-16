@@ -1,5 +1,6 @@
 import type { Browser } from './browser.js';
 import { Window } from 'happy-dom';
+import * as fs from 'fs';
 
 export class TestBrowser implements Browser {
   private window: Window;
@@ -9,65 +10,16 @@ export class TestBrowser implements Browser {
   public location: string = '';
 
   constructor(private hash = '', private search = '') {
+    const indexHtml = fs.readFileSync('index.html', 'utf-8');
+    const styleCss = fs.readFileSync('style.css', 'utf-8');
+
     this.window = new Window();
+    const document = this.window.document;
 
-    // TODO - Try to share this with style.css.
-    this.window.document.head.innerHTML = `<style>
-      .tile { width: 40px; height: 40px; }
-    </style>`
-
-    // TODO - Try to share this with index.html.
-    this.window.document.body.innerHTML = `
-      <div id="game-container">
-        <div id="center-panel">
-          <div id="score-panel"></div>
-          <div id="board-container"></div>
-        </div>
-        <div id="controls-container">
-          <div id="bag-tile-count-container"></div>
-          <div id="rack-container"></div>
-          <div id="exchange-container"></div>
-          <div id="buttons-container">
-            <button id="play-word"></button>
-            <button id="pass-exchange"></button>
-            <button id="recall-tiles"></button>
-            <button id="game-setup"></button>
-          </div>
-          <div id="settings-dialog" hidden>
-            <div class="content">
-              <div class="settings-group">
-                <h3>Players</h3>
-                <div id="player-list"></div>
-                <button id="add-player-button">+</button>
-              </div>
-              <div class="settings-group">
-                <h3>Dictionary</h3>
-                <select id="dictionary-type">
-                  <option value="permissive">Anything is a word</option>
-                  <option value="freeapi">freeapi</option>
-                  <option value="custom">custom</option>
-                </select>
-                <div id="dictionary-url-container" hidden>
-                  <label>URL: <input type="text" id="dictionary-url" placeholder="URL"></label>
-                </div>
-              </div>
-              <div class="settings-group">
-                <h3>Bingo Bonus</h3>
-                <input type="number" id="bingo-bonus">
-              </div>
-              <div class="settings-group">
-                <h3>Random Seed</h3>
-                <input type="text" id="random-seed">
-              </div>
-            </div>
-            <div class="buttons">
-              <button id="start-game-with-settings">Start Game with Settings</button>
-              <button id="cancel-settings">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
+    document.write(indexHtml);
+    const style = document.createElement('style');
+    style.textContent = styleCss;
+    document.head.appendChild(style);
   }
 
   reset(hash: string, search: string = '') {
