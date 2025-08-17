@@ -1,8 +1,9 @@
-import { test, expect, mock, setSystemTime, spyOn } from 'bun:test'
+import { test, expect, mock, setSystemTime, spyOn, describe, beforeEach, afterEach } from 'bun:test'
 import { PointerHandler } from './pointer_handler'
 import type { GameState } from '../game/game_state'
 import type { View } from '../view/view'
 import { TestBrowser } from '../test_browser'
+import type { TilePlacementRow } from '../game/tile'
 
 function createMockGameState(): GameState {
   return {
@@ -16,14 +17,17 @@ function createMockView(browser: TestBrowser): View {
   spyOn(boardContainer, 'getBoundingClientRect').mockReturnValue({
     x: 0, y: 0, top: 0, left: 0, bottom: 1000, right: 1000, width: 1000, height: 1000, toJSON: () => {}
   } as DOMRect)
+
+  let dropTarget: { row: TilePlacementRow, col: number } | null = null
+
   return {
     getBoardContainer: mock(() => boardContainer),
     setBoardTransform: mock(),
-    clearDropTarget: mock(),
-    getDropTarget: mock(),
-    createGhostTile: mock(),
+    clearDropTarget: mock(() => { dropTarget = null }),
+    getDropTarget: mock(() => dropTarget),
+    createGhostTile: mock((el: HTMLElement) => el.cloneNode() as HTMLElement),
     removeGhostTile: mock(),
-    setDropTarget: mock(),
+    setDropTarget: mock((row: TilePlacementRow, col: number) => { dropTarget = { row, col } }),
   } as unknown as View
 }
 
@@ -37,6 +41,114 @@ function createMockPointerEvent(target: HTMLElement, clientX = 100, clientY = 10
         stopPropagation: mock(),
     } as unknown as PointerEvent
 }
+
+describe('tile dragging', () => {
+    let gameState: GameState
+    let browser: TestBrowser
+    let view: View
+    let handler: PointerHandler
+
+    beforeEach(() => {
+        gameState = createMockGameState()
+        browser = new TestBrowser()
+        view = createMockView(browser)
+        handler = new PointerHandler(gameState, view)
+        global.document = browser.getDocument()
+        // happy-dom doesn't implement getBoundingClientRect
+        spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+            x: 100, y: 100, top: 100, left: 100, bottom: 120, right: 120, width: 20, height: 20, toJSON: () => {}
+        })
+    })
+
+    afterEach(() => {
+        delete (global as any).document
+    })
+
+    function createTile(row: TilePlacementRow, col: number, letter = 'A'): HTMLElement {
+        const tile = browser.getDocument().createElement('div')
+        tile.classList.add('tile')
+        tile.dataset.row = String(row)
+        tile.dataset.col = String(col)
+        tile.textContent = letter
+        browser.getDocument().body.appendChild(tile)
+        return tile
+    }
+
+    function createBoardSquare(row: number, col: number): HTMLElement {
+        const square = browser.getDocument().createElement('div')
+        square.classList.add('square')
+        square.dataset.row = String(row)
+        square.dataset.col = String(col)
+        browser.getDocument().body.appendChild(square)
+        return square
+    }
+
+    function createRackSpot(col: number): HTMLElement {
+        const spot = browser.getDocument().createElement('div')
+        spot.classList.add('tile-spot')
+        spot.dataset.row = 'rack'
+        spot.dataset.col = String(col)
+        browser.getDocument().body.appendChild(spot)
+        return spot
+    }
+
+    function dragAndDrop(fromElement: HTMLElement, toElement: HTMLElement) {
+        // 1. Press down on the fromElement
+        handler.pointerDown(createMockPointerEvent(fromElement))
+
+        // 2. Move a little to initiate the drag
+        const fromRect = fromElement.getBoundingClientRect()
+        handler.pointerMove(createMockPointerEvent(fromElement, fromRect.x + 10, fromRect.y))
+
+        // 3. Move over the toElement to set the drop target
+        const originalElementFromPoint = document.elementFromPoint
+        document.elementFromPoint = () => toElement
+
+        const toRect = toElement.getBoundingClientRect()
+        handler.pointerMove(createMockPointerEvent(toElement, toRect.x, toRect.y))
+
+        document.elementFromPoint = originalElementFromPoint
+
+        // 4. Release the pointer
+        handler.pointerUp(createMockPointerEvent(toElement, toRect.x, toRect.y))
+    }
+
+    test('drags a tile from the rack to the board', () => {
+        const fromTile = createTile('rack', 0)
+        const toSquare = createBoardSquare(7, 7)
+
+        dragAndDrop(fromTile, toSquare)
+
+        expect(gameState.moveTile).toHaveBeenCalledWith('rack', 0, 7, 7)
+    })
+
+    test('drags a tile from the board to another board location', () => {
+        const fromTile = createTile(7, 7)
+        const toSquare = createBoardSquare(7, 8)
+
+        dragAndDrop(fromTile, toSquare)
+
+        expect(gameState.moveTile).toHaveBeenCalledWith(7, 7, 7, 8)
+    })
+
+    test('drags a tile from the board to the rack', () => {
+        const fromTile = createTile(7, 7)
+        const toRackSpot = createRackSpot(0)
+
+        dragAndDrop(fromTile, toRackSpot)
+
+        expect(gameState.moveTile).toHaveBeenCalledWith(7, 7, 'rack', 0)
+    })
+
+    test('rearranges tiles on the rack', () => {
+        const fromTile = createTile('rack', 0)
+        const toRackSpot = createRackSpot(1)
+
+        dragAndDrop(fromTile, toRackSpot)
+
+        expect(gameState.moveTile).toHaveBeenCalledWith('rack', 0, 'rack', 1)
+    })
+})
 
 test('double tap zooms in', () => {
   const gameState = createMockGameState()
