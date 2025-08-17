@@ -59,7 +59,6 @@ export class PointerHandler {
   }
 
   pointerDown(evt: PointerEvent) {
-    console.debug(`pointerDown ${evt.pointerId} ${evt.clientX.toFixed()},${evt.clientY.toFixed()}`)
     if (evt.button !== 0) return
 
     const target = evt.target as HTMLElement
@@ -103,7 +102,6 @@ export class PointerHandler {
 
   pointerMove(evt: PointerEvent) {
     const info = this.pointerInfoMap.get(evt.pointerId)
-    console.debug(`pointerMove ${evt.pointerId} ${info ? 'yes' : 'no'} ${evt.clientX.toFixed()},${evt.clientY.toFixed()}`)
     if (!info) return
     if (!info.pointerMoved && Math.hypot(evt.clientX - info.downX, evt.clientY - info.downY) > 5) {
       info.pointerMoved = true
@@ -115,7 +113,6 @@ export class PointerHandler {
 
     if (info.isPanning) {
       const panningPointerCount = this.pointerInfoMap.values().reduce((sum, curr) => sum + (curr.isPanning ? 1 : 0), 0)
-      console.debug(`panningPointerCount: ${panningPointerCount}`)
       this.panX += (evt.clientX - info.x) / panningPointerCount / this.scale
       this.panY += (evt.clientY - info.y) / panningPointerCount / this.scale
       info.x = evt.clientX
@@ -150,7 +147,6 @@ export class PointerHandler {
 
   pointerUp(evt: PointerEvent) {
     const info = this.pointerInfoMap.get(evt.pointerId)
-    console.debug(`pointerUp ${evt.pointerId} ${info ? 'yes' : 'no'}`)
     if (!info) return
     const target = evt.target as HTMLElement
     if (!info.isPanning && info.draggingTile && info.ghostTile) {
