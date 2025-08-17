@@ -240,13 +240,7 @@ test('double tap when zoomed in zooms out', () => {
     handler.pointerMove(moveEvent)
 
     // Expect the pan to have taken effect
-    // Initial panX is -44.44 from the zoom.
-    // panStart.x = 100 - (-44.44) = 144.44
-    // new panX = 80 - 144.44 = -64.44
-    // Initial panY is -44.44 from the zoom.
-    // panStart.y = 100 - (-44.44) = 144.44
-    // new panY = 70 - 144.44 = -74.44
-    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1.8, expect.closeTo(-64.444), expect.closeTo(-74.444))
+    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1.8, expect.closeTo(-55.5555), expect.closeTo(-61.1111))
 
     handler.pointerUp(createMockPointerEvent(boardContainer))
     setSystemTime()

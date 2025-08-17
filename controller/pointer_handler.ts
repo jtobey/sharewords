@@ -21,7 +21,8 @@ type DragInfo = CommonPointerInfo & {
 
 type PanInfo = CommonPointerInfo & {
   isPanning: true
-  panStart: {x: number, y: number}
+  x: number
+  y: number
 }
 
 type PointerInfo = TapInfo | DragInfo | PanInfo
@@ -63,9 +64,9 @@ export class PointerHandler {
 
     const target = evt.target as HTMLElement
     const tapInfo: TapInfo = {
-      pointerMoved: false,
       downX: evt.clientX,
       downY: evt.clientY,
+      pointerMoved: false,
       isPanning: false,
       draggingTile: null,
     }
@@ -91,10 +92,8 @@ export class PointerHandler {
         const panInfo: PanInfo = {
           ...tapInfo,
           isPanning: true,
-          panStart: {
-            x: evt.clientX - this.panX,
-            y: evt.clientY - this.panY,
-          }
+          x: evt.clientX,
+          y: evt.clientY,
         }
         info = panInfo
       }
@@ -115,9 +114,13 @@ export class PointerHandler {
     }
 
     if (info.isPanning) {
-      // TODO: Handle multiple panning/pinching pointers.
-      this.panX = evt.clientX - info.panStart.x
-      this.panY = evt.clientY - info.panStart.y
+      const panningPointerCount = this.pointerInfoMap.values().reduce((sum, curr) => sum + (curr.isPanning ? 1 : 0), 0)
+      console.debug(`panningPointerCount: ${panningPointerCount}`)
+      this.panX += (evt.clientX - info.x) / panningPointerCount / this.scale
+      this.panY += (evt.clientY - info.y) / panningPointerCount / this.scale
+      info.x = evt.clientX
+      info.y = evt.clientY
+      // TODO: Zoom on pinch.
       this.updateTransform()
     } else if (info.draggingTile && info.pointerMoved) {
       if (!info.ghostTile) {
