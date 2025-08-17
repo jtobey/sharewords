@@ -8,9 +8,4 @@
   },
   "name": "lw2",
   "private": true,
-  "scripts": {
-    "tsc": "tsc --noEmit",
-    "test": "bun run tsc && bun run testjs",
-    "testjs": "bun test"
-  }
 }
