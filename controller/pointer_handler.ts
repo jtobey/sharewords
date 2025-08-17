@@ -2,22 +2,40 @@ import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 
+type CommonPointerInfo = {
+  downX: number
+  downY: number
+  pointerMoved: boolean
+}
+
+type TapInfo = CommonPointerInfo & {
+  isPanning: false
+  draggingTile: null
+}
+
+type DragInfo = CommonPointerInfo & {
+  isPanning: false
+  draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement }
+  ghostTile: HTMLElement | null
+}
+
+type PanInfo = CommonPointerInfo & {
+  isPanning: true
+  panStart: {x: number, y: number}
+}
+
+type PointerInfo = TapInfo | DragInfo | PanInfo
+
 export class PointerHandler {
   private gameState: GameState
   private view: View
-  private draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
-  private ghostTile: HTMLElement | null = null
+  private pointerInfoMap = new Map<number, PointerInfo>
 
   // Zoom/pan state
   private scale = 1
   private panX = 0
   private panY = 0
-  private panStart = { x: 0, y: 0 }
-  private isPanning = false
   private lastTap = 0
-  private pointerMoved = false
-  private downX = 0
-  private downY = 0
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -35,16 +53,23 @@ export class PointerHandler {
   }
 
   public pointerCancel(evt: PointerEvent) {
-    this.isPanning = false
+    this.pointerInfoMap.delete(evt.pointerId)
+    this.view.clearDropTarget(evt.pointerId)
   }
 
   pointerDown(evt: PointerEvent) {
+    console.debug(`pointerDown ${evt.pointerId} ${evt.clientX.toFixed()},${evt.clientY.toFixed()}`)
     if (evt.button !== 0) return
 
     const target = evt.target as HTMLElement
-    this.pointerMoved = false
-    this.downX = evt.clientX
-    this.downY = evt.clientY
+    const tapInfo: TapInfo = {
+      pointerMoved: false,
+      downX: evt.clientX,
+      downY: evt.clientY,
+      isPanning: false,
+      draggingTile: null,
+    }
+    let info: PointerInfo = tapInfo
 
     const tileTarget = target.closest('.tile, .placed')
     if (tileTarget instanceof HTMLElement) {
@@ -53,45 +78,58 @@ export class PointerHandler {
       const col = parseInt(tileTarget.dataset.col!, 10)
       const rowStr = tileTarget.dataset.row!
       const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
-      this.draggingTile = { row, col, element: tileTarget }
-      return
-    }
-
-    if (target.closest('#board-container')) {
+      const dragInfo: DragInfo = {
+        ...tapInfo,
+        draggingTile: { row, col, element: tileTarget },
+        ghostTile: null,
+      }
+      info = dragInfo
+    } else if (target.closest('#board-container')) {
       if (this.scale > 1) {
         evt.preventDefault()
         evt.stopPropagation()
-        this.isPanning = true
-        this.panStart.x = evt.clientX - this.panX
-        this.panStart.y = evt.clientY - this.panY
+        const panInfo: PanInfo = {
+          ...tapInfo,
+          isPanning: true,
+          panStart: {
+            x: evt.clientX - this.panX,
+            y: evt.clientY - this.panY,
+          }
+        }
+        info = panInfo
       }
     }
+    this.pointerInfoMap.set(evt.pointerId, info)
   }
 
   pointerMove(evt: PointerEvent) {
-    if (!this.pointerMoved && Math.hypot(evt.clientX - this.downX, evt.clientY - this.downY) > 5) {
-      this.pointerMoved = true
+    const info = this.pointerInfoMap.get(evt.pointerId)
+    console.debug(`pointerMove ${evt.pointerId} ${info ? 'yes' : 'no'} ${evt.clientX.toFixed()},${evt.clientY.toFixed()}`)
+    if (!info) return
+    if (!info.pointerMoved && Math.hypot(evt.clientX - info.downX, evt.clientY - info.downY) > 5) {
+      info.pointerMoved = true
     }
 
-    if (this.isPanning || this.draggingTile) {
+    if (info.isPanning || info.draggingTile) {
       evt.preventDefault()
     }
 
-    if (this.isPanning) {
-      this.panX = evt.clientX - this.panStart.x
-      this.panY = evt.clientY - this.panStart.y
+    if (info.isPanning) {
+      // TODO: Handle multiple panning/pinching pointers.
+      this.panX = evt.clientX - info.panStart.x
+      this.panY = evt.clientY - info.panStart.y
       this.updateTransform()
-    } else if (this.draggingTile && this.pointerMoved) {
-      if (!this.ghostTile) {
-        this.ghostTile = this.view.createGhostTile(this.draggingTile.element)
-        this.draggingTile.element.classList.add('dragging')
+    } else if (info.draggingTile && info.pointerMoved) {
+      if (!info.ghostTile) {
+        info.ghostTile = this.view.createGhostTile(info.draggingTile.element)
+        info.draggingTile.element.classList.add('dragging')
       }
-      this.ghostTile!.style.left = `${evt.clientX}px`
-      this.ghostTile!.style.top = `${evt.clientY}px`
+      info.ghostTile!.style.left = `${evt.clientX}px`
+      info.ghostTile!.style.top = `${evt.clientY}px`
 
-      this.ghostTile!.style.display = 'none'
+      info.ghostTile!.style.display = 'none'
       const targetElement = document.elementFromPoint(evt.clientX, evt.clientY)
-      this.ghostTile!.style.display = ''
+      info.ghostTile!.style.display = ''
 
       if (targetElement) {
         const dropTarget = targetElement.closest('.square, .tile-spot, .tile, .placed')
@@ -99,22 +137,25 @@ export class PointerHandler {
           const toRowStr = dropTarget.dataset.row
           const toRow: TilePlacementRow = toRowStr === 'rack' ? 'rack' : (toRowStr === 'exchange' ? 'exchange' : parseInt(toRowStr, 10))
           const toCol = parseInt(dropTarget.dataset.col, 10)
-          this.view.setDropTarget(toRow, toCol)
+          this.view.setDropTarget(evt.pointerId, toRow, toCol)
         } else {
-          this.view.clearDropTarget()
+          this.view.clearDropTarget(evt.pointerId)
         }
       }
     }
   }
 
   pointerUp(evt: PointerEvent) {
+    const info = this.pointerInfoMap.get(evt.pointerId)
+    console.debug(`pointerUp ${evt.pointerId} ${info ? 'yes' : 'no'}`)
+    if (!info) return
     const target = evt.target as HTMLElement
-    if (this.ghostTile) { // It was a drag
-      const dropTarget = this.view.getDropTarget()
+    if (!info.isPanning && info.draggingTile && info.ghostTile) {
+      const dropTarget = this.view.getDropTarget(evt.pointerId)
       if (dropTarget) {
         try {
-          const fromRow = this.draggingTile!.row
-          const fromCol = this.draggingTile!.col
+          const fromRow = info.draggingTile.row
+          const fromCol = info.draggingTile.col
           const toRow = dropTarget.row
           const toCol = dropTarget.col
 
@@ -133,9 +174,9 @@ export class PointerHandler {
           alert(e)
         }
       }
-      this.view.removeGhostTile(this.ghostTile)
-      this.draggingTile!.element.classList.remove('dragging')
-    } else if (target.closest('#board-container') && !this.pointerMoved) {
+      this.view.removeGhostTile(info.ghostTile)
+      info.draggingTile.element.classList.remove('dragging')
+    } else if (target.closest('#board-container') && !info.pointerMoved) {
       const now = Date.now()
       if (now - this.lastTap < 300) { // Double tap
         if (this.scale > 1) {
@@ -166,9 +207,7 @@ export class PointerHandler {
       this.lastTap = now
     }
 
-    this.isPanning = false
-    this.draggingTile = null
-    this.ghostTile = null
-    this.view.clearDropTarget()
+    this.pointerInfoMap.delete(evt.pointerId)
+    this.view.clearDropTarget(evt.pointerId)
   }
 }

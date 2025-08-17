@@ -1,6 +1,5 @@
 import { toGameId, fromGameId, makeGameId } from './game/settings.js'
 import { GameState } from './game/game_state.js'
-import { isBoardPlacementRow } from './game/tile.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
 import { type Browser, DomBrowser } from './browser.js'
@@ -85,14 +84,12 @@ export class App {
       this.view.renderPassExchangeButton();
 
       this.gameState.addEventListener('tilemove', (evt: any) => {
-        if (!isBoardPlacementRow(evt.detail.fromRow) || !isBoardPlacementRow(evt.detail.placement.row)) {
-          this.view.renderRack();
+        if (evt.detail.fromRow !== undefined && evt.detail.fromCol !== undefined) {
+          this.view.renderTileSpot(evt.detail.fromRow, evt.detail.fromCol)
         }
+        this.view.renderTileSpot(evt.detail.placement.row, evt.detail.placement.col)
         if ((evt.detail.fromRow === 'exchange') !== (evt.detail.placement.row === 'exchange')) {
           this.view.renderPassExchangeButton();
-        }
-        if (isBoardPlacementRow(evt.detail.fromRow) || isBoardPlacementRow(evt.detail.placement.row)) {
-          this.view.renderBoard();
         }
         this.saveGameState();
       });

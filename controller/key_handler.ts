@@ -16,12 +16,12 @@ export class KeyHandler {
     this.deselect()
     this.selectedTile = { row, col }
     this.view.select(row, col)
-    this.view.setDropTarget(row, col)
+    this.view.setDropTarget('keyboard', row, col)
   }
 
   deselect() {
     if (!this.selectedTile) return
-    this.view.deselect(this.selectedTile)
+    this.view.deselect('keyboard', this.selectedTile)
     this.selectedTile = null
   }
 
@@ -36,7 +36,7 @@ export class KeyHandler {
       case 'Enter': {
         evt.preventDefault()
         if (this.selectedTile) {
-          const dropTarget = this.view.getDropTarget()
+          const dropTarget = this.view.getDropTarget('keyboard')
           if (!dropTarget) return
           const { row: toRow, col: toCol } = dropTarget
           if (isBoardPlacementRow(toRow)) {
@@ -61,7 +61,7 @@ export class KeyHandler {
           }
         } else {
           this.select(row, col)
-          this.view.setDropTarget(row, col)
+          this.view.setDropTarget('keyboard', row, col)
         }
         break
       }
@@ -86,7 +86,7 @@ export class KeyHandler {
   }
 
   moveDropTarget(key: string) {
-    const dropTarget = this.view.getDropTarget()
+    const dropTarget = this.view.getDropTarget('keyboard')
     if (!this.selectedTile || !dropTarget) return
     let { row: r, col: c } = dropTarget
     const rackCapacity = this.gameState.settings.rackCapacity
@@ -145,6 +145,6 @@ export class KeyHandler {
         }
         break
       }
-    this.view.setDropTarget(r, c)
+    this.view.setDropTarget('keyboard', r, c)
   }
 }

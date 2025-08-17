@@ -1,8 +1,12 @@
-import { Dialog } from './dialog.js';
-import { GameSetup } from './game_setup.js';
+import { Dialog } from './dialog.js'
+import { GameSetup } from './game_setup.js'
 import type { GameState } from '../game/game_state.js'
 import type { Tile, TilePlacementRow } from '../game/tile.js'
-import type { Browser } from '../browser.js';
+import { isBoardPlacementRow } from '../game/tile.js'
+import type { Square } from '../game/board.ts'
+import type { Browser } from '../browser.js'
+
+type DropTargetId = number | 'keyboard'  // A PointerEvent's pointerId or the keyboard.
 
 export class View {
   private gameContainer: HTMLElement
@@ -14,7 +18,7 @@ export class View {
   private bagTileCountContainer: HTMLElement
   private gameState: GameState
   public gameSetup: GameSetup
-  private dropTarget: { row: TilePlacementRow, col: number } | null = null
+  private dropTargetMap = new Map<DropTargetId, { row: TilePlacementRow, col: number }>
   private doc: Document
 
   constructor(gameState: GameState, browser: Browser) {
@@ -48,6 +52,35 @@ export class View {
     }
   }
 
+  private addBonusTextToSquare(squareDiv: HTMLElement, square: Square) {
+    const bonusSpan = this.doc.createElement('span')
+    bonusSpan.className = 'bonus-text'
+    if (square.letterBonus === 2) bonusSpan.textContent = '2L'
+    if (square.letterBonus === 3) bonusSpan.textContent = '3L'
+    if (square.wordBonus === 2) bonusSpan.textContent = '2W'
+    if (square.wordBonus === 3) bonusSpan.textContent = '3W'
+    if (bonusSpan.textContent) squareDiv.appendChild(bonusSpan)
+  }
+
+  renderSquare(row: number, col: number, squareDiv = this.getElementByLocation(row, col)) {
+    if (!squareDiv) return
+    squareDiv.innerHTML = ''
+    squareDiv.classList.remove('placed')
+    const square = this.gameState.board.squares[row]![col]!
+    if (square.tile) {
+      this.addTileToElement(squareDiv, square.tile, square.assignedLetter)
+    } else {
+      const placedTile = this.gameState.tilesHeld.find(p => p.row === row && p.col === col)
+      if (placedTile) {
+        this.addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
+        squareDiv.classList.add('placed')
+        squareDiv.tabIndex = 0
+      } else {
+        this.addBonusTextToSquare(squareDiv, square)
+      }
+    }
+  }
+
   renderBoard() {
     this.boardTransformer.innerHTML = ''
     const centerSquare = this.gameState.board.centerSquare
@@ -66,25 +99,8 @@ export class View {
         if (r === centerSquare.row && c === centerSquare.col) squareDiv.classList.add('center')
         squareDiv.dataset.row = String(r)
         squareDiv.dataset.col = String(c)
-        if (square.tile) {
-          this.addTileToElement(squareDiv, square.tile, square.assignedLetter)
-        } else {
-          const placedTile = this.gameState.tilesHeld.find(p => p.row === r && p.col === c)
-          if (placedTile) {
-            this.addTileToElement(squareDiv, placedTile.tile, placedTile.assignedLetter)
-            squareDiv.classList.add('placed')
-            squareDiv.tabIndex = 0
-          } else {
-            const bonusSpan = this.doc.createElement('span')
-            bonusSpan.className = 'bonus-text'
-            if (square.letterBonus === 2) bonusSpan.textContent = '2L'
-            if (square.letterBonus === 3) bonusSpan.textContent = '3L'
-            if (square.wordBonus === 2) bonusSpan.textContent = '2W'
-            if (square.wordBonus === 3) bonusSpan.textContent = '3W'
-            if (bonusSpan.textContent) squareDiv.appendChild(bonusSpan)
-          }
-        }
         this.boardTransformer.appendChild(squareDiv)
+        this.renderSquare(r, c, squareDiv)
       }
     }
   }
@@ -157,38 +173,44 @@ export class View {
     }
   }
 
+  renderRackSpot(rackName: 'rack' | 'exchange', col: number) {
+    const spotElement = this.getElementByLocation(rackName, col)
+    if (!spotElement) return
+    spotElement.innerHTML = ''
+    spotElement.removeAttribute('tabIndex')
+    spotElement.className = ''
+    const tilePlacement = this.gameState.tilesHeld.find(p => p.row === rackName && p.col === col)
+    if (tilePlacement) {
+      spotElement.className = 'tile'
+      this.addTileToElement(spotElement, tilePlacement.tile, tilePlacement.assignedLetter)
+      spotElement.tabIndex = 0
+    } else {
+      spotElement.className = 'tile-spot'
+    }
+  }
+
   private renderRacklike(container: HTMLElement, name: 'rack' | 'exchange') {
     container.innerHTML = ''
-    const tiles = this.gameState.tilesHeld.filter(p => p.row === name)
-
-    const tileElements = [] as (HTMLDivElement | null)[]
-    for (const tilePlacement of tiles) {
-      const tileDiv = this.doc.createElement('div')
-      tileDiv.className = 'tile'
-      this.addTileToElement(tileDiv, tilePlacement.tile, tilePlacement.assignedLetter)
-      tileDiv.dataset.row = String(tilePlacement.row)
-      tileDiv.dataset.col = String(tilePlacement.col)
-      tileDiv.tabIndex = 0
-      tileElements[tilePlacement.col] = tileDiv
-    }
-
     for (let i = 0; i < this.gameState.settings.rackCapacity; i++) {
-      const tileDiv = tileElements[i]
-      if (tileDiv) {
-        container.appendChild(tileDiv)
-      } else {
-        const emptySpot = this.doc.createElement('div')
-        emptySpot.className = 'tile-spot'
-        emptySpot.dataset.row = name
-        emptySpot.dataset.col = String(i)
-        container.appendChild(emptySpot)
-      }
+      const spotDiv = this.doc.createElement('div')
+      spotDiv.dataset.row = name
+      spotDiv.dataset.col = String(i)
+      container.appendChild(spotDiv)
+      this.renderRackSpot(name, i)
     }
   }
 
   renderRack() {
     this.renderRacklike(this.rackContainer, 'rack')
     this.renderRacklike(this.exchangeContainer, 'exchange')
+  }
+
+  renderTileSpot(row: TilePlacementRow, col: number) {
+    if (isBoardPlacementRow(row)) {
+      this.renderSquare(row, col)
+    } else {
+      this.renderRackSpot(row, col)
+    }
   }
 
   renderBagTileCount() {
@@ -213,31 +235,34 @@ export class View {
     return this.doc.querySelector(selector)
   }
 
-  clearDropTarget() {
-    if (this.dropTarget) {
-      const el = this.getElementByLocation(this.dropTarget.row, this.dropTarget.col)
-      el?.classList.remove('drop-target')
+  clearDropTarget(dropTargetId: DropTargetId) {
+    const dropTarget = this.dropTargetMap.get(dropTargetId)
+    if (dropTarget) {
+      this.dropTargetMap.delete(dropTargetId)
+      if (!this.dropTargetMap.values().find(v => v.row === dropTarget.row && v.col === dropTarget.col)) {
+        const el = this.getElementByLocation(dropTarget.row, dropTarget.col)
+        el?.classList.remove('drop-target')
+      }
     }
-    this.dropTarget = null
   }
 
-  setDropTarget(row: TilePlacementRow, col: number) {
-    this.clearDropTarget()
+  setDropTarget(dropTargetId: DropTargetId, row: TilePlacementRow, col: number) {
+    this.clearDropTarget(dropTargetId)
     const el = this.getElementByLocation(row, col)
     if (el) {
       el.classList.add('drop-target')
-      this.dropTarget = { row, col }
+      this.dropTargetMap.set(dropTargetId, { row, col })
     }
   }
 
-  getDropTarget() {
-    return this.dropTarget
+  getDropTarget(dropTargetId: DropTargetId) {
+    return this.dropTargetMap.get(dropTargetId)
   }
 
-  deselect(selectedTile: { row: TilePlacementRow, col: number }) {
+  deselect(dropTargetId: DropTargetId, selectedTile: { row: TilePlacementRow, col: number }) {
     const prevSelected = this.getElementByLocation(selectedTile.row, selectedTile.col)
     prevSelected?.classList.remove('selected')
-    this.clearDropTarget()
+    this.clearDropTarget(dropTargetId)
   }
 
   select(row: TilePlacementRow, col: number) {

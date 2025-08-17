@@ -18,21 +18,22 @@ function createMockView(browser: TestBrowser): View {
     x: 0, y: 0, top: 0, left: 0, bottom: 1000, right: 1000, width: 1000, height: 1000, toJSON: () => {}
   } as DOMRect)
 
-  let dropTarget: { row: TilePlacementRow, col: number } | null = null
+  let dropTargetMap = new Map<number, { row: TilePlacementRow, col: number }>
 
   return {
     getBoardContainer: mock(() => boardContainer),
     setBoardTransform: mock(),
-    clearDropTarget: mock(() => { dropTarget = null }),
-    getDropTarget: mock(() => dropTarget),
+    clearDropTarget: mock((id: number) => { dropTargetMap.delete(id) }),
+    getDropTarget: mock((id: number) => dropTargetMap.get(id)),
     createGhostTile: mock((el: HTMLElement) => el.cloneNode() as HTMLElement),
     removeGhostTile: mock(),
-    setDropTarget: mock((row: TilePlacementRow, col: number) => { dropTarget = { row, col } }),
+    setDropTarget: mock((id: number, row: TilePlacementRow, col: number) => { dropTargetMap.set(id, { row, col }) }),
   } as unknown as View
 }
 
-function createMockPointerEvent(target: HTMLElement, clientX = 100, clientY = 100): PointerEvent {
+function createMockPointerEvent(target: HTMLElement, clientX = 100, clientY = 100, pointerId = 1): PointerEvent {
     return {
+        pointerId,
         target,
         clientX,
         clientY,
@@ -161,11 +162,14 @@ test('double tap zooms in', () => {
   let time = new Date('2023-01-01T00:00:00.000Z').getTime()
   setSystemTime(new Date(time))
   // First tap
+  handler.pointerDown(event)
+  setSystemTime(new Date(time += 100))
   handler.pointerUp(event)
 
   // Second tap (double tap)
-  time += 100
-  setSystemTime(new Date(time))
+  setSystemTime(new Date(time += 100))
+  handler.pointerDown(event)
+  setSystemTime(new Date(time += 100))
   handler.pointerUp(event)
 
   expect(view.setBoardTransform).toHaveBeenCalledWith(1.8, expect.closeTo(-44.444), expect.closeTo(-44.444))
@@ -184,19 +188,24 @@ test('double tap when zoomed in zooms out', () => {
     setSystemTime(new Date(time))
 
     // First double tap to zoom in
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
-    time += 100
-    setSystemTime(new Date(time))
+    setSystemTime(new Date(time += 100))
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
 
     // Wait so the next tap is not a double tap on the previous one.
-    time += 500
-    setSystemTime(new Date(time))
+    setSystemTime(new Date(time += 500))
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
 
     // The fourth tap is a double tap on the third
-    time += 100
-    setSystemTime(new Date(time))
+    setSystemTime(new Date(time += 100))
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
 
     // Expect the last call to be with scale 1
@@ -216,9 +225,12 @@ test('double tap when zoomed in zooms out', () => {
     setSystemTime(new Date(time))
 
     // Double tap to zoom in
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
-    time += 100
-    setSystemTime(new Date(time))
+    setSystemTime(new Date(time += 100))
+    handler.pointerDown(event)
+    setSystemTime(new Date(time += 100))
     handler.pointerUp(event)
 
     // Pan
