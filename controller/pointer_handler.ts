@@ -149,10 +149,12 @@ export class PointerHandler {
 
           function toBoardCoordinate(evtCoordinate: number, boardLo: number, boardHi: number, squareLength: number) {
             const boardCoordinate = evtCoordinate - boardLo
+            const boardLength = boardHi - boardLo
+            console.log(`boardCoordinate:${boardCoordinate} squareLength:${squareLength} boardHi:${boardHi}`)
             // Are we within a square's width of the board's left/top edge?
             if (boardCoordinate < squareLength) return 0
             // Are we within a square's width of the board's right/bottom edge?
-            if (boardCoordinate + squareLength > boardHi) return boardHi
+            if (boardCoordinate + squareLength > boardLength) return boardLength
             return boardCoordinate
           }
           const boardX = toBoardCoordinate(evt.clientX, boardRect.left, boardRect.right, square ? square.right - square.left : 0)
