@@ -1,6 +1,6 @@
 import { Settings, toGameId } from './settings.js'
 import { Player } from './player.js'
-import { arraysEqual, objectsEqual } from './validation.js'
+import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
 
 export function gameParamsFromSettings(settings: Settings) {
@@ -20,11 +20,11 @@ export function gameParamsFromSettings(settings: Settings) {
     params.set('bingo', String(settings.bingoBonus))
   }
   if (!(
-    objectsEqual(settings.letterCounts, defaults.letterCounts) &&
-      objectsEqual(settings.letterValues, defaults.letterValues)
+    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
+    mapsEqual(settings.letterValues, defaults.letterValues)
   )) {
-    const bagParam = Object.entries(settings.letterCounts).map(
-      ([letter, count]) => `${letter}-${count}-${settings.letterValues[letter] ?? 0}`
+    const bagParam = [...settings.letterCounts.entries()].map(
+      ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
     ).join('.')
     params.set('bag', bagParam)
   }
@@ -70,15 +70,15 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   if (newPlayers.length) settings.players = newPlayers
   const bagParam = gameParams.get('bag')
   if (bagParam) {
-    const letterCounts: {[key: string]: number} = Object.create(null)
-    const letterValues: {[key: string]: number} = Object.create(null)
+    const letterCounts = new Map<string, number>()
+    const letterValues = new Map<string, number>()
     bagParam.split('.').map((letterCountAndValue: string) => {
       if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
         throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
       }
       const parts = letterCountAndValue.split('-')
-      letterCounts[parts[0]!] = parseInt(parts[1]!, 10)
-      letterValues[parts[0]!] = parseInt(parts[2]!, 10)
+      letterCounts.set(parts[0]!, parseInt(parts[1]!, 10))
+      letterValues.set(parts[0]!, parseInt(parts[2]!, 10))
     })
     settings.letterCounts = letterCounts
     settings.letterValues = letterValues

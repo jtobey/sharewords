@@ -57,19 +57,15 @@ export function isBoardPlacement(tilePlacement: TilePlacement): tilePlacement is
   return isBoardPlacementRow(tilePlacement.row)
 }
 
-interface StringNumbers { [key: string]: number }
-
 /**
  * @returns The given numbers of tiles with the given letters and values, all in one array.
  */
 export function makeTiles({letterCounts, letterValues}: {
-  letterCounts: StringNumbers | ReadonlyMap<string, number>
-  letterValues: StringNumbers | ReadonlyMap<string, number>
+  letterCounts: ReadonlyMap<string, number>
+  letterValues: ReadonlyMap<string, number>
 }) {
   const tiles: Array<Tile> = []
-  const countsEntries = (letterCounts instanceof Map ? letterCounts.entries() : Object.entries(letterCounts))
-  if (!(letterValues instanceof Map)) letterValues = new Map(Object.entries(letterValues))
-  for (const [letter, count] of countsEntries) {
+  for (const [letter, count] of letterCounts) {
     tiles.push(...Array(count).fill(new Tile({letter, value: letterValues.get(letter) || 0})))
   }
   return tiles

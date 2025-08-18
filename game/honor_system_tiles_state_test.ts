@@ -8,10 +8,8 @@ function makePlayers(...ids: Array<string>) {
   return ids.map(id => new Player({id}))
 }
 
-interface LetterCounts { [key: string]: number }
-
-function makeTestTiles(letterCounts: LetterCounts) {
-  return makeTiles({letterCounts, letterValues: {}})
+function makeTestTiles(letterCounts: ReadonlyMap<string, number>) {
+  return makeTiles({letterCounts, letterValues: new Map()})
 }
 
 function getAllTiles(tilesState: HonorSystemTilesState) {
@@ -25,7 +23,7 @@ function getAllTiles(tilesState: HonorSystemTilesState) {
 
 describe('honor system tiles state', () => {
   it('should initialize', () => {
-    const tiles = makeTestTiles({A:9, B:2})
+    const tiles = makeTestTiles(new Map([['A', 9], ['B', 2]]))
     const state = new HonorSystemTilesState(
       makePlayers('John', 'Dave'),
       {seed: '1'},
@@ -41,14 +39,14 @@ describe('honor system tiles state', () => {
   })
 
   it('should play turns', async () => {
-    const tiles = makeTestTiles({A:9, B:2})
+    const tiles = makeTestTiles(new Map([['A', 9], ['B', 2]]))
     const state = new HonorSystemTilesState(
       makePlayers('John', 'Dave'),
       {seed: '1'},
       tiles,
       4,
     )
-    const daveWord = makeTestTiles({A:3, B:1}).map((tile, col) => ({row:1, col, tile}))
+    const daveWord = makeTestTiles(new Map([['A', 3], ['B', 1]])).map((tile, col) => ({row:1, col, tile}))
     const finalTurnNumber = await state.playTurns(
       new Turn('John', toTurnNumber(1), {exchangeTileIndices: []}),
       new Turn('Dave', toTurnNumber(2), {playTiles: daveWord}),
@@ -63,7 +61,7 @@ describe('honor system tiles state', () => {
 
   describe('validation', () => {
     it('should throw on duplicate player IDs', () => {
-      const tiles = makeTestTiles({A:1})
+      const tiles = makeTestTiles(new Map([['A', 1]]))
       expect(() => new HonorSystemTilesState(
         makePlayers('John', 'John'),
         {seed: '1'},
@@ -73,7 +71,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should throw on unknown player ID in countTiles', () => {
-      const tiles = makeTestTiles({A:1})
+      const tiles = makeTestTiles(new Map([['A', 1]]))
       const state = new HonorSystemTilesState(
         makePlayers('John'),
         {seed: '1'},
@@ -84,7 +82,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should throw on unknown player ID in getTiles', async () => {
-      const tiles = makeTestTiles({A:1})
+      const tiles = makeTestTiles(new Map([['A', 1]]))
       const state = new HonorSystemTilesState(
         makePlayers('John'),
         {seed: '1'},
@@ -100,7 +98,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should throw when playing a tile that is not on the rack', async () => {
-      const tiles = makeTestTiles({A:5})
+      const tiles = makeTestTiles(new Map([['A', 5]]))
       const state = new HonorSystemTilesState(
         makePlayers('John'),
         {seed: '1'},
@@ -117,7 +115,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should throw when exchanging tiles with invalid indices', async () => {
-      const tiles = makeTestTiles({A:5})
+      const tiles = makeTestTiles(new Map([['A', 5]]))
       const state = new HonorSystemTilesState(
         makePlayers('John'),
         {seed: '1'},
@@ -145,7 +143,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should throw on unknown player ID in playTurns', async () => {
-      const tiles = makeTestTiles({A:1})
+      const tiles = makeTestTiles(new Map([['A', 1]]))
       const state = new HonorSystemTilesState(
         makePlayers('John'),
         {seed: '1'},
@@ -163,7 +161,7 @@ describe('honor system tiles state', () => {
 
   describe('json', () => {
     it('should be serializable to and from JSON', () => {
-      const tiles = makeTestTiles({A:9, B:2})
+      const tiles = makeTestTiles(new Map([['A', 9], ['B', 2]]))
       const state = new HonorSystemTilesState(
         makePlayers('John', 'Dave'),
         {seed: '1'},
@@ -181,7 +179,7 @@ describe('honor system tiles state', () => {
     })
 
     it('should reject invalid json', () => {
-      const tiles = makeTestTiles({A:9, B:2})
+      const tiles = makeTestTiles(new Map([['A', 9], ['B', 2]]))
       const state = new HonorSystemTilesState(
         makePlayers('John', 'Dave'),
         {seed: '1'},

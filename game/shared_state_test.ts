@@ -64,7 +64,7 @@ describe('shared state', () => {
 
   test('rejects invalid words', async () => {
     const settings = new Settings()
-    settings.letterCounts = {A:100}
+    settings.letterCounts = new Map([['A', 100]])
     const sharedState = new SharedState(settings)
     sharedState['checkWords'] = async (...words: Array<string>) => {
       for (const word of words) {
@@ -126,7 +126,7 @@ describe('shared state', () => {
   test('throws on exchanging too many tiles', async () => {
     const settings = new Settings()
     settings.players = [new Player({ id: '1' })]
-    settings.letterCounts = { 'A': 8 } // Player 1 gets 7 tiles, bag has 1
+    settings.letterCounts = new Map([['A', 8]]) // Player 1 gets 7 tiles, bag has 1
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const turn = new Turn(player1Id, toTurnNumber(1), { exchangeTileIndices: [0, 1, 2, 3, 4, 5, 6] })
@@ -173,7 +173,7 @@ describe('shared state', () => {
         tilesState: new HonorSystemTilesState(
           new Settings().players,
           {seed: '1'},
-          makeTiles({letterCounts: {A: 20}, letterValues: {A: 1}}),
+          makeTiles({letterCounts: new Map([['A', 20]]), letterValues: new Map([['A', 1]])}),
           7,
         ).toJSON(),
       }

@@ -27,16 +27,6 @@ describe('tile', () => {
   })
 
   describe('makeTile', () => {
-    it('should work with letter-keyed objects', () => {
-      const letterCounts = {A:1, B:2}
-      const letterValues = {A:3, B:4}
-      expect(makeTiles({letterCounts, letterValues})).toEqual(expect.arrayContaining([
-        new Tile({letter: 'A', value: 3}),
-        new Tile({letter: 'B', value: 4}),
-        new Tile({letter: 'B', value: 4}),
-      ]))
-    })
-
     it('should work with Maps', () => {
       const letterCounts = new Map([['C', 1], ['D', 2]])
       const letterValues = new Map([['D', 3], ['C', 4]])
