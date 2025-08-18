@@ -72,6 +72,7 @@ export class Controller {
     // so that the drag continues even if the user's pointer leaves the game container.
     doc.addEventListener('pointermove', this.pointerHandler.pointerMove.bind(this.pointerHandler))
     doc.addEventListener('pointerup', this.pointerHandler.pointerUp.bind(this.pointerHandler))
+    doc.addEventListener('pointercancel', this.pointerHandler.pointerCancel.bind(this.pointerHandler))
 
     gameContainer.addEventListener('keydown', this.keyHandler.keydown.bind(this.keyHandler))
 

@@ -3,6 +3,7 @@ import type { View } from '../view/view.js'
 import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
 
 type CommonPointerInfo = {
+  pointerId: number
   downX: number
   downY: number
   pointerMoved: boolean
@@ -43,17 +44,20 @@ export class PointerHandler {
     this.view = view
   }
 
-  private updateTransform() {
+  private updateTransform(isPanningBoard = true) {
+    this.scale = Math.max(1, Math.min(4, this.scale))
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
     const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
     const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
     this.panX = Math.max(-maxPanX, Math.min(0, this.panX))
     this.panY = Math.max(-maxPanY, Math.min(0, this.panY))
 
-    this.view.setBoardTransform(this.scale, this.panX, this.panY)
+    this.view.setBoardTransform(this.scale, this.panX, this.panY, isPanningBoard)
   }
 
-  public pointerCancel(evt: PointerEvent) {
+  pointerCancel(evt: PointerEvent) {
+    const info = this.pointerInfoMap.get(evt.pointerId)
+    if (info) console.log(`Pointer cancel: ${evt.pointerId} (${info.x.toFixed(2)},${info.y.toFixed(2)})`)
     this.pointerInfoMap.delete(evt.pointerId)
     this.view.clearDropTarget(evt.pointerId)
   }
@@ -63,6 +67,7 @@ export class PointerHandler {
 
     const target = evt.target as HTMLElement
     const tapInfo: TapInfo = {
+      pointerId: evt.pointerId,
       downX: evt.clientX,
       downY: evt.clientY,
       x: evt.clientX,
@@ -71,7 +76,6 @@ export class PointerHandler {
       isPanning: false,
       draggingTile: null,
     }
-    let info: PointerInfo = tapInfo
 
     const tileTarget = target.closest('.tile, .placed')
     if (tileTarget instanceof HTMLElement) {
@@ -85,23 +89,32 @@ export class PointerHandler {
         draggingTile: { row, col, element: tileTarget },
         ghostTile: null,
       }
-      info = dragInfo
-    } else if (target.closest('#board-container')) {
-      // For pinch-to-zoom, on second active board pointer, set both board pointers to panning even if unzoomed.
-      const other = this.pointerInfoMap.values().find(info => !info.isPanning && !info.draggingTile)
-      if (other) console.log('Second active board touch detected.')
-      if (this.scale > 1 || other) {
-        evt.preventDefault()
-        evt.stopPropagation()
-        const panInfo: PanInfo = {
-          ...tapInfo,
-          isPanning: true,
+      this.pointerInfoMap.set(evt.pointerId, dragInfo)
+    } else {
+      const board = target.closest('#board-container')
+      if (board) {
+        // For pinch-to-zoom, on second active board pointer, set both board pointers to panning even if unzoomed.
+        const other = this.pointerInfoMap.values().find(info => !info.isPanning && !info.draggingTile)
+        if (other) console.log('Second active board touch detected.')
+        if (this.scale > 1 || other) {
+          evt.preventDefault()
+          evt.stopPropagation()
+          const panInfo: PanInfo = {
+            ...tapInfo,
+            isPanning: true,
+          }
+          this.pointerInfoMap.set(evt.pointerId, panInfo)
+          if (other) {
+            (other as PointerInfo as PanInfo).isPanning = true
+            board.setPointerCapture(other.pointerId)
+            console.log(`Capturing pointer ${other.pointerId}`)
+            this.updateTransform()
+          }
+        } else {
+          this.pointerInfoMap.set(evt.pointerId, tapInfo)
         }
-        info = panInfo
-        if (other) (other as PointerInfo as PanInfo).isPanning = true
       }
     }
-    this.pointerInfoMap.set(evt.pointerId, info)
   }
 
   pointerMove(evt: PointerEvent) {
@@ -144,8 +157,13 @@ export class PointerHandler {
         console.log('Before: [' + panningPointerInfos.map(i => `(${i.x.toFixed()},${i.y.toFixed()})`).join(',') + `] (${midpointBefore.x.toFixed(2)},${midpointBefore.y.toFixed(2)}) maxDistance ${maxDistanceBefore.toFixed(2)}`)
         console.log('After: [' + pointsAfter.map(i => `(${i.x.toFixed()},${i.y.toFixed()})`).join(',') + `] (${midpointAfter.x.toFixed(2)},${midpointAfter.y.toFixed(2)}) maxDistance ${maxDistanceAfter.toFixed(2)}`)
         if (maxDistanceBefore > 0 && maxDistanceAfter > 0) {
-          console.log(`Scale: ${this.scale} * ${maxDistanceAfter / maxDistanceBefore} == ${this.scale * maxDistanceAfter / maxDistanceBefore}`)
+          console.log(`Scale: ${this.scale.toFixed(5)} * ${(maxDistanceAfter / maxDistanceBefore).toFixed(5)} == ${(this.scale * maxDistanceAfter / maxDistanceBefore).toFixed(5)}`)
           this.scale *= maxDistanceAfter / maxDistanceBefore
+          const boardRect = this.view.getBoardContainer().getBoundingClientRect()
+          const boardX = midpointAfter.x - boardRect.left
+          const boardY = midpointAfter.y - boardRect.top
+          this.panX = boardX * (1 - this.scale) / this.scale
+          this.panY = boardY * (1 - this.scale) / this.scale
         }
       }
       this.updateTransform()
@@ -233,7 +251,8 @@ export class PointerHandler {
           this.panX = boardX * (1 - this.scale) / this.scale
           this.panY = boardY * (1 - this.scale) / this.scale
         }
-        this.updateTransform()
+        this.updateTransform(this.scale > 1)
+        // this.updateTransform()
       }
       this.lastTap = now
     }
