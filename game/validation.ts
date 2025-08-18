@@ -30,3 +30,12 @@ export function objectsEqual(o1: Readonly<{[key: string]: any}>, o2: Readonly<{[
   if (!arraysEqual(keys, Object.keys(o2).sort(), false)) return false
   return keys.every(key => o1[key] === o2[key])
 }
+
+/** Shallow comparison of two maps. */
+export function mapsEqual<K, V>(m1: ReadonlyMap<K, V>, m2: ReadonlyMap<K, V>) {
+  if (m1.size !== m2.size) return false
+  for (const [key, val] of m1) {
+    if (!m2.has(key) || m2.get(key) !== val) return false
+  }
+  return true
+}

@@ -38,8 +38,8 @@ describe('game state', () => {
 
   it('should apply the bingo bonus', async () => {
     const settings = new Settings
-    settings.letterCounts = {A: 20}
-    settings.letterValues = {A: 1}
+    settings.letterCounts = new Map([['A', 20]])
+    settings.letterValues = new Map([['A', 1]])
     settings.bingoBonus = 10
     let [[before, after]] = parseBoards(`
 
@@ -69,8 +69,8 @@ describe('game state', () => {
 
   it('should play a word', async () => {
     const settings = new Settings
-    settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
-    settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
+    settings.letterCounts = new Map([['A', 4], ['B', 4], ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['G', 4]])
+    settings.letterValues = new Map([['A', 1], ['B', 3], ['C', 3], ['D', 2], ['E', 1], ['F', 4], ['G', 2]])
     const gameState = new GameState('1', settings)
     await gameState.init()
 
@@ -123,8 +123,8 @@ describe('game state', () => {
       settings.players = [new Player({id: '1', name: 'player1'}), new Player({id: '2', name: 'player2'})]
       settings.boardLayout = ['T..', '.d.', '..T']
       settings.bingoBonus = 100
-      settings.letterCounts = {'A': 10, 'B': 10}
-      settings.letterValues = {'A': 1, 'B': 2}
+      settings.letterCounts = new Map([['A', 10], ['B', 10]])
+      settings.letterValues = new Map([['A', 1], ['B', 2]])
       settings.tileSystemType = 'honor'
       settings.tileSystemSettings = {seed: '123'}
       settings.dictionaryType = 'permissive'
@@ -161,8 +161,8 @@ describe('game state', () => {
       expect(settings.players.map(p => p.name)).toEqual(['player1', 'player2'])
       expect(settings.boardLayout).toEqual(['T..', '.d.', '..T'])
       expect(settings.bingoBonus).toEqual(100)
-      expect(settings.letterCounts).toEqual({'A': 10, 'B': 10})
-      expect(settings.letterValues).toEqual({'A': 1, 'B': 2})
+      expect(settings.letterCounts).toEqual(new Map([['A', 10], ['B', 10]]))
+      expect(settings.letterValues).toEqual(new Map([['A', 1], ['B', 2]]))
       expect(settings.tileSystemType).toEqual('honor')
       expect(settings.tileSystemSettings).toEqual({seed: '123'})
       expect(settings.dictionaryType).toEqual('permissive')
@@ -194,8 +194,8 @@ describe('game state', () => {
 
   it('should return a displaced tile to the rack', async () => {
     const settings = new Settings
-    settings.letterCounts = {A: 4, B: 4, C: 4, D: 4, E: 4, F: 4, G: 4}
-    settings.letterValues = {A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2}
+    settings.letterCounts = new Map([['A', 4], ['B', 4], ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['G', 4]])
+    settings.letterValues = new Map([['A', 1], ['B', 3], ['C', 3], ['D', 2], ['E', 1], ['F', 4], ['G', 2]])
     const gameState = new GameState('1', settings)
     await gameState.init()
 

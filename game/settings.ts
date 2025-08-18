@@ -37,19 +37,17 @@ const DEFAULT_PLAYER_LIST = [
   new Player({id: '2'}),
 ] as ReadonlyArray<Player>
 
-// TODO - Make a Map.
-const DEFAULT_LETTER_COUNTS: Readonly<{[key: string]: number}> = Object.freeze(Object.assign(Object.create(null), {
-  'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 2, 'H': 2, 'I': 9, 'J': 1,
-  'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 5, 'T': 6,
-  'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, '': 2
-}))
+const DEFAULT_LETTER_COUNTS: ReadonlyMap<string, number> = new Map([
+  ['A', 9], ['B', 2], ['C', 2], ['D', 4], ['E', 12], ['F', 2], ['G', 2], ['H', 2], ['I', 9], ['J', 1],
+  ['K', 1], ['L', 4], ['M', 2], ['N', 6], ['O', 8], ['P', 2], ['Q', 1], ['R', 6], ['S', 5], ['T', 6],
+  ['U', 4], ['V', 2], ['W', 2], ['X', 1], ['Y', 2], ['Z', 1], ['', 2]
+])
 
-// TODO - Make a Map.
-const DEFAULT_LETTER_VALUES: Readonly<{[key: string]: number}> = Object.freeze(Object.assign(Object.create(null), {
-  'A': 1, 'B': 3, 'C': 4, 'D': 2, 'E': 1, 'F': 4, 'G': 3, 'H': 4, 'I': 1, 'J': 9,
-  'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-  'U': 2, 'V': 5, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10 // Z is 10 points
-}))
+const DEFAULT_LETTER_VALUES: ReadonlyMap<string, number> = new Map([
+  ['A', 1], ['B', 3], ['C', 4], ['D', 2], ['E', 1], ['F', 4], ['G', 3], ['H', 4], ['I', 1], ['J', 9],
+  ['K', 5], ['L', 1], ['M', 3], ['N', 1], ['O', 1], ['P', 3], ['Q', 10], ['R', 1], ['S', 1], ['T', 1],
+  ['U', 2], ['V', 5], ['W', 4], ['X', 8], ['Y', 4], ['Z', 10]
+])
 
 const DEFAULT_BOARD_LAYOUT = [
   'D..d..T......T.', // Row 0
@@ -77,8 +75,8 @@ export class Settings {
   version = PROTOCOL_VERSION
   players = DEFAULT_PLAYER_LIST.map(p => new Player(p))
   maxPlayerNameLength = 50
-  letterCounts = DEFAULT_LETTER_COUNTS
-  letterValues = DEFAULT_LETTER_VALUES
+  letterCounts: ReadonlyMap<string, number> = DEFAULT_LETTER_COUNTS
+  letterValues: ReadonlyMap<string, number> = DEFAULT_LETTER_VALUES
   boardLayout = DEFAULT_BOARD_LAYOUT
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
@@ -138,7 +136,7 @@ export class Settings {
   }
 }
 
-function checkLetterToNumberMap(name: string, json: any): {[key: string]: number} {
+function checkLetterToNumberMap(name: string, json: any): Map<string, number> {
   const fail = () => {
     throw new TypeError(`Invalid Settings.${name} serialization: ${JSON.stringify(json)}`)
   }
@@ -151,11 +149,11 @@ function checkLetterToNumberMap(name: string, json: any): {[key: string]: number
     if (typeof k !== 'string') fail()
     if (typeof v !== 'number') fail()
   })
-  // TODO - return new Map(json)
-  return Object.fromEntries(json)
+  return new Map(json)
 }
 
-function mapToJSON(map: Map<string, number> | object) {
-  if (!(map instanceof Map)) return Object.entries(map)  // TODO - Remove.
+function mapToJSON(map: ReadonlyMap<string, number> | object) {
+  // TODO - Remove this object-compatibility code.
+  if (!(map instanceof Map)) return Object.entries(map)
   return [...map.entries()]
 }

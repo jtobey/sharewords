@@ -214,7 +214,7 @@ export class SharedState {
             if (assignedLetter) {
               placements.push({tile: new Tile({letter: '', value: 0}), row, col, assignedLetter})
             } else {
-              const value = this.settings.letterValues[letter]
+              const value = this.settings.letterValues.get(letter)
               if (value === undefined) throw new UrlError(`Attempt to play an invalid letter: "${letter}"`)
               placements.push({tile: new Tile({letter, value}), row, col})
             }
