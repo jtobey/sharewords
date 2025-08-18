@@ -35,16 +35,34 @@ describe('game params', () => {
       expect(params.get('bag')).toBe('Z--20..en')
     })
 
-    test('bag with different letter set', () => {
+    test('bag with removed letter is abbreviated', () => {
       const settings = new Settings()
       const letterCounts = new Map(settings.letterCounts)
       letterCounts.delete('A')
       settings.letterCounts = letterCounts
       const params = gameParamsFromSettings(settings)
-      const fullParam = [...settings.letterCounts.entries()].map(
-          ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
-      ).join('.')
-      expect(params.get('bag')).toBe(fullParam)
+      expect(params.get('bag')).toBe('A-0..en')
+    })
+
+    test('bag with removed blank is abbreviated', () => {
+      const settings = new Settings()
+      const letterCounts = new Map(settings.letterCounts)
+      letterCounts.delete('') // Remove blank tile
+      settings.letterCounts = letterCounts
+      const params = gameParamsFromSettings(settings)
+      expect(params.get('bag')).toBe('_-0..en')
+    })
+
+    test('bag with extended alphabet is abbreviated', () => {
+      const settings = new Settings()
+      const letterCounts = new Map(settings.letterCounts)
+      letterCounts.set('Ю', 5)
+      settings.letterCounts = letterCounts
+      const letterValues = new Map(settings.letterValues)
+      letterValues.set('Ю', 10)
+      settings.letterValues = letterValues
+      const params = gameParamsFromSettings(settings)
+      expect(params.get('bag')).toBe('Ю-5-10..en')
     })
   })
 
@@ -104,6 +122,13 @@ describe('game params', () => {
       parseBagParam(settings, 'A-15-3')
       expect(settings.letterCounts).toEqual(new Map([['A', 15]]))
       expect(settings.letterValues).toEqual(new Map([['A', 3]]))
+    })
+
+    test('parses bag with blank tile', () => {
+      const settings = new Settings
+      parseBagParam(settings, '_-1-0')
+      expect(settings.letterCounts.get('')).toBe(1)
+      expect(settings.letterValues.get('')).toBe(0)
     })
 
     test('uses default value', () => {
