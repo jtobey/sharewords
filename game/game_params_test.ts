@@ -25,6 +25,27 @@ describe('game params', () => {
       const params = gameParamsFromSettings(settings)
       expect(params.toString()).toBe('v=0&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar')
     })
+
+    test('abbreviated bag param', () => {
+      const settings = new Settings()
+      const letterValues = new Map(settings.letterValues)
+      letterValues.set('Z', 20)
+      settings.letterValues = letterValues
+      const params = gameParamsFromSettings(settings)
+      expect(params.get('bag')).toBe('Z--20..en')
+    })
+
+    test('bag with different letter set', () => {
+      const settings = new Settings()
+      const letterCounts = new Map(settings.letterCounts)
+      letterCounts.delete('A')
+      settings.letterCounts = letterCounts
+      const params = gameParamsFromSettings(settings)
+      const fullParam = [...settings.letterCounts.entries()].map(
+          ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
+      ).join('.')
+      expect(params.get('bag')).toBe(fullParam)
+    })
   })
 
   describe('parseGameParams', () => {
@@ -87,7 +108,9 @@ describe('game params', () => {
 
     test('uses default value', () => {
       const settings = new Settings
-      settings.letterValues.set('A', 1)
+      const letterValues = new Map(settings.letterValues)
+      letterValues.set('A', 1)
+      settings.letterValues = letterValues
       parseBagParam(settings, 'A-15')
       expect(settings.letterCounts).toEqual(new Map([['A', 15]]))
       expect(settings.letterValues).toEqual(new Map([['A', 1]]))
@@ -95,7 +118,9 @@ describe('game params', () => {
 
     test('uses default count', () => {
       const settings = new Settings
-      settings.letterCounts.set('A', 9)
+      const letterCounts = new Map(settings.letterCounts)
+      letterCounts.set('A', 9)
+      settings.letterCounts = letterCounts
       parseBagParam(settings, 'A--3')
       expect(settings.letterCounts).toEqual(new Map([['A', 9]]))
       expect(settings.letterValues).toEqual(new Map([['A', 3]]))

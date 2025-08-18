@@ -10,6 +10,66 @@ export class UrlError extends Error {
   }
 }
 
+function getBagParam(settings: Settings, defaults: Settings): string | undefined {
+  if (
+    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
+    mapsEqual(settings.letterValues, defaults.letterValues)
+  ) {
+    return undefined;
+  }
+
+  const fullBagParam = [...settings.letterCounts.entries()].map(
+    ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
+  ).join('.');
+
+  const settingsLetters = new Set(settings.letterCounts.keys());
+  const defaultLetters = new Set(defaults.letterCounts.keys());
+
+  // Abbreviated form is only possible if the set of letters is the same as default.
+  if (settingsLetters.size !== defaultLetters.size || ![...settingsLetters].every(l => defaultLetters.has(l))) {
+    return fullBagParam;
+  }
+
+  const diffParts: string[] = [];
+  for (const letter of [...settingsLetters].sort()) {
+    const count = settings.letterCounts.get(letter);
+    const value = settings.letterValues.get(letter);
+    const defaultCount = defaults.letterCounts.get(letter);
+    const defaultValue = defaults.letterValues.get(letter);
+
+    const countIsDefault = count === defaultCount;
+    const valueIsDefault = value === defaultValue;
+
+    if (countIsDefault && valueIsDefault) {
+      continue;
+    }
+
+    let part = letter;
+    if (!countIsDefault && !valueIsDefault) {
+      part += `-${count}-${value}`;
+    } else if (!countIsDefault) {
+      // value is default, omit it
+      part += `-${count}`;
+    } else { // !valueIsDefault and count is default
+      part += `--${value}`;
+    }
+    diffParts.push(part);
+  }
+
+  if (diffParts.length === 0) {
+    // Should have been caught by mapsEqual
+    return undefined;
+  }
+
+  const abbreviatedBagParam = diffParts.join('.') + '..en';
+
+  if (abbreviatedBagParam.length < fullBagParam.length) {
+    return abbreviatedBagParam;
+  }
+
+  return fullBagParam;
+}
+
 export function gameParamsFromSettings(settings: Settings) {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
@@ -26,13 +86,8 @@ export function gameParamsFromSettings(settings: Settings) {
   if (settings.bingoBonus !== defaults.bingoBonus) {
     params.set('bingo', String(settings.bingoBonus))
   }
-  if (!(
-    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
-    mapsEqual(settings.letterValues, defaults.letterValues)
-  )) {
-    const bagParam = [...settings.letterCounts.entries()].map(
-      ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
-    ).join('.')
+  const bagParam = getBagParam(settings, defaults)
+  if (bagParam) {
     params.set('bag', bagParam)
   }
   if (settings.rackCapacity !== defaults.rackCapacity) {
