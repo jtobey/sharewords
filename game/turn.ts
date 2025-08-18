@@ -1,4 +1,5 @@
 import type { BoardPlacement } from './tile.js'
+import type { Player } from './player.js'
 
 export type TurnNumber = number & { '__brand': 'TurnNumber' }
 
@@ -31,6 +32,10 @@ export class Turn {
       throw new Error(`Can't exchange and play tiles on the same turn. Turn number is ${turnNumber}.`)
     }
   }
+}
+
+export function getPlayerForTurnNumber(players: ReadonlyArray<Player>, turnNumber: TurnNumber) {
+  return players[(fromTurnNumber(turnNumber) - 1) % players.length]!
 }
 
 export type TurnData = { turnNumber: TurnNumber, paramsStr: string }
