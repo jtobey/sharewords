@@ -10,7 +10,8 @@
 
 import { Settings } from './settings.js'
 import { arraysEqual } from './validation.js'
-import { SharedState, UrlError, parseGameParams } from './shared_state.js'
+import { SharedState, UrlError } from './shared_state.js'
+import { parseGameParams } from './game_params.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow } from './tile.js'
 import { Turn, toTurnNumber, updateTurnHistory } from './turn.js'
