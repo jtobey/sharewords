@@ -10,6 +10,82 @@ export class UrlError extends Error {
   }
 }
 
+function getBagParam(settings: Settings, defaults: Settings): string | undefined {
+  const letterToUrl = (l: string) => l === '' ? '_' : l;
+
+  if (
+    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
+    mapsEqual(settings.letterValues, defaults.letterValues)
+  ) {
+    return undefined;
+  }
+
+  const fullBagParam = [...settings.letterCounts.entries()].map(
+    ([letter, count]) => `${letterToUrl(letter)}-${count}-${settings.letterValues.get(letter) ?? 0}`
+  ).join('.');
+
+  const settingsLetters = new Set(settings.letterCounts.keys());
+  const defaultLetters = new Set(defaults.letterCounts.keys());
+  const diffParts: string[] = [];
+
+  // Letters in settings that are not in defaults
+  for (const letter of settingsLetters) {
+    if (!defaultLetters.has(letter)) {
+      const count = settings.letterCounts.get(letter)!;
+      const value = settings.letterValues.get(letter) ?? 0;
+      diffParts.push(`${letterToUrl(letter)}-${count}-${value}`);
+    }
+  }
+
+  // Letters in both, but with differences, and letters in defaults but not settings
+  for (const letter of defaultLetters) {
+    const settingsHasLetter = settingsLetters.has(letter);
+    const count = settings.letterCounts.get(letter);
+    const value = settings.letterValues.get(letter);
+    const defaultCount = defaults.letterCounts.get(letter);
+    const defaultValue = defaults.letterValues.get(letter);
+
+    if (settingsHasLetter && count === defaultCount && value === defaultValue) {
+      continue;
+    }
+
+    if (!settingsHasLetter) {
+        diffParts.push(`${letterToUrl(letter)}-0`);
+        continue;
+    }
+
+    let part = letterToUrl(letter);
+    const countIsDefault = count === defaultCount;
+    const valueIsDefault = value === defaultValue;
+    if (!countIsDefault && !valueIsDefault) {
+      part += `-${count}-${value}`;
+    } else if (!countIsDefault) {
+      part += `-${count}`;
+    } else { // !valueIsDefault
+      part += `--${value}`;
+    }
+    diffParts.push(part);
+  }
+
+  if (diffParts.length === 0) {
+    return undefined;
+  }
+
+  diffParts.sort();
+
+  const abbreviatedBagParam = diffParts.join('.') + '..en';
+
+  if (defaultLetters.size === 0) {
+      return fullBagParam;
+  }
+
+  if (abbreviatedBagParam.length < fullBagParam.length) {
+    return abbreviatedBagParam;
+  }
+
+  return fullBagParam;
+}
+
 export function gameParamsFromSettings(settings: Settings) {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
@@ -26,13 +102,8 @@ export function gameParamsFromSettings(settings: Settings) {
   if (settings.bingoBonus !== defaults.bingoBonus) {
     params.set('bingo', String(settings.bingoBonus))
   }
-  if (!(
-    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
-    mapsEqual(settings.letterValues, defaults.letterValues)
-  )) {
-    const bagParam = [...settings.letterCounts.entries()].map(
-      ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
-    ).join('.')
+  const bagParam = getBagParam(settings, defaults)
+  if (bagParam) {
     params.set('bag', bagParam)
   }
   if (settings.rackCapacity !== defaults.rackCapacity) {
@@ -119,6 +190,7 @@ function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
 }
 
 export function parseBagParam(settings: Settings, bagParam: string) {
+  const urlToLetter = (s: string) => s === '_' ? '' : s;
   const letterCounts = new Map<string, number>()
   const letterValues = new Map<string, number>()
   const iterator = bagParam.split('.')[Symbol.iterator]()
@@ -138,15 +210,16 @@ export function parseBagParam(settings: Settings, bagParam: string) {
       break
     }
     // TODO - Consider supporting multi-character tiles.
-    const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/)
+    const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
     if (!match) {
       throw new UrlError(`Invalid letter configuration in URL: ${letterConfig}`)
     }
     const g = match.groups!
-    const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(g.letter!) ?? 1
-    const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(g.letter!) ?? 1
-    letterCounts.set(g.letter!, count)
-    letterValues.set(g.letter!, value)
+    const letter = urlToLetter(g.letter!)
+    const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(letter) ?? 1
+    const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(letter) ?? 1
+    letterCounts.set(letter, count)
+    letterValues.set(letter, value)
   }
   settings.letterCounts = letterCounts
   settings.letterValues = letterValues

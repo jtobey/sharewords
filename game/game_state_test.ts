@@ -171,10 +171,10 @@ describe('game state', () => {
 
     it('should throw on invalid bag param', async () => {
       const params = new URLSearchParams
-      params.set('bag', 'A-10')
+      params.set('bag', 'A-10-B')
       params.set('seed', '123')
       params.set('tn', '1')
-      await expect(GameState.fromParams(params)).rejects.toThrow('Invalid letter configuration in URL: A-10')
+      await expect(GameState.fromParams(params)).rejects.toThrow('Invalid letter configuration in URL: A-10-B')
     })
 
     it('should throw on missing seed param', async () => {
