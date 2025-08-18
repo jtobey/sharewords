@@ -6,6 +6,8 @@ type CommonPointerInfo = {
   downX: number
   downY: number
   pointerMoved: boolean
+  x: number
+  y: number
 }
 
 type TapInfo = CommonPointerInfo & {
@@ -21,8 +23,6 @@ type DragInfo = CommonPointerInfo & {
 
 type PanInfo = CommonPointerInfo & {
   isPanning: true
-  x: number
-  y: number
 }
 
 type PointerInfo = TapInfo | DragInfo | PanInfo
@@ -65,6 +65,8 @@ export class PointerHandler {
     const tapInfo: TapInfo = {
       downX: evt.clientX,
       downY: evt.clientY,
+      x: evt.clientX,
+      y: evt.clientY,
       pointerMoved: false,
       isPanning: false,
       draggingTile: null,
@@ -85,16 +87,18 @@ export class PointerHandler {
       }
       info = dragInfo
     } else if (target.closest('#board-container')) {
-      if (this.scale > 1) {
+      // For pinch-to-zoom, on second active board pointer, set both board pointers to panning even if unzoomed.
+      const other = this.pointerInfoMap.values().find(info => !info.isPanning && !info.draggingTile)
+      if (other) console.log('Second active board touch detected.')
+      if (this.scale > 1 || other) {
         evt.preventDefault()
         evt.stopPropagation()
         const panInfo: PanInfo = {
           ...tapInfo,
           isPanning: true,
-          x: evt.clientX,
-          y: evt.clientY,
         }
         info = panInfo
+        if (other) (other as PointerInfo as PanInfo).isPanning = true
       }
     }
     this.pointerInfoMap.set(evt.pointerId, info)
@@ -115,9 +119,35 @@ export class PointerHandler {
       const panningPointerCount = this.pointerInfoMap.values().reduce((sum, curr) => sum + (curr.isPanning ? 1 : 0), 0)
       this.panX += (evt.clientX - info.x) / panningPointerCount / this.scale
       this.panY += (evt.clientY - info.y) / panningPointerCount / this.scale
-      info.x = evt.clientX
-      info.y = evt.clientY
-      // TODO: Zoom on pinch.
+      if (panningPointerCount > 1) {
+        // Pinch to zoom.
+        const panningPointerInfos = [...this.pointerInfoMap.values().filter(anyInfo => anyInfo.isPanning)]
+        const midpointBefore = panningPointerInfos.reduce((sum, curr) => {
+          return {
+            x: sum.x + curr.x / panningPointerCount,
+            y: sum.y + curr.y / panningPointerCount,
+          }
+        }, {x: 0, y: 0})
+        const getMaxDistance = (midpoint: {x: number, y: number}, points: Array<{x: number, y: number}>) => {
+          return Math.max(...points.map(p => Math.hypot(midpoint.x - p.x, midpoint.y - p.y)))
+        }
+        const maxDistanceBefore = getMaxDistance(midpointBefore, panningPointerInfos)
+        const midpointAfter = {
+          x: midpointBefore.x + (evt.clientX - info.x) / panningPointerCount,
+          y: midpointBefore.y + (evt.clientY - info.y) / panningPointerCount,
+        }
+        const pointsAfter = [
+          {x: evt.clientX, y: evt.clientY},
+          ...panningPointerInfos.filter(anyInfo => anyInfo !== info),
+        ]
+        const maxDistanceAfter = getMaxDistance(midpointAfter, pointsAfter)
+        console.log('Before: [' + panningPointerInfos.map(i => `(${i.x.toFixed()},${i.y.toFixed()})`).join(',') + `] (${midpointBefore.x.toFixed(2)},${midpointBefore.y.toFixed(2)}) maxDistance ${maxDistanceBefore.toFixed(2)}`)
+        console.log('After: [' + pointsAfter.map(i => `(${i.x.toFixed()},${i.y.toFixed()})`).join(',') + `] (${midpointAfter.x.toFixed(2)},${midpointAfter.y.toFixed(2)}) maxDistance ${maxDistanceAfter.toFixed(2)}`)
+        if (maxDistanceBefore > 0 && maxDistanceAfter > 0) {
+          console.log(`Scale: ${this.scale} * ${maxDistanceAfter / maxDistanceBefore} == ${this.scale * maxDistanceAfter / maxDistanceBefore}`)
+          this.scale *= maxDistanceAfter / maxDistanceBefore
+        }
+      }
       this.updateTransform()
     } else if (info.draggingTile && info.pointerMoved) {
       if (!info.ghostTile) {
@@ -143,6 +173,8 @@ export class PointerHandler {
         }
       }
     }
+    info.x = evt.clientX
+    info.y = evt.clientY
   }
 
   pointerUp(evt: PointerEvent) {
