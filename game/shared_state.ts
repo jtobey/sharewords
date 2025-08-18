@@ -187,7 +187,7 @@ export class SharedState {
           blankTileIndicesStr.split('.').forEach((s: string) => {
             const match = s.match(/^(\d+)$/)
             if (!match) { throw new UrlError(`Invalid "bt" parameter component: "${s}"`) }
-            const index = parseInt(match[1]!)
+            const index = parseInt(match[1]!, 10)
             if (index in blankTileAssignments) {
               throw new UrlError(`Duplicate blank tile assignment index: bt=${blankTileIndicesStr}`)
             }
@@ -201,8 +201,8 @@ export class SharedState {
 
         const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
         if (!match) { throw new UrlError(`Invalid "wl" parameter: "${wordLocationStr}"`) }
-        let row = parseInt(match[1]!)
-        let col = parseInt(match[2]!)
+        let row = parseInt(match[1]!, 10)
+        let col = parseInt(match[2]!, 10)
 
         const placements = [] as Array<BoardPlacement>
         wordPlayed.split('').map((letter, letterIndex) => {
@@ -240,7 +240,7 @@ export class SharedState {
         const numberOfTilesInRack = this.tilesState.countTiles(playerId)
         const exchangeTileIndices: Array<number> = []
         exchangeIndexStrs.forEach(s => {
-          const index = parseInt(s)
+          const index = parseInt(s, 10)
           if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
             throw new UrlError(`Invalid exchange tile index: "${s}"`)
           }
@@ -262,7 +262,7 @@ export class SharedState {
     for (const [key, value] of params) {
       const pnMatch = key.match(/^p(\d+)n$/)
       if (pnMatch) {
-        const playerIndex = parseInt(pnMatch[1]!) - 1
+        const playerIndex = parseInt(pnMatch[1]!, 10) - 1
         const player = this.players[playerIndex]
         if (player) {
           player.name = value

@@ -70,15 +70,15 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   if (newPlayers.length) settings.players = newPlayers
   const bagParam = gameParams.get('bag')
   if (bagParam) {
-    const letterCounts: {[key: string]: number} = {}
-    const letterValues: {[key: string]: number} = {}
+    const letterCounts: {[key: string]: number} = Object.create(null)
+    const letterValues: {[key: string]: number} = Object.create(null)
     bagParam.split('.').map((letterCountAndValue: string) => {
       if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
         throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
       }
       const parts = letterCountAndValue.split('-')
-      letterCounts[parts[0]!] = parseInt(parts[1]!)
-      letterValues[parts[0]!] = parseInt(parts[2]!)
+      letterCounts[parts[0]!] = parseInt(parts[1]!, 10)
+      letterValues[parts[0]!] = parseInt(parts[2]!, 10)
     })
     settings.letterCounts = letterCounts
     settings.letterValues = letterValues
@@ -86,9 +86,9 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const boardParam = gameParams.get('board')
   if (boardParam) settings.boardLayout = boardParam.split('-')
   const bingoParam = gameParams.get('bingo')
-  if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
+  if (bingoParam) settings.bingoBonus = parseInt(bingoParam, 10)
   const racksizeParam = gameParams.get('racksize')
-  if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
+  if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam, 10)
   const seedParam = gameParams.get('seed')
   if (!seedParam) throw new Error('No random seed in URL.')
   settings.tileSystemSettings = {seed: seedParam}
@@ -105,7 +105,7 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   }
   let playerId = gameParams.get('pid') ?? undefined
   if (!playerId) {
-    const urlTurnNumber = parseInt(turnParams.get('tn')!) || 1
+    const urlTurnNumber = parseInt(turnParams.get('tn')!, 10) || 1
     const turnNumber = toTurnNumber(urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length)
     playerId = getPlayerForTurnNumber(settings.players, turnNumber).id
     console.log(`Joining as Player ${playerId}.`)
