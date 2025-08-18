@@ -31,16 +31,16 @@
  * tile state.
  */
 
-import { arraysEqual, objectsEqual } from './validation.js'
-import { Settings, makeGameId, fromGameId, toGameId, type GameId } from './settings.js'
+import { arraysEqual } from './validation.js'
+import { Settings, makeGameId, fromGameId, type GameId } from './settings.js'
 import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
-import { Turn, toTurnNumber, fromTurnNumber, nextTurnNumber } from './turn.js'
+import { Turn, toTurnNumber, nextTurnNumber, getPlayerForTurnNumber } from './turn.js'
 import type { TurnNumber, TurnData } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
+import { gameParamsFromSettings } from './game_params.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
-import { Player } from './player.js'
 
 export class UrlError extends Error {
   constructor(message: string) {
@@ -187,7 +187,7 @@ export class SharedState {
           blankTileIndicesStr.split('.').forEach((s: string) => {
             const match = s.match(/^(\d+)$/)
             if (!match) { throw new UrlError(`Invalid "bt" parameter component: "${s}"`) }
-            const index = parseInt(match[1]!)
+            const index = parseInt(match[1]!, 10)
             if (index in blankTileAssignments) {
               throw new UrlError(`Duplicate blank tile assignment index: bt=${blankTileIndicesStr}`)
             }
@@ -201,8 +201,8 @@ export class SharedState {
 
         const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
         if (!match) { throw new UrlError(`Invalid "wl" parameter: "${wordLocationStr}"`) }
-        let row = parseInt(match[1]!)
-        let col = parseInt(match[2]!)
+        let row = parseInt(match[1]!, 10)
+        let col = parseInt(match[2]!, 10)
 
         const placements = [] as Array<BoardPlacement>
         wordPlayed.split('').map((letter, letterIndex) => {
@@ -240,7 +240,7 @@ export class SharedState {
         const numberOfTilesInRack = this.tilesState.countTiles(playerId)
         const exchangeTileIndices: Array<number> = []
         exchangeIndexStrs.forEach(s => {
-          const index = parseInt(s)
+          const index = parseInt(s, 10)
           if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
             throw new UrlError(`Invalid exchange tile index: "${s}"`)
           }
@@ -262,7 +262,7 @@ export class SharedState {
     for (const [key, value] of params) {
       const pnMatch = key.match(/^p(\d+)n$/)
       if (pnMatch) {
-        const playerIndex = parseInt(pnMatch[1]!) - 1
+        const playerIndex = parseInt(pnMatch[1]!, 10) - 1
         const player = this.players[playerIndex]
         if (player) {
           player.name = value
@@ -327,116 +327,6 @@ export class SharedState {
   }
 }
 
-function gameParamsFromSettings(settings: Settings) {
-  const params = new URLSearchParams
-  // Not all players have played. Include any non-default game settings.
-  const defaults = new Settings
-  params.set('v', settings.version)
-  if (!playersEqual(settings.players, defaults.players)) {
-    settings.players.forEach((p, index) => {
-      params.set(`p${index + 1}n`, p.name)
-    })
-  }
-  if (!arraysEqual(settings.boardLayout, defaults.boardLayout, false)) {
-    params.set('board', settings.boardLayout.join('-'))
-  }
-  if (settings.bingoBonus !== defaults.bingoBonus) {
-    params.set('bingo', String(settings.bingoBonus))
-  }
-  if (!(
-    objectsEqual(settings.letterCounts, defaults.letterCounts) &&
-      objectsEqual(settings.letterValues, defaults.letterValues)
-  )) {
-    const bagParam = Object.entries(settings.letterCounts).map(
-      ([letter, count]) => `${letter}-${count}-${settings.letterValues[letter] ?? 0}`
-    ).join('.')
-    params.set('bag', bagParam)
-  }
-  if (settings.rackCapacity !== defaults.rackCapacity) {
-    params.set('racksize', String(settings.rackCapacity))
-  }
-  if (settings.tileSystemType === 'honor') {
-    params.set('seed', settings.tileSystemSettings.seed)
-  }
-  if (settings.dictionaryType !== defaults.dictionaryType) {
-    params.set('dt', settings.dictionaryType)
-  }
-  if (typeof settings.dictionarySettings === 'string') {
-    params.set('ds', settings.dictionarySettings)
-  }
-  return params
-}
-
-export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
-  // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
-  const gameParams = new URLSearchParams
-  const turnParams = new URLSearchParams
-  for (const [name, value] of allParams) {
-    if (turnParams.size || name === 'tn') {
-      turnParams.append(name, value)
-    } else {
-      gameParams.append(name, value)
-    }
-  }
-  const settings = new Settings
-  const vParam = gameParams.get('v')
-  if (vParam && vParam !== settings.version) {
-    throw new Error(`Protocol version not supported: ${vParam}`)
-  }
-  const gidParam = gameParams.get('gid')
-  if (gidParam) settings.gameId = toGameId(gidParam)
-  const newPlayers: Array<Player> = []
-  for (let playerNumber = 1; ; ++playerNumber) {
-    const pnParam = gameParams.get(`p${playerNumber}n`)
-    if (!pnParam) break
-    newPlayers.push(new Player({id: String(playerNumber), name: pnParam.slice(0, settings.maxPlayerNameLength)}))
-  }
-  if (newPlayers.length) settings.players = newPlayers
-  const bagParam = gameParams.get('bag')
-  if (bagParam) {
-    const letterCounts: {[key: string]: number} = {}
-    const letterValues: {[key: string]: number} = {}
-    bagParam.split('.').map((letterCountAndValue: string) => {
-      if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
-        throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
-      }
-      const parts = letterCountAndValue.split('-')
-      letterCounts[parts[0]!] = parseInt(parts[1]!)
-      letterValues[parts[0]!] = parseInt(parts[2]!)
-    })
-    settings.letterCounts = letterCounts
-    settings.letterValues = letterValues
-  }
-  const boardParam = gameParams.get('board')
-  if (boardParam) settings.boardLayout = boardParam.split('-')
-  const bingoParam = gameParams.get('bingo')
-  if (bingoParam) settings.bingoBonus = parseInt(bingoParam)
-  const racksizeParam = gameParams.get('racksize')
-  if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam)
-  const seedParam = gameParams.get('seed')
-  if (!seedParam) throw new Error('No random seed in URL.')
-  settings.tileSystemSettings = {seed: seedParam}
-  const dtParam = gameParams.get('dt')
-  if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
-    settings.dictionaryType = dtParam
-  } else if (dtParam) {
-    throw new Error(`Unknown dictionary type: "${dtParam}".`)
-  }
-  const dsParam = gameParams.get('ds')
-  if (dsParam) settings.dictionarySettings = dsParam
-  else if (settings.dictionaryType === 'custom') {
-    throw new Error('Custom dictionary requires a URL.')
-  }
-  let playerId = gameParams.get('pid') ?? undefined
-  if (!playerId) {
-    const urlTurnNumber = parseInt(turnParams.get('tn')!) || 1
-    const turnNumber = toTurnNumber(urlTurnNumber + turnParams.getAll('wl').length + turnParams.getAll('ex').length)
-    playerId = getPlayerForTurnNumber(settings.players, turnNumber).id
-    console.log(`Joining as Player ${playerId}.`)
-  }
-  return { settings, playerId, turnParams }
-}
-
 function makeTilesState(settings: Settings): TilesState {
   if (settings.tileSystemType === 'honor') {
     return new HonorSystemTilesState(
@@ -452,16 +342,4 @@ function makeTilesState(settings: Settings): TilesState {
 function rehydrateTilesState(tileSystemType: string, tilesStateJson: any) {
   if (tileSystemType === 'honor') return HonorSystemTilesState.fromJSON(tilesStateJson)
   throw new TypeError(`Unknown tileSystemType: ${tileSystemType}`)
-}
-
-function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
-  if (ps1.length !== ps2.length) return false
-  for (const index in ps1) {
-    if (!ps1[index]!.equals(ps2[index])) return false
-  }
-  return true
-}
-
-function getPlayerForTurnNumber(players: ReadonlyArray<Player>, turnNumber: TurnNumber) {
-  return players[(fromTurnNumber(turnNumber) - 1) % players.length]!
 }
