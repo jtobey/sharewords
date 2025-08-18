@@ -37,17 +37,10 @@ import { type TilesState, checkIndicesForExchange } from './tiles_state.js'
 import { Turn, toTurnNumber, nextTurnNumber, getPlayerForTurnNumber } from './turn.js'
 import type { TurnNumber, TurnData } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
-import { gameParamsFromSettings } from './game_params.js'
+import { gameParamsFromSettings, UrlError } from './game_params.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
-
-export class UrlError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'UrlError'
-  }
-}
 
 export class SharedState {
   constructor(

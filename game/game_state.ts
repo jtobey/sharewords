@@ -10,8 +10,8 @@
 
 import { Settings } from './settings.js'
 import { arraysEqual } from './validation.js'
-import { SharedState, UrlError } from './shared_state.js'
-import { parseGameParams } from './game_params.js'
+import { SharedState } from './shared_state.js'
+import { parseGameParams, UrlError } from './game_params.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow } from './tile.js'
 import { Turn, toTurnNumber, updateTurnHistory } from './turn.js'
@@ -443,7 +443,7 @@ export class GameState extends EventTarget {
   }
 
   static async fromParams(params: Readonly<URLSearchParams>) {
-    const { settings, playerId, turnParams } = await parseGameParams(params)
+    const { settings, playerId, turnParams } = parseGameParams(params)
     const gameState = new GameState(playerId, settings)
     await gameState.init()
     await gameState.applyTurnParams(turnParams)

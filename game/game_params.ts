@@ -3,6 +3,13 @@ import { Player } from './player.js'
 import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
 
+export class UrlError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'UrlError'
+  }
+}
+
 export function gameParamsFromSettings(settings: Settings) {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
@@ -43,7 +50,10 @@ export function gameParamsFromSettings(settings: Settings) {
   return params
 }
 
-export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
+/**
+ * @throws UrlError
+ */
+export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
   const gameParams = new URLSearchParams
   const turnParams = new URLSearchParams
@@ -57,7 +67,7 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const settings = new Settings
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
-    throw new Error(`Protocol version not supported: ${vParam}`)
+    throw new UrlError(`Protocol version not supported: ${vParam}`)
   }
   const gidParam = gameParams.get('gid')
   if (gidParam) settings.gameId = toGameId(gidParam)
@@ -77,18 +87,18 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const racksizeParam = gameParams.get('racksize')
   if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam, 10)
   const seedParam = gameParams.get('seed')
-  if (!seedParam) throw new Error('No random seed in URL.')
+  if (!seedParam) throw new UrlError('No random seed in URL.')
   settings.tileSystemSettings = {seed: seedParam}
   const dtParam = gameParams.get('dt')
   if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
     settings.dictionaryType = dtParam
   } else if (dtParam) {
-    throw new Error(`Unknown dictionary type: "${dtParam}".`)
+    throw new UrlError(`Unknown dictionary type: "${dtParam}".`)
   }
   const dsParam = gameParams.get('ds')
   if (dsParam) settings.dictionarySettings = dsParam
   else if (settings.dictionaryType === 'custom') {
-    throw new Error('Custom dictionary requires a URL.')
+    throw new UrlError('Custom dictionary requires a URL.')
   }
   let playerId = gameParams.get('pid') ?? undefined
   if (!playerId) {
@@ -108,14 +118,29 @@ function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
   return true
 }
 
-function parseBagParam(settings: Settings, bagParam: string) {
+export function parseBagParam(settings: Settings, bagParam: string) {
   const letterCounts = new Map<string, number>()
   const letterValues = new Map<string, number>()
   const iterator = bagParam.split('.')[Symbol.iterator]()
   for (const letterConfig of iterator) {
-    const match = letterConfig.match(/^(?<letter>.*)-(?<count>\d*)-(?<value>\d*)$/)
+    if (letterConfig === '') {
+      // "..en" copies all unspecified letters from default settings.
+      const rest = [...iterator].join('.')
+      if (rest !== 'en') {
+        throw new UrlError(`Invalid tile distribution specifier: ${rest}`)
+      }
+      for (const [letter, count] of settings.letterCounts) {
+        if (!letterCounts.has(letter)) {
+          letterCounts.set(letter, count)
+          letterValues.set(letter, settings.letterValues.get(letter)!)
+        }
+      }
+      break
+    }
+    // TODO - Consider supporting multi-character tiles.
+    const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/)
     if (!match) {
-      throw new Error(`Invalid letter configuration in URL: ${letterConfig}`)
+      throw new UrlError(`Invalid letter configuration in URL: ${letterConfig}`)
     }
     const g = match.groups!
     const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(g.letter!) ?? 1
