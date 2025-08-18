@@ -37,12 +37,14 @@ const DEFAULT_PLAYER_LIST = [
   new Player({id: '2'}),
 ] as ReadonlyArray<Player>
 
+// TODO - Make a Map.
 const DEFAULT_LETTER_COUNTS: Readonly<{[key: string]: number}> = Object.freeze(Object.assign(Object.create(null), {
   'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 2, 'H': 2, 'I': 9, 'J': 1,
   'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 5, 'T': 6,
   'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, '': 2
 }))
 
+// TODO - Make a Map.
 const DEFAULT_LETTER_VALUES: Readonly<{[key: string]: number}> = Object.freeze(Object.assign(Object.create(null), {
   'A': 1, 'B': 3, 'C': 4, 'D': 2, 'E': 1, 'F': 4, 'G': 3, 'H': 4, 'I': 1, 'J': 9,
   'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
@@ -89,8 +91,8 @@ export class Settings {
     return {
       version: this.version,
       players: this.players.map(p => p.toJSON()),
-      letterCounts: this.letterCounts,
-      letterValues: this.letterValues,
+      letterCounts: mapToJSON(this.letterCounts),
+      letterValues: mapToJSON(this.letterValues),
       boardLayout: this.boardLayout,
       bingoBonus: this.bingoBonus,
       rackCapacity: this.rackCapacity,
@@ -137,10 +139,23 @@ export class Settings {
 }
 
 function checkLetterToNumberMap(name: string, json: any): {[key: string]: number} {
-  if (!(typeof json === 'object'
-    && Object.keys(json).every(k => typeof k === 'string')
-    && Object.values(json).every(v => typeof v === 'number'))) {
-      throw new TypeError(`Invalid Settings.${name} serialization: ${JSON.stringify(json)}`)
-    }
-  return json
+  const fail = () => {
+    throw new TypeError(`Invalid Settings.${name} serialization: ${JSON.stringify(json)}`)
+  }
+  if (!Array.isArray(json)) {
+    if (typeof json !== 'object') fail()
+    // Compatibility with peoples' localStorage.
+    json = [...Object.entries(json)]
+  }
+  json.forEach(([k, v]: any) => {
+    if (typeof k !== 'string') fail()
+    if (typeof v !== 'number') fail()
+  })
+  // TODO - return new Map(json)
+  return Object.fromEntries(json)
+}
+
+function mapToJSON(map: Map<string, number> | object) {
+  if (!(map instanceof Map)) return Object.entries(map)  // TODO - Remove.
+  return [...map.entries()]
 }
