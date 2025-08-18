@@ -72,14 +72,18 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   if (bagParam) {
     const letterCounts = new Map<string, number>()
     const letterValues = new Map<string, number>()
-    bagParam.split('.').map((letterCountAndValue: string) => {
-      if (!letterCountAndValue.match(/^(.*)-(\d+)-(\d+)$/)) {
-        throw new Error(`Invalid letter configuration in URL: ${letterCountAndValue}`)
+    const iterator = bagParam.split('.')[Symbol.iterator]()
+    for (const letterConfig of iterator) {
+      const match = letterConfig.match(/^(?<letter>.*)-(?<count>\d*)-(?<value>\d*)$/)
+      if (!match) {
+        throw new Error(`Invalid letter configuration in URL: ${letterConfig}`)
       }
-      const parts = letterCountAndValue.split('-')
-      letterCounts.set(parts[0]!, parseInt(parts[1]!, 10))
-      letterValues.set(parts[0]!, parseInt(parts[2]!, 10))
-    })
+      const g = match.groups!
+      const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(g.letter!) ?? 1
+      const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(g.letter!) ?? 1
+      letterCounts.set(g.letter!, count)
+      letterValues.set(g.letter!, value)
+    }
     settings.letterCounts = letterCounts
     settings.letterValues = letterValues
   }
