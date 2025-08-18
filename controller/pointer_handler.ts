@@ -153,8 +153,8 @@ export class PointerHandler {
         const boardRect = this.view.getBoardContainer().getBoundingClientRect()
         const boardX = midpointBefore.x - boardRect.left
         const boardY = midpointBefore.y - boardRect.top
-        this.panX -= boardX * (multiplier - 1)
-        this.panY -= boardY * (multiplier - 1)
+        this.panX -= boardX * (multiplier - 1) / this.scale
+        this.panY -= boardY * (multiplier - 1) / this.scale
         this.scale *= multiplier
       }
       this.panX += (midpointAfter.x - midpointBefore.x) / this.scale
