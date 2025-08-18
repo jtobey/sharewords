@@ -124,40 +124,41 @@ export class PointerHandler {
     }
 
     if (info.isPanning) {
-      const panningPointerCount = this.pointerInfoMap.values().reduce((sum, curr) => sum + (curr.isPanning ? 1 : 0), 0)
-      this.panX += (evt.clientX - info.x) / panningPointerCount / this.scale
-      this.panY += (evt.clientY - info.y) / panningPointerCount / this.scale
-      if (panningPointerCount > 1) {
-        // Pinch to zoom.
-        const panningPointerInfos = [...this.pointerInfoMap.values().filter(anyInfo => anyInfo.isPanning)]
-        const midpointBefore = panningPointerInfos.reduce((sum, curr) => {
-          return {
-            x: sum.x + curr.x / panningPointerCount,
-            y: sum.y + curr.y / panningPointerCount,
-          }
-        }, {x: 0, y: 0})
-        const getMaxDistance = (midpoint: {x: number, y: number}, points: Array<{x: number, y: number}>) => {
-          return Math.max(...points.map(p => Math.hypot(midpoint.x - p.x, midpoint.y - p.y)))
+      // Drag to pan and pinch to zoom.
+      const panningPointerInfos = [...this.pointerInfoMap.values().filter(anyInfo => anyInfo.isPanning)]
+      const panningPointerCount = panningPointerInfos.length
+      const midpointBefore = panningPointerInfos.reduce((sum, curr) => {
+        return {
+          x: sum.x + curr.x / panningPointerCount,
+          y: sum.y + curr.y / panningPointerCount,
         }
-        const maxDistanceBefore = getMaxDistance(midpointBefore, panningPointerInfos)
-        const midpointAfter = {
-          x: midpointBefore.x + (evt.clientX - info.x) / panningPointerCount,
-          y: midpointBefore.y + (evt.clientY - info.y) / panningPointerCount,
-        }
-        const pointsAfter = [
-          {x: evt.clientX, y: evt.clientY},
-          ...panningPointerInfos.filter(anyInfo => anyInfo !== info),
-        ]
-        const maxDistanceAfter = getMaxDistance(midpointAfter, pointsAfter)
-        if (maxDistanceBefore > 0 && maxDistanceAfter > 0) {
-          this.scale *= maxDistanceAfter / maxDistanceBefore
-          const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-          const boardX = midpointAfter.x - boardRect.left
-          const boardY = midpointAfter.y - boardRect.top
-          this.panX = boardX * (1 - this.scale) / this.scale
-          this.panY = boardY * (1 - this.scale) / this.scale
-        }
+      }, {x: 0, y: 0})
+      const getMaxDistance = (midpoint: {x: number, y: number}, points: Array<{x: number, y: number}>) => {
+        return Math.max(...points.map(p => Math.hypot(midpoint.x - p.x, midpoint.y - p.y)))
       }
+      const maxDistanceBefore = getMaxDistance(midpointBefore, panningPointerInfos)
+      const midpointAfter = {
+        x: midpointBefore.x + (evt.clientX - info.x) / panningPointerCount,
+        y: midpointBefore.y + (evt.clientY - info.y) / panningPointerCount,
+      }
+      const pointsAfter = [
+        {x: evt.clientX, y: evt.clientY},
+        ...panningPointerInfos.filter(anyInfo => anyInfo !== info),
+      ]
+      const maxDistanceAfter = getMaxDistance(midpointAfter, pointsAfter)
+      if (maxDistanceBefore > 0 && maxDistanceAfter > 0) {
+        // Apply zoom or unzoom.
+        const multiplier = maxDistanceAfter / maxDistanceBefore
+        // View uses: `scale(${scale}) translate(${x}px, ${y}px)`
+        const boardRect = this.view.getBoardContainer().getBoundingClientRect()
+        const boardX = midpointBefore.x - boardRect.left
+        const boardY = midpointBefore.y - boardRect.top
+        this.panX -= boardX * (multiplier - 1)
+        this.panY -= boardY * (multiplier - 1)
+        this.scale *= multiplier
+      }
+      this.panX += (midpointAfter.x - midpointBefore.x) / this.scale
+      this.panY += (midpointAfter.y - midpointBefore.y) / this.scale
       this.updateTransform()
     } else if (info.draggingTile && info.pointerMoved) {
       if (!info.ghostTile) {
