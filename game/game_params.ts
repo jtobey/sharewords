@@ -69,24 +69,7 @@ export async function parseGameParams(allParams: Readonly<URLSearchParams>) {
   }
   if (newPlayers.length) settings.players = newPlayers
   const bagParam = gameParams.get('bag')
-  if (bagParam) {
-    const letterCounts = new Map<string, number>()
-    const letterValues = new Map<string, number>()
-    const iterator = bagParam.split('.')[Symbol.iterator]()
-    for (const letterConfig of iterator) {
-      const match = letterConfig.match(/^(?<letter>.*)-(?<count>\d*)-(?<value>\d*)$/)
-      if (!match) {
-        throw new Error(`Invalid letter configuration in URL: ${letterConfig}`)
-      }
-      const g = match.groups!
-      const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(g.letter!) ?? 1
-      const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(g.letter!) ?? 1
-      letterCounts.set(g.letter!, count)
-      letterValues.set(g.letter!, value)
-    }
-    settings.letterCounts = letterCounts
-    settings.letterValues = letterValues
-  }
+  if (bagParam) parseBagParam(settings, bagParam)
   const boardParam = gameParams.get('board')
   if (boardParam) settings.boardLayout = boardParam.split('-')
   const bingoParam = gameParams.get('bingo')
@@ -123,4 +106,23 @@ function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
     if (!ps1[index]!.equals(ps2[index])) return false
   }
   return true
+}
+
+function parseBagParam(settings: Settings, bagParam: string) {
+  const letterCounts = new Map<string, number>()
+  const letterValues = new Map<string, number>()
+  const iterator = bagParam.split('.')[Symbol.iterator]()
+  for (const letterConfig of iterator) {
+    const match = letterConfig.match(/^(?<letter>.*)-(?<count>\d*)-(?<value>\d*)$/)
+    if (!match) {
+      throw new Error(`Invalid letter configuration in URL: ${letterConfig}`)
+    }
+    const g = match.groups!
+    const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(g.letter!) ?? 1
+    const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(g.letter!) ?? 1
+    letterCounts.set(g.letter!, count)
+    letterValues.set(g.letter!, value)
+  }
+  settings.letterCounts = letterCounts
+  settings.letterValues = letterValues
 }
