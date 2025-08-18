@@ -210,7 +210,7 @@ export function parseBagParam(settings: Settings, bagParam: string) {
       break
     }
     // TODO - Consider supporting multi-character tiles.
-    const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/)
+    const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
     if (!match) {
       throw new UrlError(`Invalid letter configuration in URL: ${letterConfig}`)
     }

@@ -131,6 +131,13 @@ describe('game params', () => {
       expect(settings.letterValues.get('')).toBe(0)
     })
 
+    test('parses bag with emoji tile', () => {
+      const settings = new Settings
+      parseBagParam(settings, '😂-1-5')
+      expect(settings.letterCounts.get('😂')).toBe(1)
+      expect(settings.letterValues.get('😂')).toBe(5)
+    })
+
     test('uses default value', () => {
       const settings = new Settings
       const letterValues = new Map(settings.letterValues)
