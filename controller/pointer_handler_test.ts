@@ -172,7 +172,7 @@ test('double tap zooms in', () => {
   setSystemTime(new Date(time += 100))
   handler.pointerUp(event)
 
-  expect(view.setBoardTransform).toHaveBeenCalledWith(1.8, expect.closeTo(-44.444), expect.closeTo(-44.444), true)
+  expect(view.setBoardTransform).toHaveBeenCalledWith(1.8, expect.closeTo(-44.444), expect.closeTo(-44.444))
   setSystemTime()
 })
 
@@ -209,7 +209,7 @@ test('double tap when zoomed in zooms out', () => {
     handler.pointerUp(event)
 
     // Expect the last call to be with scale 1
-    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1, 0, 0, false)
+    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1, 0, 0)
     setSystemTime()
   })
 
@@ -240,7 +240,7 @@ test('double tap when zoomed in zooms out', () => {
     handler.pointerMove(moveEvent)
 
     // Expect the pan to have taken effect
-    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1.8, expect.closeTo(-55.5555), expect.closeTo(-61.1111), true)
+    expect(view.setBoardTransform).toHaveBeenLastCalledWith(1.8, expect.closeTo(-55.5555), expect.closeTo(-61.1111))
 
     handler.pointerUp(createMockPointerEvent(boardContainer))
     setSystemTime()

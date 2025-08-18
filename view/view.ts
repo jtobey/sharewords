@@ -316,13 +316,8 @@ export class View {
     this.gameSetup.showSettingsDialog()
   }
 
-  setBoardTransform(scale: number, x: number, y: number, isPanningBoard: boolean) {
+  setBoardTransform(scale: number, x: number, y: number) {
     this.boardTransformer.style.transform = `scale(${scale}) translate(${x}px, ${y}px)`
-    if (isPanningBoard) {
-      this.boardContainer.style.touchAction = 'none'
-    } else {
-      this.boardContainer.style.touchAction = 'pan-x pan-y'
-    }
   }
 
   getBoardContainer(): HTMLElement {
