@@ -10,22 +10,16 @@ type CommonPointerInfo = {
   y: number
 }
 
-type TapInfo = CommonPointerInfo & {
-  isPanning: false
-  draggingTile: null
-}
-
 type DragInfo = CommonPointerInfo & {
-  isPanning: false
   draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement }
   ghostTile: HTMLElement | null
 }
 
 type PanInfo = CommonPointerInfo & {
-  isPanning: true
+  draggingTile: null
 }
 
-type PointerInfo = TapInfo | DragInfo | PanInfo
+type PointerInfo = DragInfo | PanInfo
 
 export class PointerHandler {
   private gameState: GameState
@@ -76,14 +70,12 @@ export class PointerHandler {
     if (evt.button !== 0) return
 
     const target = evt.target as HTMLElement
-    const tapInfo: TapInfo = {
+    const tapInfo: CommonPointerInfo = {
       downX: evt.clientX,
       downY: evt.clientY,
       x: evt.clientX,
       y: evt.clientY,
       pointerMoved: false,
-      isPanning: false,
-      draggingTile: null,
     }
 
     const tileTarget = target.closest('.tile, .placed')
@@ -99,34 +91,29 @@ export class PointerHandler {
         ghostTile: null,
       }
       this.pointerInfoMap.set(evt.pointerId, dragInfo)
-    } else {
-      const board = target.closest('#board-container')
-      if (board) {
-        evt.preventDefault()
-        evt.stopPropagation()
-        const panInfo: PanInfo = {
-          ...tapInfo,
-          isPanning: true,
-        }
-        this.pointerInfoMap.set(evt.pointerId, panInfo)
+    } else if (target.closest('#board-container')) {
+      evt.preventDefault()
+      evt.stopPropagation()
+      const panInfo: PanInfo = {
+        ...tapInfo,
+        draggingTile: null,
       }
+      this.pointerInfoMap.set(evt.pointerId, panInfo)
     }
   }
 
   pointerMove(evt: PointerEvent) {
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (!info) return
+    evt.preventDefault()
+
     if (!info.pointerMoved && Math.hypot(evt.clientX - info.downX, evt.clientY - info.downY) > 5) {
       info.pointerMoved = true
     }
 
-    if (info.isPanning || info.draggingTile) {
-      evt.preventDefault()
-    }
-
-    if (info.isPanning) {
+    if (!info.draggingTile) {
       // Drag to pan and pinch to zoom.
-      const panningPointerInfos = [...this.pointerInfoMap.values().filter(anyInfo => anyInfo.isPanning)]
+      const panningPointerInfos = [...this.pointerInfoMap.values().filter(anyInfo => !anyInfo.draggingTile)]
       const panningPointerCount = panningPointerInfos.length
       const midpointBefore = panningPointerInfos.reduce((sum, curr) => {
         return {
@@ -196,7 +183,7 @@ export class PointerHandler {
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (!info) return
     const target = evt.target as HTMLElement
-    if (!info.isPanning && info.draggingTile && info.ghostTile) {
+    if (info.draggingTile && info.ghostTile) {
       const dropTarget = this.view.getDropTarget(evt.pointerId)
       if (dropTarget) {
         try {
