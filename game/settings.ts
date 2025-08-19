@@ -137,17 +137,17 @@ export class Settings {
 }
 
 function checkLetterToNumberMap(name: string, json: any): Map<string, number> {
-  const fail = () => {
-    throw new TypeError(`Invalid Settings.${name} serialization: ${JSON.stringify(json)}`)
+  function fail(msg: string): never {
+    throw new TypeError(`Invalid Settings.${name} serialization: ${msg}`)
   }
   if (!Array.isArray(json)) {
-    if (typeof json !== 'object') fail()
+    if (typeof json !== 'object') fail(`Type is "${typeof json}", not "object" as expected.`)
     // Compatibility with peoples' localStorage.
     json = [...Object.entries(json)]
   }
   json.forEach(([k, v]: any) => {
-    if (typeof k !== 'string') fail()
-    if (typeof v !== 'number') fail()
+    if (typeof k !== 'string') fail(`Letter ${k} has type "${typeof k}", not "string" as expected.`)
+    if (typeof v !== 'number') fail(`Letter ${k} has value ${v}, not a number as expected.`)
   })
   return new Map(json)
 }
