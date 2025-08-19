@@ -183,6 +183,8 @@ test('double tap when zoomed in zooms out', () => {
     const handler = new PointerHandler(gameState, view)
     const boardContainer = browser.getDocument().getElementById('board-container')!
     const event = createMockPointerEvent(boardContainer)
+    const window = browser.getDocument().defaultView!
+    window.scrollBy = mock()
 
     let time = new Date('2023-01-01T00:00:00.000Z').getTime()
     setSystemTime(new Date(time))
@@ -218,6 +220,7 @@ test('double tap when zoomed in zooms out', () => {
     const browser = new TestBrowser()
     const view = createMockView(browser)
     const handler = new PointerHandler(gameState, view)
+    spyOn(handler, 'scrollWindowBy').mockImplementation(() => {})
     const boardContainer = browser.getDocument().getElementById('board-container')!
     const event = createMockPointerEvent(boardContainer)
 
