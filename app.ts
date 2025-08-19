@@ -3,6 +3,7 @@ import { GameState } from './game/game_state.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
 import { type Browser, DomBrowser } from './browser.js'
+import { Dialog } from './view/dialog.js'
 
 function makeStorageKey(gameId: string) {
   return 'sharewords_' + gameId
@@ -30,11 +31,107 @@ export class App {
     const gid = this.gameState.gameId
     if (gid) {
       const game = this.gameState.toJSON()
-      this.browser.setLocalStorageItem(
-        makeStorageKey(gid),
-        JSON.stringify({ game, ts: Date.now() })
-      )
+      const key = makeStorageKey(gid)
+      const value = JSON.stringify({ game, ts: Date.now() })
+      try {
+        this.browser.setLocalStorageItem(key, value)
+      } catch (e) {
+        // In Chrome, the error is a DOMException with name "QuotaExceededError".
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          console.warn('Local storage quota exceeded. Attempting to free space.')
+          this.freeStorageAndRetrySave(key, value)
+        } else {
+          throw e
+        }
+      }
     }
+  }
+
+  async freeStorageAndRetrySave(key: string, value: string) {
+    const savedGames: {
+      gameId: string,
+      ts: number,
+      isGameOver: boolean
+    }[] = [];
+
+    const keys = this.browser.getAllLocalStorageKeys();
+    for (const storageKey of keys) {
+      if (!storageKey.startsWith('sharewords_')) continue;
+
+      const item = this.browser.getLocalStorageItem(storageKey);
+      if (!item) continue;
+
+      try {
+        const data = JSON.parse(item);
+        if (typeof data.game !== 'object' || typeof data.ts !== 'number') continue;
+
+        const gameState = GameState.fromJSON(data.game);
+        const gameId = storageKey.substring('sharewords_'.length);
+
+        savedGames.push({
+          gameId: gameId,
+          ts: data.ts,
+          isGameOver: gameState.isGameOver,
+        });
+      } catch (e) {
+        console.warn(`Could not parse saved game from ${storageKey}, removing it.`, e);
+        this.browser.removeLocalStorageItem(storageKey);
+      }
+    }
+
+    const completedGames = savedGames.filter(g => g.isGameOver).sort((a, b) => a.ts - b.ts);
+    const activeGames = savedGames.filter(g => !g.isGameOver).sort((a, b) => a.ts - b.ts);
+
+    // Try deleting completed games first
+    for (const game of completedGames) {
+      console.log(`Deleting completed game ${game.gameId} to free up space.`);
+      this.deleteGame(game.gameId);
+      try {
+        this.browser.setLocalStorageItem(key, value);
+        console.log('Successfully saved game state after freeing space.');
+        return; // Success!
+      } catch (e) {
+        if (!(e instanceof DOMException && e.name === 'QuotaExceededError')) {
+          throw e; // some other error
+        }
+      }
+    }
+
+    // If still not enough space, ask user to delete active games
+    if (activeGames.length > 0) {
+      const content = this.browser.getDocument().createElement('div');
+      content.innerHTML = `<p>There is not enough space to save your game.</p>
+        <p>Would you like to delete active (unfinished) game(s) to free up space? The oldest games will be deleted first.</p>`;
+      const dialog = new Dialog(this.browser.getDocument(), 'Delete Active Games?', content, ['Delete', 'Cancel']);
+      const result = await dialog.show();
+
+      if (result === 'Delete') {
+        for (const game of activeGames) {
+          console.log(`Deleting active game ${game.gameId} to free up space.`);
+          this.deleteGame(game.gameId);
+          try {
+            this.browser.setLocalStorageItem(key, value);
+            console.log('Successfully saved game state after freeing space.');
+            return; // Success!
+          } catch (e) {
+            if (!(e instanceof DOMException && e.name === 'QuotaExceededError')) {
+              throw e; // some other error
+            }
+          }
+        }
+      }
+    }
+
+    // If we're here, we failed to save.
+    console.error('Could not save game state, even after trying to free space.');
+    const errorContent = this.browser.getDocument().createElement('div');
+    errorContent.innerHTML = `<p>Could not save game. All attempts to free up space have failed.</p>`;
+    const errorDialog = new Dialog(this.browser.getDocument(), 'Save Failed', errorContent, ['OK']);
+    await errorDialog.show();
+  }
+
+  deleteGame(gameId: string) {
+    this.browser.removeLocalStorageItem(makeStorageKey(gameId));
   }
 
   async init() {
