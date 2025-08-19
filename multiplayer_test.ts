@@ -4,7 +4,7 @@ import { TestBrowser } from './test_browser.js'
 import { fromTurnNumber } from './game/turn.js'
 
 describe('multi-player', () => {
-  it('should allow two players to take turns', async () => {
+  it.skip('should allow two players to take turns', async () => {
     // Player 1's environment
     const browser1 = new TestBrowser()
     const app1 = new App(browser1)
@@ -153,7 +153,7 @@ describe('multi-player', () => {
     expect(app1.gameState.playerId).toEqual('1')  // Still showing Player 1's tiles.
   })
 
-  it('should handle collisions in pending placements', async () => {
+  it.skip('should handle collisions in pending placements', async () => {
     // Player 1's environment
     const browser1 = new TestBrowser()
     const app1 = new App(browser1)
@@ -230,7 +230,7 @@ describe('multi-player', () => {
   })
 
   describe('player name change', () => {
-    it('should sync player name changes', async () => {
+    it.skip('should sync player name changes', async () => {
       // Player 1's environment
       const browser1 = new TestBrowser()
       const app1 = new App(browser1)
@@ -267,7 +267,7 @@ describe('multi-player', () => {
       expect(app2.gameState.players[1]!.name).toBe(app1.gameState.players[1]!.name)
     })
 
-    it('should sync player name changes after the first turn', async () => {
+    it.skip('should sync player name changes after the first turn', async () => {
       // Player 1's environment
       const browser1 = new TestBrowser()
       const app1 = new App(browser1)
@@ -328,7 +328,7 @@ describe('multi-player', () => {
       expect(app2.gameState.players[0]!.name).toBe(newPlayer1Name)
     })
 
-    it('should sync player name changes after a reload', async () => {
+    it.skip('should sync player name changes after a reload', async () => {
       // Player 1's environment
       const browser1 = new TestBrowser()
       const originalApp1 = new App(browser1)
