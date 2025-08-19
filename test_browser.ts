@@ -60,6 +60,14 @@ export class TestBrowser implements Browser {
     this.storage.set(key, value);
   }
 
+  removeLocalStorageItem(key: string): void {
+    this.storage.delete(key);
+  }
+
+  getAllLocalStorageKeys(): string[] {
+    return Array.from(this.storage.keys());
+  }
+
   getDocument(): Document {
     return this.window.document as any;
   }
