@@ -43,15 +43,26 @@ export class PointerHandler {
     this.view = view
   }
 
+  /** @internal For mocking in tests. */
+  public scrollWindowBy(dx: number, dy: number) {
+    window.scrollBy(dx, dy)
+  }
+
   private updateTransform() {
     this.scale = Math.max(1, Math.min(4, this.scale))
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
     const maxPanX = (this.scale * boardRect.width - boardRect.width) / this.scale
     const maxPanY = (this.scale * boardRect.height - boardRect.height) / this.scale
+    const oldPanX = this.panX
+    const oldPanY = this.panY
     this.panX = Math.max(-maxPanX, Math.min(0, this.panX))
     this.panY = Math.max(-maxPanY, Math.min(0, this.panY))
 
     this.view.setBoardTransform(this.scale, this.panX, this.panY)
+    return {
+      overshootX: oldPanX - this.panX,
+      overshootY: oldPanY - this.panY,
+    }
   }
 
   pointerCancel(evt: PointerEvent) {
@@ -91,23 +102,13 @@ export class PointerHandler {
     } else {
       const board = target.closest('#board-container')
       if (board) {
-        // For pinch-to-zoom, on second active board pointer, set both board pointers to panning even if unzoomed.
-        const other = this.pointerInfoMap.values().find(info => !info.isPanning && !info.draggingTile)
-        if (this.scale > 1 || other) {
-          evt.preventDefault()
-          evt.stopPropagation()
-          const panInfo: PanInfo = {
-            ...tapInfo,
-            isPanning: true,
-          }
-          this.pointerInfoMap.set(evt.pointerId, panInfo)
-          if (other) {
-            const otherPanInfo = other as PointerInfo as PanInfo
-            otherPanInfo.isPanning = true
-          }
-        } else {
-          this.pointerInfoMap.set(evt.pointerId, tapInfo)
+        evt.preventDefault()
+        evt.stopPropagation()
+        const panInfo: PanInfo = {
+          ...tapInfo,
+          isPanning: true,
         }
+        this.pointerInfoMap.set(evt.pointerId, panInfo)
       }
     }
   }
@@ -159,7 +160,10 @@ export class PointerHandler {
       }
       this.panX += (midpointAfter.x - midpointBefore.x) / this.scale
       this.panY += (midpointAfter.y - midpointBefore.y) / this.scale
-      this.updateTransform()
+      const { overshootX, overshootY } = this.updateTransform()
+      if (panningPointerCount === 1) {
+        this.scrollWindowBy(-overshootX * this.scale, -overshootY * this.scale)
+      }
     } else if (info.draggingTile && info.pointerMoved) {
       if (!info.ghostTile) {
         info.ghostTile = this.view.createGhostTile(info.draggingTile.element)
