@@ -198,7 +198,7 @@ export class SharedState {
         let col = parseInt(match[2]!, 10)
 
         const placements = [] as Array<BoardPlacement>
-        wordPlayed.split('').map((letter, letterIndex) => {
+        Array.from(wordPlayed).map((letter, letterIndex) => {
           const square = this.board.squares[row]?.[col]
           if (!square) throw new UrlError(`Attempted to play a word out of bounds: ${row},${col}.`)
           if (!square.tile) {
