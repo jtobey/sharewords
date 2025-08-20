@@ -229,13 +229,19 @@ export class View {
     this.bagTileCountContainer.textContent = `Tiles in bag: ${this.gameState.numberOfTilesInBag}`
   }
 
-  renderPassExchangeButton() {
-    const button = this.doc.getElementById('pass-exchange')!
+  renderActionButtons() {
+    const passExchangeButton = this.doc.getElementById('pass-exchange')! as HTMLButtonElement
+    const playWordButton = this.doc.getElementById('play-word')! as HTMLButtonElement
+
+    const isLocalPlayerTurn = this.gameState.playerWhoseTurnItIs?.id === this.gameState.playerId
+    passExchangeButton.disabled = !isLocalPlayerTurn
+    playWordButton.disabled = !isLocalPlayerTurn
+
     const count = this.gameState.exchangeTilesCount
     if (count === 0) {
-      button.textContent = 'Pass Turn'
+      passExchangeButton.textContent = 'Pass Turn'
     } else {
-      button.textContent = `Exchange ${count}`
+      passExchangeButton.textContent = `Exchange ${count}`
     }
   }
 

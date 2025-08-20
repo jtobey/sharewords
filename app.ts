@@ -185,7 +185,7 @@ export class App {
       this.view.renderRack();
       this.view.renderScores();
       this.view.renderBagTileCount();
-      this.view.renderPassExchangeButton();
+      this.view.renderActionButtons();
 
       this.gameState.addEventListener('tilemove', (evt: any) => {
         if (evt.detail.fromRow !== undefined && evt.detail.fromCol !== undefined) {
@@ -193,7 +193,7 @@ export class App {
         }
         this.view.renderTileSpot(evt.detail.placement.row, evt.detail.placement.col)
         if ((evt.detail.fromRow === 'exchange') !== (evt.detail.placement.row === 'exchange')) {
-          this.view.renderPassExchangeButton();
+          this.view.renderActionButtons();
         }
         this.saveGameState();
       });
@@ -203,6 +203,7 @@ export class App {
         this.view.renderRack();
         this.view.renderScores();
         this.view.renderBagTileCount();
+        this.view.renderActionButtons();
         this.updateUrl();
         this.saveGameState();
       });
