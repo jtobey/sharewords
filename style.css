@@ -17,19 +17,16 @@
   height: 100%;
   background-color: #ccc;
   display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
   transform-origin: 0 0;
 }
 
 .square {
-  width: 40px;
-  height: 40px;
+  width: auto;
+  height: auto;
   background-color: #dda;
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
   box-sizing: border-box;
-  font-size: 24px;
   position: relative;
   display: flex;
   justify-content: center;
@@ -38,7 +35,7 @@
 
 .bonus-text {
   font-family: sans-serif;
-  font-size: 18px;
+  font-size: 0.75em;
   color: #dda;
 }
 
@@ -190,8 +187,6 @@
   }
 
   #board-transformer {
-    grid-template-columns: repeat(15, 1fr);
-    grid-template-rows: repeat(15, 1fr);
   }
 
   .square {
