@@ -31,8 +31,10 @@ export class App {
     const gid = this.gameState.gameId
     if (gid) {
       const game = this.gameState.toJSON()
+      const ver = this.gameState.settings.version
+      const ts = Date.now()
       const key = makeStorageKey(gid)
-      const value = JSON.stringify({ game, ts: Date.now() })
+      const value = JSON.stringify({ game, ts, ver })
       try {
         this.browser.setLocalStorageItem(key, value)
       } catch (e) {
