@@ -107,7 +107,7 @@
 .square.tl { background-color: #bbb; }
 .square.dw { background-color: #ff3; }
 .square.tw { background-color: #f90; }
-.square.center { background-color: #6f9; }
+.square.center { background-color: #f6f; }
 
 .tile.selected, .placed.selected {
   border: 2px solid blue !important;
@@ -295,7 +295,7 @@ dialog button {
   .square.tl { background-color: #555; }
   .square.dw { background-color: #660; }
   .square.tw { background-color: #840; }
-  .square.center { background-color: #253; }
+  .square.center { background-color: #505; }
 
   .tile.selected, .placed.selected {
     border: 2px solid lightblue !important;
