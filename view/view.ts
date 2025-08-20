@@ -83,6 +83,18 @@ export class View {
 
   renderBoard() {
     this.boardTransformer.innerHTML = ''
+    const dimension = this.gameState.board.squares.length;
+    this.boardTransformer.style.gridTemplateColumns = `repeat(${dimension}, 1fr)`;
+    this.boardTransformer.style.gridTemplateRows = `repeat(${dimension}, 1fr)`;
+
+    // The font size should be proportional to the square size.
+    // For a 15x15 board, the squares are about 40px wide, and the font-size is 24px.
+    const baseSquareSize = 40;
+    const baseFontSize = 24;
+    const squareSize = 601 / dimension; // 601 is the board-container width
+    const fontSize = (squareSize / baseSquareSize) * baseFontSize;
+    this.boardTransformer.style.fontSize = `${fontSize}px`;
+
     const centerSquare = this.gameState.board.centerSquare
     for (let r = 0; r < this.gameState.board.squares.length; r++) {
       const row = this.gameState.board.squares[r]
