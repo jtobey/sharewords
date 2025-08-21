@@ -3,13 +3,18 @@ import { Window } from 'happy-dom';
 import * as fs from 'fs';
 
 export class TestBrowser implements Browser {
+  private search: string;
+  private hash: string;
   private window: Window;
   private storage: Map<string, string> = new Map();
   private hashChangeListeners: (() => void)[] = [];
   public clipboard: string = '';
   public location: string = '';
 
-  constructor(private hash = '', private search = '') {
+  constructor(href: string = '') {
+    const hrefGroups = href.match(/(?:\?(?<search>.*?))?(?<hash>#.*|)$/)!.groups!
+    this.search = hrefGroups.search ?? ''
+    this.hash = hrefGroups.hash!
     const indexHtml = fs.readFileSync('index.html', 'utf-8');
     const styleCss = fs.readFileSync('style.css', 'utf-8');
 
