@@ -1,12 +1,8 @@
 import { toGameId, makeGameId } from './game/settings.js'
-import { GameState } from './game/game_state.js'
+import { GameState, makeStorageKey } from './game/game_state.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
 import { type Browser, DomBrowser } from './browser.js'
-
-function makeStorageKey(gameId: string) {
-  return 'sharewords_' + gameId
-}
 
 export class App {
   browser: Browser
@@ -23,18 +19,6 @@ export class App {
     const paramsStr = this.gameState.turnUrlParams.toString()
     if (this.browser.getHash().substr(1) !== paramsStr) {
       this.browser.setHash(paramsStr)
-    }
-  }
-
-  saveGameState() {
-    const gid = this.gameState.gameId
-    if (gid) {
-      const game = this.gameState.toJSON()
-      const ver = this.gameState.settings.version
-      const ts = Date.now()
-      const key = makeStorageKey(gid)
-      const value = JSON.stringify({ game, ts, ver })
-      this.browser.localStorage.setItem(key, value)
     }
   }
 
@@ -61,6 +45,7 @@ export class App {
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
         this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
+        this.gameState.storage = this.browser.localStorage
         await this.gameState.applyTurnParams(params)
       } else if (this.gameState) {
         this.browser.reload()
@@ -70,7 +55,8 @@ export class App {
         console.log(`Switching to new game "${gidParam}".`)
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         this.gameState = await GameState.fromParams(params);
-        this.saveGameState();
+        this.gameState.storage = this.browser.localStorage
+        this.gameState.save()
       }
 
       this.updateUrl();
@@ -97,7 +83,7 @@ export class App {
         if ((evt.detail.fromRow === 'exchange') !== (evt.detail.placement.row === 'exchange')) {
           this.view.renderActionButtons();
         }
-        this.saveGameState();
+        this.gameState.save()
       });
 
       this.gameState.addEventListener('turnchange', () => {
@@ -107,7 +93,6 @@ export class App {
         this.view.renderBagTileCount();
         this.view.renderActionButtons();
         this.updateUrl();
-        this.saveGameState();
       });
     };
 

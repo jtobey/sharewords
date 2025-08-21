@@ -19,9 +19,14 @@ import type { TurnNumber, TurnData } from './turn.js'
 import { indicesOk } from './validation.js'
 import { TileEvent, GameEvent, BoardEvent } from './events.js'
 
+export function makeStorageKey(gameId: string) {
+  return 'sharewords_' + gameId
+}
+
 export class GameState extends EventTarget {
   readonly shared: SharedState
   private inPlayTurns = false
+  storage: Storage | null = null
 
   constructor(
     readonly playerId: string,  // The local player.
@@ -68,6 +73,18 @@ export class GameState extends EventTarget {
     this.tilesHeld.splice(0, this.tilesHeld.length, ...other.tilesHeld)
     this.history.splice(0, this.history.length, ...other.history)
     this.pendingExtraParams = other.pendingExtraParams
+  }
+
+  save() {
+    const gid = this.gameId
+    if (gid && this.storage) {
+      const game = this.toJSON()
+      const ver = this.settings.version
+      const ts = Date.now()
+      const key = makeStorageKey(gid)
+      const value = JSON.stringify({ game, ts, ver })
+      this.storage.setItem(key, value)
+    }
   }
 
   /**
@@ -324,6 +341,7 @@ export class GameState extends EventTarget {
     try {
       this.inPlayTurns = true
       await this.doPlayTurns(turns)
+      this.save()
       ok = true
     } finally {
       if (!ok) {
