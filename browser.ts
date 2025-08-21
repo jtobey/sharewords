@@ -14,17 +14,13 @@ export interface Browser {
   // Adds a listener for hashchange events.
   addHashChangeListener(listener: () => any): void;
 
-  // Gets an item from local storage.
-  getLocalStorageItem(key: string): string | null;
-
-  // Sets an item in local storage.
-  setLocalStorageItem(key: string, value: string): void;
-
   // Returns the document object.
   getDocument(): Document;
 
   // Returns the URLSearchParams object for the given query string.
   getURLSearchParams(query: string): URLSearchParams;
+
+  localStorage: Storage;
 
   // Returns a random number between 0 and 1.
   getRandom(): number;
@@ -67,12 +63,8 @@ export class DomBrowser implements Browser {
     window.addEventListener('hashchange', listener);
   }
 
-  getLocalStorageItem(key: string): string | null {
-    return localStorage.getItem(key);
-  }
-
-  setLocalStorageItem(key: string, value: string): void {
-    localStorage.setItem(key, value);
+  get localStorage() {
+    return localStorage;
   }
 
   getDocument(): Document {

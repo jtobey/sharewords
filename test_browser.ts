@@ -1,4 +1,5 @@
 import type { Browser } from './browser.js';
+import { TestStorage } from './test_storage.js';
 import { App } from './app.js';
 import { Window } from 'happy-dom';
 import * as fs from 'fs';
@@ -7,7 +8,7 @@ export class TestBrowser implements Browser {
   private search = '';
   private hash = '';
   private window: Window;
-  private storage: Map<string, string> = new Map();
+  public localStorage = new TestStorage;
   private hashChangeListeners: (() => Promise<any>)[] = [];
   public clipboard = '';
   public location = '';
@@ -73,14 +74,6 @@ export class TestBrowser implements Browser {
 
   addHashChangeListener(listener: () => Promise<any>): void {
     this.hashChangeListeners.push(listener);
-  }
-
-  getLocalStorageItem(key: string): string | null {
-    return this.storage.get(key) ?? null;
-  }
-
-  setLocalStorageItem(key: string, value: string): void {
-    this.storage.set(key, value);
   }
 
   getDocument(): Document {

@@ -34,7 +34,7 @@ export class App {
       const ts = Date.now()
       const key = makeStorageKey(gid)
       const value = JSON.stringify({ game, ts, ver })
-      this.browser.setLocalStorageItem(key, value)
+      this.browser.localStorage.setItem(key, value)
     }
   }
 
@@ -57,7 +57,7 @@ export class App {
         return;
       }
 
-      const savedGame = gidParam && this.browser.getLocalStorageItem(makeStorageKey(gidParam));
+      const savedGame = gidParam && this.browser.localStorage.getItem(makeStorageKey(gidParam));
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
         this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
