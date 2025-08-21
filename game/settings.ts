@@ -29,7 +29,7 @@ export function makeGameId(
     id = ALPHABET[Number(n % base)]! + id
     n /= base
   }
-  return id
+  return toGameId(id)
 }
 
 const DEFAULT_PLAYER_LIST = [

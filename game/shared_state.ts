@@ -45,7 +45,7 @@ import { makeDictionary } from './dictionary.js'
 export class SharedState {
   constructor(
     readonly settings: Readonly<Settings>,
-    readonly gameId = settings.gameId ?? makeGameId() as GameId,
+    readonly gameId = settings.gameId ?? makeGameId(),
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
