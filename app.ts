@@ -1,4 +1,4 @@
-import { toGameId, fromGameId, makeGameId } from './game/settings.js'
+import { toGameId, makeGameId } from './game/settings.js'
 import { GameState } from './game/game_state.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
@@ -116,7 +116,6 @@ export class App {
     };
 
     this.browser.addHashChangeListener(handleGameChange);
-    this.browser.addPasteListener(this.handlePaste.bind(this));
     await handleGameChange();
   }
 
@@ -133,23 +132,6 @@ export class App {
           app.bufferedLogs.push(message);
         }
       };
-    }
-  }
-
-  async handlePaste(pastedText: string) {
-    try {
-      const url = new URL(pastedText);
-      const Href = this.browser.getHref();
-      if (url.origin !== new URL(Href).origin || url.pathname !== new URL(Href).pathname) {
-        return;
-      }
-      const params = this.browser.getURLSearchParams(url.hash.substring(1));
-      if (!(this.gameState && fromGameId(this.gameState.gameId) === params.get('gid'))) {
-        return;
-      }
-      await this.gameState.applyTurnParams(params);
-    } catch (e) {
-      // Not a valid URL, ignore.
     }
   }
 }
