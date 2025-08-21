@@ -109,10 +109,6 @@ export class App {
         this.updateUrl();
         this.saveGameState();
       });
-
-      this.gameState.addEventListener('gameover', () => {
-        this.saveGameState();
-      });
     };
 
     this.browser.addHashChangeListener(handleGameChange);

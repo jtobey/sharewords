@@ -311,7 +311,6 @@ export class GameState extends EventTarget {
    * Commits turns to the board and players' racks.
    * @fires TileEvent#tilemove
    * @fires GameEvent#turnchange
-   * @fires GameEvent#gameover
    */
   private async playTurns(turns: Iterable<Turn>) {
     if (this.isGameOver) {
@@ -336,9 +335,6 @@ export class GameState extends EventTarget {
     }
     if (this.nextTurnNumber !== oldNextTurnNumber) {
       this.dispatchEvent(new GameEvent('turnchange'))
-    }
-    if (this.isGameOver) {
-      this.dispatchEvent(new GameEvent('gameover'))
     }
   }
 
