@@ -1,20 +1,20 @@
 import type { Browser } from './browser.js';
+import { App } from './app.js';
 import { Window } from 'happy-dom';
 import * as fs from 'fs';
 
 export class TestBrowser implements Browser {
-  private search: string;
-  private hash: string;
+  private search = '';
+  private hash = '';
   private window: Window;
   private storage: Map<string, string> = new Map();
-  private hashChangeListeners: (() => void)[] = [];
-  public clipboard: string = '';
-  public location: string = '';
+  private hashChangeListeners: (() => Promise<any>)[] = [];
+  public clipboard = '';
+  public location = '';
+  app: App;
 
   constructor(href: string = '') {
-    const hrefGroups = href.match(/(?:\?(?<search>.*?))?(?<hash>#.*|)$/)!.groups!
-    this.search = hrefGroups.search ?? ''
-    this.hash = hrefGroups.hash!
+    this.initHref(href)
     const indexHtml = fs.readFileSync('index.html', 'utf-8');
     const styleCss = fs.readFileSync('style.css', 'utf-8');
 
@@ -25,35 +25,53 @@ export class TestBrowser implements Browser {
     const style = document.createElement('style');
     style.textContent = styleCss;
     document.head.appendChild(style);
+    this.app = new App(this);
   }
 
-  reset(hash: string, search: string = '') {
+  private initHref(href: string) {
+    const hrefGroups = href.match(/(?:\?(?<search>.*?))?(?<hash>#.*|)$/)!.groups!
+    this.search = hrefGroups.search ?? ''
+    this.hash = hrefGroups.hash!
+  }
+
+  private uninitHref() {
+    return (this.search ? `?${this.search}` : '') + this.hash
+  }
+
+  async init() {
+    return this.app.init()
+  }
+
+  async load(href: string = '') {
     this.hashChangeListeners.length = 0
-    this.hash = hash
-    this.search = search
+    this.initHref(href)
+    this.app = new App(this)
+    await this.app.init()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    return this.app
   }
 
-  reload() {
-    this.reset(this.hash, this.search)
+  async reload() {
+    await this.load(this.uninitHref())
   }
 
   getHash(): string {
     return this.hash;
   }
 
-  setHash(hash: string): void {
+  async setHash(hash: string) {
     const newHash = hash && '#' + hash.replace(/^#/, '')
-    if (this.hash !== newHash) {
-      this.hash = newHash;
-      this.hashChangeListeners.forEach(l => l());
-    }
+    if (this.hash === newHash) return
+    this.hash = newHash
+    await Promise.all(this.hashChangeListeners.map(l => l()))
+    await new Promise(resolve => setTimeout(resolve, 0))
   }
 
   getSearch(): string {
     return this.search;
   }
 
-  addHashChangeListener(listener: () => void): void {
+  addHashChangeListener(listener: () => Promise<any>): void {
     this.hashChangeListeners.push(listener);
   }
 

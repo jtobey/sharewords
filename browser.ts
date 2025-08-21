@@ -12,7 +12,7 @@ export interface Browser {
   setHash(hash: string): void;
 
   // Adds a listener for hashchange events.
-  addHashChangeListener(listener: () => void): void;
+  addHashChangeListener(listener: () => any): void;
 
   // Gets an item from local storage.
   getLocalStorageItem(key: string): string | null;
