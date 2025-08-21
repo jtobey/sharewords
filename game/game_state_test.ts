@@ -6,6 +6,50 @@ import { generateRowStrings } from './board.js'
 import { Player } from './player.js'
 import { Tile, type TilePlacement } from './tile.js'
 
+class MockStorage implements Storage {
+  private throwOnSet = false;
+  private values = new Map<string, string>();
+
+  get length(): number {
+    return this.values.size;
+  }
+
+  clear(): void {
+    this.values.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    if (index < 0 || index >= this.values.size) {
+      return null;
+    }
+    return Array.from(this.values.keys())[index]!;
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    if (this.throwOnSet) {
+      this.throwOnSet = false; // Reset after throwing once.
+      // DOMException is not available in Bun's test environment globally,
+      // so we'll just throw a generic error that looks like it.
+      const error = new Error('Quota exceeded');
+      error.name = 'QuotaExceededError';
+      throw error;
+    }
+    this.values.set(key, value);
+  }
+
+  shouldThrowOnSet() {
+    this.throwOnSet = true;
+  }
+}
+
 describe('game state', () => {
   it('should exchange tiles 1', async () => {
     const settings = new Settings
@@ -233,5 +277,48 @@ describe('game state', () => {
     // The tile should be back in the rack and its assignedLetter should be cleared
     expect(blankTilePlacement.row).toBe('rack')
     expect(blankTilePlacement.assignedLetter).toBeUndefined()
+  })
+
+  it('should roll back transaction if setItem throws', async () => {
+    const settings = new Settings
+    settings.letterCounts = new Map([['A', 20], ['B', 20]])
+    settings.letterValues = new Map([['A', 1], ['B', 1]])
+    settings.gameId = 'test-rollback' as GameId
+    const gameState = new GameState('1', settings)
+    await gameState.init()
+
+    const mockStorage = new MockStorage()
+    gameState.storage = mockStorage
+    mockStorage.shouldThrowOnSet()
+
+    // Move tiles to the board to prepare for a move
+    gameState.moveTile('rack', 0, 7, 7)
+    gameState.moveTile('rack', 1, 7, 8)
+
+    // Capture initial state (before the transaction starts)
+    const initialTilesHeld = JSON.stringify(gameState.tilesHeld)
+    const initialHistoryLength = gameState.history.length
+    const initialNextTurnNumber = gameState.nextTurnNumber
+
+    // playWord will call playTurns, which will call save, which will throw
+    try {
+      await gameState.playWord()
+      // We should not reach here.
+      expect(true).toBe(false)
+    } catch (e: any) {
+      expect(e.name).toEqual('QuotaExceededError')
+    }
+
+    // Verify that the state has been rolled back
+    expect(JSON.stringify(gameState.tilesHeld)).toEqual(initialTilesHeld)
+    expect(gameState.history.length).toEqual(initialHistoryLength)
+    expect(gameState.nextTurnNumber).toEqual(initialNextTurnNumber)
+
+    // Also check that the board is empty as it was initially
+    expect(gameState.board.squares[7]?.[7]?.tile).toBeUndefined()
+    expect(gameState.board.squares[7]?.[8]?.tile).toBeUndefined()
+
+    // And check that the storage mock was not successfully written to
+    expect(mockStorage.getItem('sharewords_test-rollback')).toBeNull()
   })
 })
