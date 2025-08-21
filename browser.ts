@@ -20,12 +20,6 @@ export interface Browser {
   // Sets an item in local storage.
   setLocalStorageItem(key: string, value: string): void;
 
-  // Removes an item from local storage.
-  removeLocalStorageItem(key: string): void;
-
-  // Returns all keys from local storage.
-  getAllLocalStorageKeys(): string[];
-
   // Returns the document object.
   getDocument(): Document;
 
@@ -79,21 +73,6 @@ export class DomBrowser implements Browser {
 
   setLocalStorageItem(key: string, value: string): void {
     localStorage.setItem(key, value);
-  }
-
-  removeLocalStorageItem(key: string): void {
-    localStorage.removeItem(key);
-  }
-
-  getAllLocalStorageKeys(): string[] {
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        keys.push(key);
-      }
-    }
-    return keys;
   }
 
   getDocument(): Document {
