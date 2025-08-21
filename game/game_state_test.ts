@@ -1,54 +1,11 @@
 import { expect, describe, it } from 'bun:test'
 import { GameState } from './game_state.js'
 import { Settings, type GameId } from './settings.js'
+import { TestStorage } from '../test_storage.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
 import { Player } from './player.js'
 import { Tile, type TilePlacement } from './tile.js'
-
-class MockStorage implements Storage {
-  private throwOnSet = false;
-  private values = new Map<string, string>();
-
-  get length(): number {
-    return this.values.size;
-  }
-
-  clear(): void {
-    this.values.clear();
-  }
-
-  getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  key(index: number): string | null {
-    if (index < 0 || index >= this.values.size) {
-      return null;
-    }
-    return Array.from(this.values.keys())[index]!;
-  }
-
-  removeItem(key: string): void {
-    this.values.delete(key);
-  }
-
-  setItem(key: string, value: string): void {
-    if (this.throwOnSet) {
-      this.throwOnSet = false; // Reset after throwing once.
-      // DOMException is not available in Bun's test environment globally,
-      // so we'll just throw a generic error that looks like it.
-      const error = new Error('Quota exceeded');
-      error.name = 'QuotaExceededError';
-      throw error;
-    }
-    this.values.set(key, value);
-  }
-
-  shouldThrowOnSet() {
-    this.throwOnSet = true;
-  }
-}
 
 describe('game state', () => {
   it('should exchange tiles 1', async () => {
@@ -287,9 +244,8 @@ describe('game state', () => {
     const gameState = new GameState('1', settings)
     await gameState.init()
 
-    const mockStorage = new MockStorage()
-    gameState.storage = mockStorage
-    mockStorage.shouldThrowOnSet()
+    const testStorage = new TestStorage(0)
+    gameState.storage = testStorage
 
     // Move tiles to the board to prepare for a move
     gameState.moveTile('rack', 0, 7, 7)
@@ -319,6 +275,6 @@ describe('game state', () => {
     expect(gameState.board.squares[7]?.[8]?.tile).toBeUndefined()
 
     // And check that the storage mock was not successfully written to
-    expect(mockStorage.getItem('sharewords_test-rollback')).toBeNull()
+    expect(testStorage.getItem('sharewords_test-rollback')).toBeNull()
   })
 })
