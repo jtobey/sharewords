@@ -1,0 +1,83 @@
+{
+  "error": {
+    "word_placement": {
+      "no_tiles": "Arrastra algunas fichas al tablero y vuelve a intentarlo.",
+      "blank_tiles_must_be_assigned_letters": "A las fichas en blanco se les deben asignar letras.",
+      "non_blank_tiles_cannot_be_assigned_letters": "A las fichas que no están en blanco no se les pueden asignar letras.",
+      "tiles_not_in_line": "Las fichas no están en línea.",
+      "square_occupied": "La casilla ${row},${col} está ocupada.",
+      "line_with_gaps": "Las fichas forman una línea con espacios entre ellas.",
+      "no_single_letter_words": "No se aceptan palabras de una sola letra.",
+      "must_connect_to_existing": "Las fichas deben conectarse a palabras existentes o cubrir la casilla central."
+    },
+    "play_rejected": {
+      "not_words_in_dictionary": "No son palabras en ${dictionaryName}: ${invalidWords}.",
+      "play_rejected": "${message} Jugada rechazada.",
+      "word_not_in_dictionary": "La palabra \"${word}\" ${status} en ${dictionaryName}.",
+      "status": {
+        "not_found": "no encontrada",
+        "has_no_definition": "no tiene definición"
+      }
+    },
+    "url": {
+      "protocol_not_supported": "Versión de protocolo no compatible: ${version}",
+      "no_random_seed": "No hay semilla aleatoria en la URL.",
+      "unknown_dictionary_type": "Tipo de diccionario desconocido: \"${type}\".",
+      "custom_dictionary_requires_url": "El diccionario personalizado requiere una URL.",
+      "invalid_tile_distribution": "Especificador de distribución de fichas no válido: ${specifier}",
+      "invalid_letter_config": "Configuración de letras no válida en la URL: ${config}",
+      "tn_not_a_number": "El parámetro \"tn\" no es un número de turno: \"${param}\"",
+      "both_word_and_exchange": "Se encontraron datos de palabra e intercambio para el turno ${turnNumber}.",
+      "invalid_bt_component": "Componente de parámetro \"bt\" no válido: \"${component}\"",
+      "duplicate_bt_index": "Índice de asignación de ficha en blanco duplicado: bt=${param}",
+      "bt_index_out_of_range": "Índice de asignación de ficha en blanco fuera de rango: no hay \"${word}\"[${index}].",
+      "invalid_wl_param": "Parámetro \"wl\" no válido: \"${param}\"",
+      "word_out_of_bounds": "Se intentó jugar una palabra fuera de los límites: ${row},${col}.",
+      "wrong_letter": "La palabra requiere \"${requiredLetter}\" en ${row},${col}, pero hay \"${actualLetter}\".",
+      "invalid_letter": "Intento de jugar una letra no válida: \"${letter}\"",
+      "bt_index_range": "El parámetro \"bt\" tiene un índice ${index} fuera del rango 0-${maxIndex}.",
+      "incomplete_turn_data": "Datos incompletos para el turno ${turnNumber}: wl=${wl} ${direction}=${word} bt=${bt}",
+      "invalid_exchange_index": "Índice de ficha de intercambio no válido: \"${index}\"",
+      "invalid_player_id": "URL de turno no válida: el ID de jugador \"${id}\" debe estar entre 1 y ${maxId}.",
+      "duplicate_bt_param": "Parámetro \"bt\" duplicado para el turno ${turnNumber}.",
+      "duplicate_word_params": "Parámetros de palabra duplicados para el turno ${turnNumber}.",
+      "unrecognized_param": "Nombre de parámetro no reconocido: \"${param}\""
+    }
+  },
+  "ui": {
+    "title": "Constructor de Crucigramas",
+    "buttons": {
+      "play_word": "Jugar Palabra",
+      "pass_turn": "Pasar Turno",
+      "exchange_count": "Intercambiar ${count}",
+      "recall_tiles": "Retirar Fichas",
+      "game_setup": "Configuración del Juego",
+      "add_player": "Añadir Jugador",
+      "remove_player": "-",
+      "start_game_with_settings": "Iniciar Juego con la Configuración",
+      "cancel_settings": "Cancelar",
+      "ok": "Aceptar"
+    },
+    "settings": {
+      "players": "Jugadores",
+      "dictionary": "Diccionario",
+      "dictionary_options": {
+        "permissive": "Cualquier cosa es una palabra",
+        "freeapi": "freeapi",
+        "custom": "personalizado"
+      },
+      "dictionary_url_label": "URL:",
+      "bingo_bonus": "Bono de Bingo",
+      "random_seed": "Semilla Aleatoria",
+      "player_placeholder": "Jugador ${index}"
+    },
+    "bag_tile_count": "Fichas en la bolsa: ${count}",
+    "dialog": {
+      "copy_turn_url": "¿Copiar URL del turno?",
+      "confirm_title": "Confirmar"
+    },
+    "game": {
+      "join_link": "unirse"
+    }
+  }
+}
