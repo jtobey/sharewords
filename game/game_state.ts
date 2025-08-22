@@ -11,6 +11,7 @@
 import { Settings } from './settings.js'
 import { arraysEqual } from './validation.js'
 import { SharedState } from './shared_state.js'
+import { t } from './i18n.js'
 import { parseGameParams, UrlError } from './game_params.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow } from './tile.js'
@@ -300,10 +301,6 @@ export class GameState extends EventTarget {
    */
   async playWord() {
     const placements = this.tilesHeld.filter(isBoardPlacement)
-    if (placements.length === 0) {
-      // TODO - Consider dynamically enabling the Play Word button.
-      throw new Error('Drag some tiles onto the board, and try again.')
-    }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     turn.extraParams = this.pendingExtraParams
     this.pendingExtraParams = new URLSearchParams
@@ -451,7 +448,7 @@ export class GameState extends EventTarget {
     }
     const turnNumber = toTurnNumber(parseInt(urlTurnNumberStr))
     if (isNaN(turnNumber)) {
-      throw new UrlError(`"tn" param is not a turn number: "${urlTurnNumberStr}"`)
+      throw new UrlError(t('error.url.tn_not_a_number', { param: urlTurnNumberStr }))
     }
     await this.playTurns(this.shared.turnsFromParams(iterator, turnNumber))
   }

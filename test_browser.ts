@@ -9,6 +9,7 @@ export class TestBrowser implements Browser {
   private hash = '';
   private window: Window;
   public localStorage = new TestStorage;
+  public languages = []
   private hashChangeListeners: (() => Promise<any>)[] = [];
   public clipboard = '';
   public location = '';

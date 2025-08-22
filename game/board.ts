@@ -2,6 +2,7 @@ import { arraysEqual } from './validation.js'
 import { Tile } from './tile.js'
 import type { BoardPlacement } from './tile.js'
 import { BoardEvent } from './events.js'
+import { t } from './i18n.js'
 
 export class Square {
   readonly row: number
@@ -126,13 +127,13 @@ export class Board extends EventTarget {
     blanks: Array<number>,  // Zero-based index within `mainWord` of any blank tiles placed.
   } {
     const anyPlacement = placements[0]
-    if (!anyPlacement) throw new WordPlacementError('No tiles.')
+    if (!anyPlacement) throw new WordPlacementError(t('error.word_placement.no_tiles'))
     for (const placement of placements) {
       if (placement.tile.isBlank && !placement.assignedLetter) {
-        throw new WordPlacementError('Blank tiles must be assigned letters.')
+        throw new WordPlacementError(t('error.word_placement.blank_tiles_must_be_assigned_letters'))
       }
       if (!placement.tile.isBlank && placement.assignedLetter) {
-        throw new WordPlacementError('Non-blank tiles cannot be assigned letters.')
+        throw new WordPlacementError(t('error.word_placement.non_blank_tiles_cannot_be_assigned_letters'))
       }
     }
     // Find the direction of a line along which all placements lie.
@@ -150,7 +151,7 @@ export class Board extends EventTarget {
       mainDir.y = 1  // Top to bottom.
       placements.sort((a, b) => a.row - b.row)
     } else {
-      throw new WordPlacementError('Tiles are not in a line.')
+      throw new WordPlacementError(t('error.word_placement.tiles_not_in_line'))
     }
     const crossDir = {x: mainDir.y, y: mainDir.x}  // Flip along the main diagonal.
 
@@ -177,7 +178,7 @@ export class Board extends EventTarget {
       const placement = placements[placementIndex]
       if (placement && placement.row === mainRow && placement.col === mainCol) {
         if (mainSquare.tile) {
-          throw new WordPlacementError(`Square ${mainRow},${mainCol} is occupied.`)
+          throw new WordPlacementError(t('error.word_placement.square_occupied', { row: mainRow, col: mainCol }))
         }
         placementIndex += 1
         if (placement.assignedLetter) {
@@ -234,14 +235,14 @@ export class Board extends EventTarget {
 
     // Enforce placement rules.
     if (placementIndex < placements.length) {
-      throw new WordPlacementError('Tiles form a line with gaps between them.')
+      throw new WordPlacementError(t('error.word_placement.line_with_gaps'))
     }
     if (mainWord.length === 1) {
-      throw new WordPlacementError('No single-letter words accepted.')
+      throw new WordPlacementError(t('error.word_placement.no_single_letter_words'))
     }
     if (!crossWords.length && mainWord.length === placements.length) {
       if (!placements.some(tile => tile.row === this.centerSquare.row && tile.col === this.centerSquare.col)) {
-        throw new WordPlacementError('Tiles must connect to existing words or cover the center square.')
+        throw new WordPlacementError(t('error.word_placement.must_connect_to_existing'))
       }
     }
 

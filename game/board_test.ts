@@ -1,6 +1,7 @@
-import { expect, describe, it } from 'bun:test'
+import { expect, describe, it, beforeAll } from 'bun:test'
 import { Board, Square } from './board.js'
 import type { BoardPlacement } from './tile.js'
+import { loadTranslations } from './i18n.js'
 import { Tile } from './tile.js'
 import { parseBoards, diffBoards } from './test_support.js'
 
@@ -15,6 +16,10 @@ function _t(row: number, col: number, letter: string, value: number, assignedLet
 }
 
 describe('board', () => {
+  beforeAll(async () => {
+    await loadTranslations('en')
+  })
+
   it('should initialize', () => {
     const board = new Board('.d', 'T.')
     expect(board.squares).toEqual([
@@ -132,7 +137,8 @@ describe('board', () => {
   describe('validation', () => {
     it('should throw if no tiles are provided', () => {
       const board = new Board('.')
-      expect(() => board.checkWordPlacement()).toThrow('No tiles.')
+      expect(() => board.checkWordPlacement())
+        .toThrow('Drag some tiles onto the board, and try again.')
     })
 
     it('should throw if tiles are not in a line', () => {
