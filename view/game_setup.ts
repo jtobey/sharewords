@@ -1,5 +1,6 @@
 import type { GameState } from '../game/game_state.js';
 import type { Browser } from '../browser.js';
+import { t } from '../game/i18n.js'
 
 export class GameSetup {
   private gameState: GameState;
@@ -85,11 +86,11 @@ export class GameSetup {
       const input = this.doc.createElement('input');
       input.type = 'text';
       input.value = player.name;
-      input.placeholder = `Player ${index + 1}`;
+      input.placeholder = t('ui.settings.player_placeholder', { index: index + 1 });
       playerEntry.appendChild(input);
 
       const removeButton = this.doc.createElement('button');
-      removeButton.textContent = '-';
+      removeButton.textContent = t('ui.buttons.remove_player');
       removeButton.onclick = () => {
         const currentPlayers = Array.from(this.playerList.querySelectorAll('input')).map(i => ({name: i.value}));
         currentPlayers.splice(index, 1);
@@ -102,7 +103,7 @@ export class GameSetup {
         const replayLink = this.doc.createElement('a');
         const gameUrl = this.browser.getHref().replace(this.browser.getHash(), '');
         replayLink.href = gameUrl + '#' + historyParams;
-        const linkText = this.doc.createTextNode('join');
+        const linkText = this.doc.createTextNode(t('ui.game.join_link'));
         replayLink.appendChild(linkText);
         playerEntry.appendChild(replayLink);
       }

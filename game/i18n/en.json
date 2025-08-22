@@ -43,5 +43,41 @@
       "duplicate_word_params": "Duplicate word parameters for turn ${turnNumber}.",
       "unrecognized_param": "Unrecognized parameter name: \"${param}\""
     }
+  },
+  "ui": {
+    "title": "Crossword Builder",
+    "buttons": {
+      "play_word": "Play Word",
+      "pass_turn": "Pass Turn",
+      "exchange_count": "Exchange ${count}",
+      "recall_tiles": "Recall Tiles",
+      "game_setup": "Game Setup",
+      "add_player": "Add Player",
+      "remove_player": "-",
+      "start_game_with_settings": "Start Game with Settings",
+      "cancel_settings": "Cancel",
+      "ok": "OK"
+    },
+    "settings": {
+      "players": "Players",
+      "dictionary": "Dictionary",
+      "dictionary_options": {
+        "permissive": "Anything is a word",
+        "freeapi": "freeapi",
+        "custom": "custom"
+      },
+      "dictionary_url_label": "URL:",
+      "bingo_bonus": "Bingo Bonus",
+      "random_seed": "Random Seed",
+      "player_placeholder": "Player ${index}"
+    },
+    "bag_tile_count": "Tiles in bag: ${count}",
+    "dialog": {
+      "copy_turn_url": "Copy Turn URL?",
+      "confirm_title": "Confirm"
+    },
+    "game": {
+      "join_link": "join"
+    }
   }
 }
