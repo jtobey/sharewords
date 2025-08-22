@@ -244,6 +244,7 @@ describe('game state', () => {
     const gameState = new GameState('1', settings)
     await gameState.init()
 
+    // Set up storage with zero capacity.
     const testStorage = new TestStorage(0)
     gameState.storage = testStorage
 
