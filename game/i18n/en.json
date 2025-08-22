@@ -1,7 +1,7 @@
 {
   "error": {
     "word_placement": {
-      "no_tiles": "No tiles.",
+      "no_tiles": "Drag some tiles onto the board, and try again.",
       "blank_tiles_must_be_assigned_letters": "Blank tiles must be assigned letters.",
       "non_blank_tiles_cannot_be_assigned_letters": "Non-blank tiles cannot be assigned letters.",
       "tiles_not_in_line": "Tiles are not in a line.",

@@ -301,10 +301,6 @@ export class GameState extends EventTarget {
    */
   async playWord() {
     const placements = this.tilesHeld.filter(isBoardPlacement)
-    if (placements.length === 0) {
-      // TODO - Consider dynamically enabling the Play Word button.
-      throw new Error('Drag some tiles onto the board, and try again.')
-    }
     const turn = new Turn(this.playerId, this.nextTurnNumber, { playTiles: placements })
     turn.extraParams = this.pendingExtraParams
     this.pendingExtraParams = new URLSearchParams

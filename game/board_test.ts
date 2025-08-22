@@ -137,7 +137,8 @@ describe('board', () => {
   describe('validation', () => {
     it('should throw if no tiles are provided', () => {
       const board = new Board('.')
-      expect(() => board.checkWordPlacement()).toThrow('No tiles.')
+      expect(() => board.checkWordPlacement())
+        .toThrow('Drag some tiles onto the board, and try again.')
     })
 
     it('should throw if tiles are not in a line', () => {

@@ -5,35 +5,37 @@ const [ DEFAULT_LANG, DEFAULT_TRANSLATIONS ] = ['en', ENGLISH_TRANSLATIONS]
 
 let translations: any = {};
 
-export async function loadTranslations(lang: string) {
-  if (lang === DEFAULT_LANG) {
-    translations = DEFAULT_TRANSLATIONS
-    return
-  }
-
-  try {
-    if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
-      const response = await fetch(`game/i18n/${lang}.json`);
-      if (!response.ok) {
-        console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
-        translations = DEFAULT_TRANSLATIONS
-      } else {
-        translations = await response.json();
-      }
-    } else {
-      const path = `game/i18n/${lang}.json`;
-      try {
-        const data = readFileSync(path, 'utf-8');
-        translations = JSON.parse(data);
-      } catch (error) {
-        console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
-        translations = DEFAULT_TRANSLATIONS
-      }
+export async function loadTranslations(...languages: string[]) {
+  for (const lang of languages) {
+    if (lang === DEFAULT_LANG) {
+      translations = DEFAULT_TRANSLATIONS
+      return
     }
-  } catch (error) {
-    console.error(error);
-    // In case of a network error or other issue, load English translations
-    translations = DEFAULT_TRANSLATIONS;
+
+    try {
+      if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+        const response = await fetch(`game/i18n/${lang}.json`);
+        if (!response.ok) {
+          console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
+          translations = DEFAULT_TRANSLATIONS
+        } else {
+          translations = await response.json();
+        }
+      } else {
+        const path = `game/i18n/${lang}.json`;
+        try {
+          const data = readFileSync(path, 'utf-8');
+          translations = JSON.parse(data);
+        } catch (error) {
+          console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
+          translations = DEFAULT_TRANSLATIONS
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      // In case of a network error or other issue, load English translations
+      translations = DEFAULT_TRANSLATIONS;
+    }
   }
 }
 

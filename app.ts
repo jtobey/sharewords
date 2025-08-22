@@ -46,7 +46,7 @@ export class App {
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
         this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
-        await loadTranslations(this.gameState.settings.language);
+        await loadTranslations(...this.browser.languages);
         this.gameState.storage = this.browser.localStorage
         await this.gameState.applyTurnParams(params)
       } else if (this.gameState) {
@@ -57,7 +57,7 @@ export class App {
         console.log(`Switching to new game "${gidParam}".`)
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         this.gameState = await GameState.fromParams(params);
-        await loadTranslations(this.gameState.settings.language);
+        await loadTranslations(...this.browser.languages);
         this.gameState.storage = this.browser.localStorage
         this.gameState.save()
       }

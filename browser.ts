@@ -21,6 +21,7 @@ export interface Browser {
   getURLSearchParams(query: string): URLSearchParams;
 
   localStorage: Storage;
+  languages: ReadonlyArray<string>;
 
   // Returns a random number between 0 and 1.
   getRandom(): number;
@@ -65,6 +66,10 @@ export class DomBrowser implements Browser {
 
   get localStorage() {
     return localStorage;
+  }
+
+  get languages() {
+    return navigator.languages
   }
 
   getDocument(): Document {

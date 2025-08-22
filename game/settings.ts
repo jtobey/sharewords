@@ -79,7 +79,6 @@ export class Settings {
   tileSystemSettings = {seed: '1'}
   dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
-  language = 'en'
 
   toJSON() {
     return {
@@ -94,7 +93,6 @@ export class Settings {
       tileSystemSettings: this.tileSystemSettings,
       dictionaryType: this.dictionaryType,
       dictionarySettings: this.dictionarySettings,
-      language: this.language,
     }
   }
 
@@ -103,7 +101,7 @@ export class Settings {
       && arraysEqual([...Object.keys(json)], [
         'version', 'players', 'letterCounts', 'letterValues', 'boardLayout',
         'bingoBonus', 'rackCapacity', 'tileSystemType', 'tileSystemSettings',
-        'dictionaryType', 'dictionarySettings', 'language',
+        'dictionaryType', 'dictionarySettings',
       ])
       && json.version === PROTOCOL_VERSION
       && Array.isArray(json.players)
@@ -114,8 +112,7 @@ export class Settings {
       && json.tileSystemType === 'honor'
       && typeof json.tileSystemSettings === 'object'
       && typeof json.tileSystemSettings.seed === 'string'
-      && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType)
-      && typeof json.language === 'string')) {
+      && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
         throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
       }
     const settings = new Settings
@@ -130,7 +127,6 @@ export class Settings {
     settings.tileSystemSettings = json.tileSystemSettings
     settings.dictionaryType = json.dictionaryType
     settings.dictionarySettings = json.dictionarySettings
-    settings.language = json.language
     return settings
   }
 }
