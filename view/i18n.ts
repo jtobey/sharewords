@@ -1,4 +1,4 @@
-import { t } from '../game/i18n.js';
+import { t } from '../i18n.js';
 
 export function initI18n(doc: Document) {
   const elements = doc.querySelectorAll('[data-i18n]');

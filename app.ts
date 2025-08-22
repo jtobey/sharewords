@@ -2,7 +2,7 @@ import { toGameId, makeGameId } from './game/settings.js'
 import { GameState, makeStorageKey } from './game/game_state.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
-import { loadTranslations } from './game/i18n.js'
+import { loadTranslations } from './i18n.js'
 import { initI18n } from './view/i18n.js'
 import { type Browser, DomBrowser } from './browser.js'
 

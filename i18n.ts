@@ -14,29 +14,29 @@ export async function loadTranslations(...languages: string[]) {
 
     try {
       if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
-        const response = await fetch(`game/i18n/${lang}.json`);
+        const response = await fetch(`i18n/${lang}.json`);
         if (!response.ok) {
-          console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
-          translations = DEFAULT_TRANSLATIONS
+          console.warn(`Language '${lang}' not supported.`);
         } else {
           translations = await response.json();
+          return
         }
       } else {
-        const path = `game/i18n/${lang}.json`;
+        const path = `i18n/${lang}.json`;
         try {
           const data = readFileSync(path, 'utf-8');
           translations = JSON.parse(data);
+          return
         } catch (error) {
-          console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
-          translations = DEFAULT_TRANSLATIONS
+          console.warn(`Language '${lang}' not supported.`);
         }
       }
     } catch (error) {
       console.error(error);
-      // In case of a network error or other issue, load English translations
-      translations = DEFAULT_TRANSLATIONS;
     }
   }
+  console.warn(`Configured languages not supported. Falling back to ${DEFAULT_LANG}.`);
+  translations = DEFAULT_TRANSLATIONS
 }
 
 export function t(key: string, params?: Record<string, any>): string {

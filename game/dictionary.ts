@@ -1,4 +1,4 @@
-import { t } from './i18n.js'
+import { t } from '../i18n.js'
 
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'

@@ -2,7 +2,7 @@ import { arraysEqual } from './validation.js'
 import { Tile } from './tile.js'
 import type { BoardPlacement } from './tile.js'
 import { BoardEvent } from './events.js'
-import { t } from './i18n.js'
+import { t } from '../i18n.js'
 
 export class Square {
   readonly row: number

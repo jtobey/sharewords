@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeAll } from 'bun:test'
 import { GameState } from './game_state.js'
 import { Settings, type GameId } from './settings.js'
-import { loadTranslations } from './i18n.js'
+import { loadTranslations } from '../i18n.js'
 import { TestStorage } from '../test_storage.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'

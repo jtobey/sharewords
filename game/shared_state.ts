@@ -41,7 +41,7 @@ import { gameParamsFromSettings, UrlError } from './game_params.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
-import { t } from './i18n.js'
+import { t } from '../i18n.js'
 
 export class SharedState {
   constructor(

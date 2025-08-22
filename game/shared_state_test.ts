@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from 'bun:test'
 import { SharedState } from './shared_state.js'
 import { Settings } from './settings.js'
-import { loadTranslations } from './i18n.js'
+import { loadTranslations } from '../i18n.js'
 import type { GameId } from './settings.js'
 import { Player } from './player.js'
 import { Board } from './board.js'

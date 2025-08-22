@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from 'bun:test'
 import { gameParamsFromSettings, parseGameParams, parseBagParam } from './game_params.js'
 import { Settings } from './settings.js'
-import { loadTranslations } from './i18n.js'
+import { loadTranslations } from '../i18n.js'
 import { Player } from './player.js'
 
 describe('game params', () => {

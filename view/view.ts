@@ -1,5 +1,5 @@
 import { Dialog } from './dialog.js'
-import { t } from '../game/i18n.js'
+import { t } from '../i18n.js'
 import { GameSetup } from './game_setup.js'
 import type { GameState } from '../game/game_state.js'
 import type { Tile, TilePlacementRow } from '../game/tile.js'

@@ -1,6 +1,6 @@
 import type { GameState } from '../game/game_state.js';
 import type { Browser } from '../browser.js';
-import { t } from '../game/i18n.js'
+import { t } from '../i18n.js'
 
 export class GameSetup {
   private gameState: GameState;

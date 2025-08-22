@@ -11,7 +11,7 @@
 import { Settings } from './settings.js'
 import { arraysEqual } from './validation.js'
 import { SharedState } from './shared_state.js'
-import { t } from './i18n.js'
+import { t } from '../i18n.js'
 import { parseGameParams, UrlError } from './game_params.js'
 import { isBoardPlacement, isBoardPlacementRow, Tile } from './tile.js'
 import type { TilePlacement, TilePlacementRow } from './tile.js'

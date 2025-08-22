@@ -2,7 +2,7 @@ import { Settings, toGameId } from './settings.js'
 import { Player } from './player.js'
 import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
-import { t } from './i18n.js'
+import { t } from '../i18n.js'
 
 export class UrlError extends Error {
   constructor(message: string) {
