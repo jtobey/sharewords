@@ -1,4 +1,5 @@
 import { Dialog } from './dialog.js'
+import { t } from '../game/i18n.js'
 import { GameSetup } from './game_setup.js'
 import type { GameState } from '../game/game_state.js'
 import type { Tile, TilePlacementRow } from '../game/tile.js'
@@ -226,7 +227,7 @@ export class View {
   }
 
   renderBagTileCount() {
-    this.bagTileCountContainer.textContent = `Tiles in bag: ${this.gameState.numberOfTilesInBag}`
+    this.bagTileCountContainer.textContent = t('ui.bag_tile_count', { count: this.gameState.numberOfTilesInBag })
   }
 
   renderActionButtons() {
@@ -239,9 +240,9 @@ export class View {
 
     const count = this.gameState.exchangeTilesCount
     if (count === 0) {
-      passExchangeButton.textContent = 'Pass Turn'
+      passExchangeButton.textContent = t('ui.buttons.pass_turn')
     } else {
-      passExchangeButton.textContent = `Exchange ${count}`
+      passExchangeButton.textContent = t('ui.buttons.exchange_count', { count })
     }
   }
 
@@ -311,17 +312,19 @@ export class View {
     let copyUrlCheckbox: HTMLInputElement | undefined;
     if (showCopyCheckbox) {
       const copyUrlContainer = this.doc.createElement('div');
-      copyUrlContainer.innerHTML = `
-        <label>
-          <input type="checkbox" id="copy-url-checkbox" checked>
-          Copy Turn URL?
-        </label>
-      `;
-      copyUrlCheckbox = copyUrlContainer.querySelector<HTMLInputElement>('#copy-url-checkbox')!;
+      const label = this.doc.createElement('label');
+      const checkbox = this.doc.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'copy-url-checkbox';
+      checkbox.checked = true;
+      label.appendChild(checkbox);
+      label.appendChild(this.doc.createTextNode(t('ui.dialog.copy_turn_url')));
+      copyUrlContainer.appendChild(label);
+      copyUrlCheckbox = checkbox;
       content.appendChild(copyUrlContainer);
     }
 
-    const dialog = new Dialog(this.doc, title, content, ['OK', 'Cancel']);
+    const dialog = new Dialog(this.doc, title, content, [t('ui.buttons.ok'), t('ui.buttons.cancel_settings')]);
     const result = await dialog.show();
 
     return {

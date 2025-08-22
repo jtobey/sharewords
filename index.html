@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <h1>Crossword Builder</h1>
+    <h1 data-i18n="ui.title"></h1>
     <div id="game-container">
       <div id="center-panel">
         <div id="score-panel"></div>
@@ -17,41 +17,41 @@
         <div id="rack-container"></div>
         <div id="exchange-container"></div>
         <div id="buttons-container">
-          <button id="play-word">Play Word</button>
+          <button id="play-word" data-i18n="ui.buttons.play_word"></button>
           <button id="pass-exchange">Pass/Exchange</button>
-          <button id="recall-tiles">Recall Tiles</button>
-          <button id="game-setup">Game Setup</button>
+          <button id="recall-tiles" data-i18n="ui.buttons.recall_tiles"></button>
+          <button id="game-setup" data-i18n="ui.buttons.game_setup"></button>
         </div>
         <div id="settings-dialog" hidden>
           <div class="content">
             <div class="settings-group">
-              <h3>Players</h3>
+              <h3 data-i18n="ui.settings.players"></h3>
               <div id="player-list"></div>
-              <button id="add-player-button">+</button>
+              <button id="add-player-button" data-i18n="ui.buttons.add_player"></button>
             </div>
             <div class="settings-group">
-              <h3>Dictionary</h3>
+              <h3 data-i18n="ui.settings.dictionary"></h3>
               <select id="dictionary-type">
-                <option value="permissive">Anything is a word</option>
-                <option value="freeapi">freeapi</option>
-                <option value="custom">custom</option>
+                <option value="permissive" data-i18n="ui.settings.dictionary_options.permissive"></option>
+                <option value="freeapi" data-i18n="ui.settings.dictionary_options.freeapi"></option>
+                <option value="custom" data-i18n="ui.settings.dictionary_options.custom"></option>
               </select>
               <div id="dictionary-url-container" hidden>
-                <label>URL: <input type="text" id="dictionary-url" placeholder="URL"></label>
+                <label data-i18n="ui.settings.dictionary_url_label"><input type="text" id="dictionary-url" placeholder="URL"></label>
               </div>
             </div>
             <div class="settings-group">
-              <h3>Bingo Bonus</h3>
+              <h3 data-i18n="ui.settings.bingo_bonus"></h3>
               <input type="number" id="bingo-bonus">
             </div>
             <div class="settings-group">
-              <h3>Random Seed</h3>
+              <h3 data-i18n="ui.settings.random_seed"></h3>
               <input type="text" id="random-seed">
             </div>
           </div>
           <div class="buttons">
-            <button id="start-game-with-settings">Start Game with Settings</button>
-            <button id="cancel-settings">Cancel</button>
+            <button id="start-game-with-settings" data-i18n="ui.buttons.start_game_with_settings"></button>
+            <button id="cancel-settings" data-i18n="ui.buttons.cancel_settings"></button>
           </div>
         </div>
       </div>
