@@ -1,10 +1,12 @@
+import { t } from './i18n.js'
+
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 const DICTIONARY_TYPES: ReadonlyArray<DictionaryType> = ['permissive', 'freeapi', 'custom']
 
 export class PlayRejectedError extends Error {
   constructor(message: string) {
-    super(`${message} Play rejected.`)
+    super(t('error.play_rejected.play_rejected', { message }))
     this.name = 'PlayRejected'
   }
 }
@@ -23,27 +25,27 @@ export function makeDictionary(dictionaryType: DictionaryType, dictionarySetting
     if (errors.length === 0) return  // Words accepted.
     if (errors.length === 1) throw errors[0]
     const invalidWords = errors.map(wnidError => wnidError!.word)
-    throw new PlayRejectedError(`Not words in ${errors[0]!.dictionaryName}: ${invalidWords}.`)
+    throw new PlayRejectedError(t('error.play_rejected.not_words_in_dictionary', { dictionaryName: errors[0]!.dictionaryName, invalidWords: invalidWords.join(', ') }))
   }
 }
 
 class WordNotInDictionaryError extends PlayRejectedError {
   constructor(readonly word: string, readonly dictionaryName: string, readonly status: string) {
-    super(`Word "${word}" ${status} in ${dictionaryName}.`)
+    super(t('error.play_rejected.word_not_in_dictionary', { word, status, dictionaryName }))
     this.name = 'WordNotInDictionaryError'
   }
 }
 
 class WordNotFoundError extends WordNotInDictionaryError {
   constructor(word: string, dictionaryName: string) {
-    super(word, dictionaryName, 'not found')
+    super(word, dictionaryName, t('error.play_rejected.status.not_found'))
     this.name = 'WordNotFoundError'
   }
 }
 
 class NoDefinitionError extends WordNotInDictionaryError {
   constructor(word: string, dictionaryName: string) {
-    super(word, dictionaryName, 'has no definition')
+    super(word, dictionaryName, t('error.play_rejected.status.has_no_definition'))
     this.name = 'NoDefinitionError'
   }
 }

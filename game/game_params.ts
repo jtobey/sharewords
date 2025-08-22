@@ -2,6 +2,7 @@ import { Settings, toGameId } from './settings.js'
 import { Player } from './player.js'
 import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
+import { t } from './i18n.js'
 
 export class UrlError extends Error {
   constructor(message: string) {
@@ -138,7 +139,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const settings = new Settings
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
-    throw new UrlError(`Protocol version not supported: ${vParam}`)
+    throw new UrlError(t('error.url.protocol_not_supported', { version: vParam }))
   }
   const gidParam = gameParams.get('gid')
   if (gidParam) settings.gameId = toGameId(gidParam)
@@ -158,18 +159,18 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const racksizeParam = gameParams.get('racksize')
   if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam, 10)
   const seedParam = gameParams.get('seed')
-  if (!seedParam) throw new UrlError('No random seed in URL.')
+  if (!seedParam) throw new UrlError(t('error.url.no_random_seed'))
   settings.tileSystemSettings = {seed: seedParam}
   const dtParam = gameParams.get('dt')
   if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
     settings.dictionaryType = dtParam
   } else if (dtParam) {
-    throw new UrlError(`Unknown dictionary type: "${dtParam}".`)
+    throw new UrlError(t('error.url.unknown_dictionary_type', { type: dtParam }))
   }
   const dsParam = gameParams.get('ds')
   if (dsParam) settings.dictionarySettings = dsParam
   else if (settings.dictionaryType === 'custom') {
-    throw new UrlError('Custom dictionary requires a URL.')
+    throw new UrlError(t('error.url.custom_dictionary_requires_url'))
   }
   let playerId = gameParams.get('pid') ?? undefined
   if (!playerId) {
@@ -199,7 +200,7 @@ export function parseBagParam(settings: Settings, bagParam: string) {
       // "..en" copies all unspecified letters from default settings.
       const rest = [...iterator].join('.')
       if (rest !== 'en') {
-        throw new UrlError(`Invalid tile distribution specifier: ${rest}`)
+        throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: rest }))
       }
       for (const [letter, count] of settings.letterCounts) {
         if (!letterCounts.has(letter)) {
@@ -212,7 +213,7 @@ export function parseBagParam(settings: Settings, bagParam: string) {
     // TODO - Consider supporting multi-character tiles.
     const match = letterConfig.match(/^(?<letter>.)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
     if (!match) {
-      throw new UrlError(`Invalid letter configuration in URL: ${letterConfig}`)
+      throw new UrlError(t('error.url.invalid_letter_config', { config: letterConfig }))
     }
     const g = match.groups!
     const letter = urlToLetter(g.letter!)

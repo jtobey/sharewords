@@ -1,6 +1,7 @@
-import { expect, describe, it } from 'bun:test'
+import { expect, describe, it, beforeAll } from 'bun:test'
 import { Board, Square } from './board.js'
 import type { BoardPlacement } from './tile.js'
+import { loadTranslations } from './i18n.js'
 import { Tile } from './tile.js'
 import { parseBoards, diffBoards } from './test_support.js'
 
@@ -15,6 +16,10 @@ function _t(row: number, col: number, letter: string, value: number, assignedLet
 }
 
 describe('board', () => {
+  beforeAll(async () => {
+    await loadTranslations('en')
+  })
+
   it('should initialize', () => {
     const board = new Board('.d', 'T.')
     expect(board.squares).toEqual([

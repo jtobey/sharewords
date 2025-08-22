@@ -41,6 +41,7 @@ import { gameParamsFromSettings, UrlError } from './game_params.js'
 import { Board } from './board.ts'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
+import { t } from './i18n.js'
 
 export class SharedState {
   constructor(
@@ -172,35 +173,35 @@ export class SharedState {
 
       if (wordPlayed && direction && wordLocationStr) {
         if (exchangeIndicesStr) {
-          throw new UrlError(`Found both word and exchange data for turn ${turnNumber}.`)
+          throw new UrlError(t('error.url.both_word_and_exchange', { turnNumber }))
         }
 
         const blankTileAssignments = [] as Array<string>
         if (blankTileIndicesStr) {
           blankTileIndicesStr.split('.').forEach((s: string) => {
             const match = s.match(/^(\d+)$/)
-            if (!match) { throw new UrlError(`Invalid "bt" parameter component: "${s}"`) }
+            if (!match) { throw new UrlError(t('error.url.invalid_bt_component', { component: s })) }
             const index = parseInt(match[1]!, 10)
             if (index in blankTileAssignments) {
-              throw new UrlError(`Duplicate blank tile assignment index: bt=${blankTileIndicesStr}`)
+              throw new UrlError(t('error.url.duplicate_bt_index', { param: blankTileIndicesStr }))
             }
             const assignedLetter = wordPlayed![index]
             if (!assignedLetter) {
-              throw new UrlError(`Blank tile assignment index out of range: no "${wordPlayed}"[${index}].`)
+              throw new UrlError(t('error.url.bt_index_out_of_range', { word: wordPlayed, index }))
             }
             blankTileAssignments[index] = assignedLetter
           })
         }
 
         const match = wordLocationStr.match(/^(\d+)\.(\d+)$/)
-        if (!match) { throw new UrlError(`Invalid "wl" parameter: "${wordLocationStr}"`) }
+        if (!match) { throw new UrlError(t('error.url.invalid_wl_param', { param: wordLocationStr })) }
         let row = parseInt(match[1]!, 10)
         let col = parseInt(match[2]!, 10)
 
         const placements = [] as Array<BoardPlacement>
         Array.from(wordPlayed).map((letter, letterIndex) => {
           const square = this.board.squares[row]?.[col]
-          if (!square) throw new UrlError(`Attempted to play a word out of bounds: ${row},${col}.`)
+          if (!square) throw new UrlError(t('error.url.word_out_of_bounds', { row, col }))
           if (!square.tile) {
             // It must be a new tile from the player's rack.
             const assignedLetter = blankTileAssignments[letterIndex] ?? ''
@@ -208,18 +209,18 @@ export class SharedState {
               placements.push({tile: new Tile({letter: '', value: 0}), row, col, assignedLetter})
             } else {
               const value = this.settings.letterValues.get(letter)
-              if (value === undefined) throw new UrlError(`Attempt to play an invalid letter: "${letter}"`)
+              if (value === undefined) throw new UrlError(t('error.url.invalid_letter', { letter }))
               placements.push({tile: new Tile({letter, value}), row, col})
             }
           } else if (square.letter !== letter) {
-            throw new UrlError(`Word requires "${letter}" at ${row},${col}, but "${square.letter}" is there.`)
+            throw new UrlError(t('error.url.wrong_letter', { requiredLetter: letter, row, col, actualLetter: square.letter }))
           }
           if (direction === 'wv') { row += 1 }
           else { col += 1 }
         })
         if (blankTileAssignments.length > wordPlayed!.length) {
           throw new UrlError(
-            `"bt" parameter has index ${blankTileAssignments.length - 1} out of range 0-${wordPlayed!.length - 1}.`
+            t('error.url.bt_index_range', { index: blankTileAssignments.length - 1, maxIndex: wordPlayed!.length - 1 })
           )
         }
         yield new Turn(playerId, turnNumber, {playTiles: placements})
@@ -227,7 +228,7 @@ export class SharedState {
       } else if (exchangeIndicesStr != null) {
         if (wordPlayed || direction || wordLocationStr || blankTileIndicesStr) {
           throw new UrlError(
-            `Incomplete data for turn ${turnNumber}: wl=${wordLocationStr} ${direction}=${wordPlayed} bt=${blankTileIndicesStr}`)
+            t('error.url.incomplete_turn_data', { turnNumber, wl: wordLocationStr, direction, word: wordPlayed, bt: blankTileIndicesStr }))
         }
         const exchangeIndexStrs = exchangeIndicesStr ? exchangeIndicesStr.split('.') : []
         const numberOfTilesInRack = this.tilesState.countTiles(playerId)
@@ -235,7 +236,7 @@ export class SharedState {
         exchangeIndexStrs.forEach(s => {
           const index = parseInt(s, 10)
           if (isNaN(index) || index < 0 || index >= numberOfTilesInRack) {
-            throw new UrlError(`Invalid exchange tile index: "${s}"`)
+            throw new UrlError(t('error.url.invalid_exchange_index', { index: s }))
           }
           exchangeTileIndices.push(index)
         })
@@ -260,7 +261,7 @@ export class SharedState {
         if (player) {
           player.name = value
         } else {
-          throw new UrlError(`Invalid turn URL: Player ID "${pnMatch[1]}" should be in 1-${this.players.length}.`)
+          throw new UrlError(t('error.url.invalid_player_id', { id: pnMatch[1], maxId: this.players.length }))
         }
       } else if (key === 'wl') {
         // `wl` marks a new word play move.
@@ -272,17 +273,17 @@ export class SharedState {
         exchangeIndicesStr = value
       } else if (key === 'bt') {
         if (blankTileIndicesStr) {
-          throw new UrlError(`Duplicate "bt" parameter for turn ${turnNumber}.`)
+          throw new UrlError(t('error.url.duplicate_bt_param', { turnNumber }))
         }
         blankTileIndicesStr = value
       } else if (key === 'wv' || key === 'wh') {
         if (direction) {
-          throw new UrlError(`Duplicate word parameters for turn ${turnNumber}.`)
+          throw new UrlError(t('error.url.duplicate_word_params', { turnNumber }))
         }
         direction = key
         wordPlayed = value
       } else {
-        throw new UrlError(`Unrecognized parameter name: "${key}"`)
+        throw new UrlError(t('error.url.unrecognized_param', { param: key }))
       }
     }
     // We are out of turn params.

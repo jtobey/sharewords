@@ -1,6 +1,7 @@
-import { expect, describe, it } from 'bun:test'
+import { expect, describe, it, beforeAll } from 'bun:test'
 import { GameState } from './game_state.js'
 import { Settings, type GameId } from './settings.js'
+import { loadTranslations } from './i18n.js'
 import { TestStorage } from '../test_storage.js'
 import { parseBoards, diffBoards } from './test_support.js'
 import { generateRowStrings } from './board.js'
@@ -8,6 +9,10 @@ import { Player } from './player.js'
 import { Tile, type TilePlacement } from './tile.js'
 
 describe('game state', () => {
+  beforeAll(async () => {
+    await loadTranslations('en')
+  })
+
   it('should exchange tiles 1', async () => {
     const settings = new Settings
     settings.gameId = 'test' as GameId

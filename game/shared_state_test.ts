@@ -1,6 +1,7 @@
-import { describe, test, expect } from 'bun:test'
+import { describe, test, expect, beforeAll } from 'bun:test'
 import { SharedState } from './shared_state.js'
 import { Settings } from './settings.js'
+import { loadTranslations } from './i18n.js'
 import type { GameId } from './settings.js'
 import { Player } from './player.js'
 import { Board } from './board.js'
@@ -10,6 +11,10 @@ import { makeTiles } from './tile.js'
 import { PlayRejectedError } from './dictionary.js'
 
 describe('shared state', () => {
+  beforeAll(async () => {
+    await loadTranslations('en')
+  })
+
   test('can create a shared state', () => {
     const settings = new Settings()
     const gameId = 'test' as GameId
