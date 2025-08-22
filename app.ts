@@ -59,7 +59,6 @@ export class App {
         this.gameState = await GameState.fromParams(params);
         await loadTranslations(...this.browser.languages);
         this.gameState.storage = this.browser.localStorage
-        this.gameState.save()
       }
 
       this.updateUrl();
