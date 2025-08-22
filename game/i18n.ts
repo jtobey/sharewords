@@ -1,43 +1,40 @@
 import { readFileSync } from 'node:fs'
+import ENGLISH_TRANSLATIONS from './i18n/en.json'
+
+const [ DEFAULT_LANG, DEFAULT_TRANSLATIONS ] = ['en', ENGLISH_TRANSLATIONS]
 
 let translations: any = {};
 
 export async function loadTranslations(lang: string) {
-    const fallbackLang = 'en';
-    let langToLoad = lang;
+  if (lang === DEFAULT_LANG) {
+    translations = DEFAULT_TRANSLATIONS
+    return
+  }
 
-    try {
-        if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
-            const response = await fetch(`game/i18n/${langToLoad}.json`);
-            if (!response.ok) {
-                console.warn(`Language '${lang}' not supported. Falling back to English.`);
-                langToLoad = fallbackLang;
-                const fallbackResponse = await fetch(`game/i18n/${langToLoad}.json`);
-                if (!fallbackResponse.ok) {
-                    throw new Error(`Failed to load fallback translations for ${langToLoad}`);
-                }
-                translations = await fallbackResponse.json();
-            } else {
-                translations = await response.json();
-            }
-        } else {
-            const path = `game/i18n/${langToLoad}.json`;
-            try {
-                const data = readFileSync(path, 'utf-8');
-                translations = JSON.parse(data);
-            } catch (error) {
-                console.warn(`Language '${lang}' not supported. Falling back to English.`);
-                langToLoad = fallbackLang;
-                const fallbackPath = `game/i18n/${langToLoad}.json`;
-                const data = readFileSync(fallbackPath, 'utf-8');
-                translations = JSON.parse(data);
-            }
-        }
-    } catch (error) {
-        console.error(error);
-        // In case of a network error or other issue, load empty translations
-        translations = {};
+  try {
+    if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+      const response = await fetch(`game/i18n/${lang}.json`);
+      if (!response.ok) {
+        console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
+        translations = DEFAULT_TRANSLATIONS
+      } else {
+        translations = await response.json();
+      }
+    } else {
+      const path = `game/i18n/${lang}.json`;
+      try {
+        const data = readFileSync(path, 'utf-8');
+        translations = JSON.parse(data);
+      } catch (error) {
+        console.warn(`Language '${lang}' not supported. Falling back to ${DEFAULT_LANG}.`);
+        translations = DEFAULT_TRANSLATIONS
+      }
     }
+  } catch (error) {
+    console.error(error);
+    // In case of a network error or other issue, load English translations
+    translations = DEFAULT_TRANSLATIONS;
+  }
 }
 
 export function t(key: string, params?: Record<string, any>): string {
