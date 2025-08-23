@@ -4,7 +4,7 @@
 
 import type { Serializable } from './serializable.js'
 import { arraysEqual } from './validation.js'
-import { getBagDefaults } from './bag_defaults.js'
+import { getBagDefaults, type BagDefaults } from './bag_defaults.js'
 import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
 import type { DictionaryType } from './dictionary.js'
@@ -67,12 +67,15 @@ export class Settings {
   dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
 
-  constructor(
-    bagLanguage = 'en',
-    bagDefaults = getBagDefaults(bagLanguage),
+  private constructor(
+    bagDefaults: BagDefaults,
     public letterCounts = bagDefaults.letterCounts,
     public letterValues = bagDefaults.letterValues,
   ) {}
+
+  static forLanguage(bagLanguage: string) {
+    return new Settings(getBagDefaults(bagLanguage))
+  }
 
   toJSON() {
     return {
@@ -109,7 +112,7 @@ export class Settings {
       && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
         throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
       }
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.version = json.version
     settings.players = json.players.map(Player.fromJSON)
     settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts)

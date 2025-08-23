@@ -91,7 +91,7 @@ function getBagParam(settings: Settings, defaults: Settings): string | undefined
 export function gameParamsFromSettings(settings: Settings) {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
-  const defaults = new Settings
+  const defaults = Settings.forLanguage('en')
   params.set('v', settings.version)
   if (!playersEqual(settings.players, defaults.players)) {
     settings.players.forEach((p, index) => {
@@ -137,7 +137,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
       gameParams.append(name, value)
     }
   }
-  const settings = new Settings
+  const settings = Settings.forLanguage('en')
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
     throw new UrlError(t('error.url.protocol_not_supported', { version: vParam }))

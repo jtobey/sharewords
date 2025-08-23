@@ -14,7 +14,7 @@ describe('game state', () => {
   })
 
   it('should exchange tiles 1', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.gameId = 'test' as GameId
     settings.tileSystemSettings = {seed: '2'}  // Random seed.
     const player1GameState = new GameState('1', settings)
@@ -43,7 +43,7 @@ describe('game state', () => {
   })
 
   it('should apply the bingo bonus', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.letterCounts = new Map([['A', 20]])
     settings.letterValues = new Map([['A', 1]])
     settings.bingoBonus = 10
@@ -74,7 +74,7 @@ describe('game state', () => {
   })
 
   it('should play a word', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.letterCounts = new Map([['A', 4], ['B', 4], ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['G', 4]])
     settings.letterValues = new Map([['A', 1], ['B', 3], ['C', 3], ['D', 2], ['E', 1], ['F', 4], ['G', 2]])
     const gameState = new GameState('1', settings)
@@ -92,7 +92,7 @@ describe('game state', () => {
   })
 
   it('should pass turn', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.tileSystemSettings = {seed: '3'}
     const player1GameState = new GameState('1', settings)
     await player1GameState.init()
@@ -106,7 +106,7 @@ describe('game state', () => {
   })
 
   it('should exchange tiles 2', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.tileSystemSettings = {seed: '1'}
     const gameState = new GameState('1', settings)
     await gameState.init()
@@ -125,7 +125,7 @@ describe('game state', () => {
 
   describe('params', () => {
     it('should be added for non-default settings', () => {
-      const settings = new Settings
+      const settings = Settings.forLanguage('en')
       settings.players = [new Player({id: '1', name: 'player1'}), new Player({id: '2', name: 'player2'})]
       settings.boardLayout = ['T..', '.d.', '..T']
       settings.bingoBonus = 100
@@ -199,7 +199,7 @@ describe('game state', () => {
   })
 
   it('should return a displaced tile to the rack', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.letterCounts = new Map([['A', 4], ['B', 4], ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['G', 4]])
     settings.letterValues = new Map([['A', 1], ['B', 3], ['C', 3], ['D', 2], ['E', 1], ['F', 4], ['G', 2]])
     const gameState = new GameState('1', settings)
@@ -222,7 +222,7 @@ describe('game state', () => {
   })
 
   it('should clear assigned letter on recall', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     const gameState = new GameState('1', settings, false, undefined, [])
 
     const blankTilePlacement: TilePlacement = {
@@ -242,7 +242,7 @@ describe('game state', () => {
   })
 
   it('should roll back transaction if setItem throws', async () => {
-    const settings = new Settings
+    const settings = Settings.forLanguage('en')
     settings.letterCounts = new Map([['A', 20], ['B', 20]])
     settings.letterValues = new Map([['A', 1], ['B', 1]])
     settings.gameId = 'test-rollback' as GameId

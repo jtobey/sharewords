@@ -16,7 +16,7 @@ describe('shared state', () => {
   })
 
   test('can create a shared state', () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const gameId = 'test' as GameId
     const board = new Board(...settings.boardLayout)
     const tilesState = new HonorSystemTilesState(
@@ -31,7 +31,7 @@ describe('shared state', () => {
   })
 
   test('can take gameId from settings', () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const gameId = 'settings gid' as GameId
     settings.gameId = gameId
     const sharedState = new SharedState(settings)
@@ -39,13 +39,13 @@ describe('shared state', () => {
   })
 
   test('throws on bad player ID', () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     settings.players = [new Player({ id: '2', name: 'p1' }), new Player({ id: '3', name: 'p2' })]
     expect(() => new SharedState(settings)).toThrow('players[0] should have ID "1", not "2".')
   })
 
   test('can play a turn', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const player1Tiles = await sharedState.tilesState.getTiles(player1Id)
@@ -68,7 +68,7 @@ describe('shared state', () => {
   })
 
   test('rejects invalid words', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     settings.letterCounts = new Map([['A', 100]])
     const sharedState = new SharedState(settings)
     sharedState['checkWords'] = async (...words: Array<string>) => {
@@ -106,7 +106,7 @@ describe('shared state', () => {
   })
 
   test('throws on duplicate turn number', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const turn = new Turn(player1Id, toTurnNumber(1), { exchangeTileIndices: [] })
@@ -115,7 +115,7 @@ describe('shared state', () => {
   })
 
   test('throws on wrong player ID', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const sharedState = new SharedState(settings)
     const player2Id = settings.players[1]!.id
     const turn = new Turn(player2Id, toTurnNumber(1), { exchangeTileIndices: [] })
@@ -123,13 +123,13 @@ describe('shared state', () => {
   })
 
   test('throws on unsupported dictionary', () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     settings.dictionaryType = 'strict' as any
     expect(() => new SharedState(settings)).toThrow('dictionaryType strict is not supported.')
   })
 
   test('throws on exchanging too many tiles', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     settings.players = [new Player({ id: '1' })]
     settings.letterCounts = new Map([['A', 8]]) // Player 1 gets 7 tiles, bag has 1
     const sharedState = new SharedState(settings)
@@ -139,7 +139,7 @@ describe('shared state', () => {
   })
 
   test('throws on invalid turn move', async () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     const sharedState = new SharedState(settings)
     const player1Id = settings.players[0]!.id
     const turn = new Turn(player1Id, toTurnNumber(1), {} as any)
@@ -147,14 +147,14 @@ describe('shared state', () => {
   })
 
   test('throws on unsupported tileSystemType', () => {
-    const settings = new Settings()
+    const settings = Settings.forLanguage('en')
     settings.tileSystemType = 'invalid' as any
     expect(() => new SharedState(settings)).toThrow('Unsupported tileSystemType: invalid')
   })
 
   describe('json', () => {
     test('can serialize and deserialize', () => {
-      const settings = new Settings()
+      const settings = Settings.forLanguage('en')
       const sharedState = new SharedState(settings)
       const json = sharedState.toJSON()
       const sharedState2 = SharedState.fromJSON(json)
@@ -173,10 +173,10 @@ describe('shared state', () => {
       const template = {
         gameId: '1',
         nextTurnNumber: 1,
-        settings: new Settings().toJSON(),
+        settings: Settings.forLanguage('en').toJSON(),
         board: board.toJSON(),
         tilesState: new HonorSystemTilesState(
-          new Settings().players,
+          Settings.forLanguage('en').players,
           {seed: '1'},
           makeTiles({letterCounts: new Map([['A', 20]]), letterValues: new Map([['A', 1]])}),
           7,
@@ -189,7 +189,7 @@ describe('shared state', () => {
     })
 
     test('throws on unknown tileSystemType in fromJSON', () => {
-      const settings = new Settings()
+      const settings = Settings.forLanguage('en')
       const sharedState = new SharedState(settings)
       const json = sharedState.toJSON()
       json.settings.tileSystemType = 'invalid' as any
