@@ -168,7 +168,9 @@ export class Board extends EventTarget {
     const mainStartCol = mainCol
 
     // Find and score the word identified above, along with any cross words formed.
-    let mainWord = '', crossWords: Array<string> = [], blanks: Array<number> = []
+    const mainWordTileContent: Array<string> = []
+    const crossWords: Array<string> = []
+    const blanks: Array<number> = []
     let placementIndex = 0
     let mainWordMultiplier = 1, mainWordScore = 0, crossWordsScore = 0
     while (true) {
@@ -182,7 +184,7 @@ export class Board extends EventTarget {
         }
         placementIndex += 1
         if (placement.assignedLetter) {
-          blanks.push(mainWord.length)
+          blanks.push(mainWordTileContent.length)
           mainLetter = placement.assignedLetter
         } else {
           mainLetter = placement.tile.letter
@@ -199,14 +201,15 @@ export class Board extends EventTarget {
         }
         // Find the cross word letters and score contribution.
         // If the cross "word" turns out to have only one letter, we won't count it.
-        let crossWord = '', crossWordScore = 0
+        const crossWordTileContent: Array<string> = []
+        let crossWordScore = 0
         while (true) {
           const crossSquare = this.squares[crossRow]?.[crossCol]
           if (crossRow === mainRow && crossCol === mainCol) {
-            crossWord += mainLetter
+            crossWordTileContent.push(mainLetter)
             crossWordScore += mainValue
           } else if (crossSquare?.tile) {
-            crossWord += crossSquare.letter
+            crossWordTileContent.push(crossSquare.letter!)
             crossWordScore += crossSquare.tile.value
           } else {
             break
@@ -214,8 +217,8 @@ export class Board extends EventTarget {
           crossRow += crossDir.y
           crossCol += crossDir.x
         }
-        if (crossWord.length > 1) {
-          crossWords.push(crossWord)
+        if (crossWordTileContent.length > 1) {
+          crossWords.push(crossWordTileContent.join(''))
           crossWordsScore += crossWordScore * wordMultiplier
         }
       } else if (mainSquare.tile) {
@@ -226,7 +229,7 @@ export class Board extends EventTarget {
       } else {
         break
       }
-      mainWord += mainLetter
+      mainWordTileContent.push(mainLetter)
       mainWordScore += mainValue
       mainRow += mainDir.y
       mainCol += mainDir.x
@@ -237,15 +240,16 @@ export class Board extends EventTarget {
     if (placementIndex < placements.length) {
       throw new WordPlacementError(t('error.word_placement.line_with_gaps'))
     }
-    if (mainWord.length === 1) {
+    if (mainWordTileContent.length === 1) {
       throw new WordPlacementError(t('error.word_placement.no_single_letter_words'))
     }
-    if (!crossWords.length && mainWord.length === placements.length) {
+    if (!crossWords.length && mainWordTileContent.length === placements.length) {
       if (!placements.some(tile => tile.row === this.centerSquare.row && tile.col === this.centerSquare.col)) {
         throw new WordPlacementError(t('error.word_placement.must_connect_to_existing'))
       }
     }
 
+    const mainWord = mainWordTileContent.join('')
     return {
       wordsFormed: [mainWord, ...crossWords],
       score: mainWordScore + crossWordsScore,
