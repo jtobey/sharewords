@@ -7,6 +7,10 @@ type _BagDefaults = {
   name: string,
   letterCounts: {[key: string]: number}
   letterValues: {[key: string]: number}
+  dictionaries:  {
+    dictionaryType: string
+    dictionarySettings: any
+  }[]
 }
 
 const DEFAULT_BAG_LANGUAGE = 'en'
@@ -24,6 +28,9 @@ const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
       K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1,
       U: 2, V: 5, W: 4, X: 8, Y: 4, Z: 10, '': 0
     },
+    dictionaries: [
+      { dictionaryType: 'freeapi', dictionarySettings: null },
+    ],
   },
   es: {
     name: 'Español',
@@ -37,13 +44,23 @@ const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
       K: 10, L: 1, M: 3, N: 1, Ñ: 5, O: 1, P: 3, Qu: 5, R: 1, S: 1, T: 1,
       U: 2, V: 4, X: 10, Y: 4, Z: 4, '': 0
     },
+    dictionaries: [
+    ],
   },
 }
 
-export function getBagLanguages(): Iterable<{code: string, name: string}> {
+export function getBagLanguages(): Iterable<{
+  code: string
+  name: string
+  dictionaries: {
+    dictionaryType: string
+    dictionarySettings: any
+  }[]
+}> {
   return Object.entries(BAG_DEFAULTS).map(([key, value]) => ({
     code: key,
     name: value.name,
+    dictionaries: JSON.parse(JSON.stringify(value.dictionaries)),
   }))
 }
 
