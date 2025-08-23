@@ -7,7 +7,7 @@ export function initI18n(doc: Document) {
     if (key) {
       const translation = t(key);
       if (translation !== key) {
-        element.textContent = translation;
+        element.prepend(translation);
       }
     }
   });
