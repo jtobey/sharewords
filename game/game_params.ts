@@ -1,5 +1,5 @@
 import { Settings, toGameId } from './settings.js'
-import { getBagDefaults } from './bag_defaults.js'
+import { getBagDefaults, getBagLanguages } from './bag_defaults.js'
 import { Player } from './player.js'
 import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
@@ -12,80 +12,67 @@ export class UrlError extends Error {
   }
 }
 
-function getBagParam(settings: Settings, defaults: Settings): string | undefined {
+function getBagParam(settings: Settings): string | undefined {
   const letterToUrl = (l: string) => l === '' ? '_' : l;
 
-  if (
-    mapsEqual(settings.letterCounts, defaults.letterCounts) &&
-    mapsEqual(settings.letterValues, defaults.letterValues)
-  ) {
-    return undefined;
-  }
-
-  const fullBagParam = [...settings.letterCounts.entries()].map(
+  let bagParam = [...settings.letterCounts.entries()].map(
     ([letter, count]) => `${letterToUrl(letter)}-${count}-${settings.letterValues.get(letter) ?? 0}`
   ).join('.');
 
-  const settingsLetters = new Set(settings.letterCounts.keys());
-  const defaultLetters = new Set(defaults.letterCounts.keys());
-  const diffParts: string[] = [];
+  for (const bagLanguage of getBagLanguages()) {
+    const defaults = getBagDefaults(bagLanguage)
+    const settingsLetters = new Set(settings.letterCounts.keys());
+    const defaultLetters = new Set(defaults.letterCounts.keys());
+    const diffParts: string[] = [];
 
-  // Letters in settings that are not in defaults
-  for (const letter of settingsLetters) {
-    if (!defaultLetters.has(letter)) {
-      const count = settings.letterCounts.get(letter)!;
-      const value = settings.letterValues.get(letter) ?? 0;
-      diffParts.push(`${letterToUrl(letter)}-${count}-${value}`);
-    }
-  }
-
-  // Letters in both, but with differences, and letters in defaults but not settings
-  for (const letter of defaultLetters) {
-    const settingsHasLetter = settingsLetters.has(letter);
-    const count = settings.letterCounts.get(letter);
-    const value = settings.letterValues.get(letter);
-    const defaultCount = defaults.letterCounts.get(letter);
-    const defaultValue = defaults.letterValues.get(letter);
-
-    if (settingsHasLetter && count === defaultCount && value === defaultValue) {
-      continue;
+    // Letters in settings that are not in defaults
+    for (const letter of settingsLetters) {
+      if (!defaultLetters.has(letter)) {
+        const count = settings.letterCounts.get(letter)!;
+        const value = settings.letterValues.get(letter) ?? 0;
+        diffParts.push(`${letterToUrl(letter)}-${count}-${value}`);
+      }
     }
 
-    if (!settingsHasLetter) {
+    // Letters in both, but with differences, and letters in defaults but not settings
+    for (const letter of defaultLetters) {
+      const settingsHasLetter = settingsLetters.has(letter);
+      const count = settings.letterCounts.get(letter);
+      const value = settings.letterValues.get(letter);
+      const defaultCount = defaults.letterCounts.get(letter);
+      const defaultValue = defaults.letterValues.get(letter);
+
+      if (settingsHasLetter && count === defaultCount && value === defaultValue) {
+        continue;
+      }
+
+      if (!settingsHasLetter) {
         diffParts.push(`${letterToUrl(letter)}-0`);
         continue;
+      }
+
+      let part = letterToUrl(letter);
+      const countIsDefault = count === defaultCount;
+      const valueIsDefault = value === defaultValue;
+      if (!countIsDefault && !valueIsDefault) {
+        part += `-${count}-${value}`;
+      } else if (!countIsDefault) {
+        part += `-${count}`;
+      } else if (count !== 0) { // !valueIsDefault
+        part += `--${value}`;
+      }
+      diffParts.push(part);
     }
 
-    let part = letterToUrl(letter);
-    const countIsDefault = count === defaultCount;
-    const valueIsDefault = value === defaultValue;
-    if (!countIsDefault && !valueIsDefault) {
-      part += `-${count}-${value}`;
-    } else if (!countIsDefault) {
-      part += `-${count}`;
-    } else { // !valueIsDefault
-      part += `--${value}`;
+    diffParts.sort();
+
+    const abbreviatedBagParam = [...diffParts, `.${bagLanguage}`].join('.')
+
+    if (abbreviatedBagParam.length < bagParam.length) {
+      bagParam = abbreviatedBagParam
     }
-    diffParts.push(part);
   }
-
-  if (diffParts.length === 0) {
-    return undefined;
-  }
-
-  diffParts.sort();
-
-  const abbreviatedBagParam = diffParts.join('.') + '..en';
-
-  if (defaultLetters.size === 0) {
-      return fullBagParam;
-  }
-
-  if (abbreviatedBagParam.length < fullBagParam.length) {
-    return abbreviatedBagParam;
-  }
-
-  return fullBagParam;
+  return bagParam;
 }
 
 export function gameParamsFromSettings(settings: Settings) {
