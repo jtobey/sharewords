@@ -41,7 +41,7 @@ export let DEFAULT_LETTER_COUNTS: Array<[string, number]> = [
 export let DEFAULT_LETTER_VALUES: Array<[string, number]> = [
   ['A', 1], ['B', 3], ['C', 4], ['D', 2], ['E', 1], ['F', 4], ['G', 3], ['H', 4], ['I', 1], ['J', 9],
   ['K', 5], ['L', 1], ['M', 3], ['N', 1], ['O', 1], ['P', 3], ['Q', 10], ['R', 1], ['S', 1], ['T', 1],
-  ['U', 2], ['V', 5], ['W', 4], ['X', 8], ['Y', 4], ['Z', 10]
+  ['U', 2], ['V', 5], ['W', 4], ['X', 8], ['Y', 4], ['Z', 10], ['', 0]
 ]
 
 export let DEFAULT_BOARD_LAYOUT = [
