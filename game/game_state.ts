@@ -341,12 +341,12 @@ export class GameState extends EventTarget {
       this.save()
       ok = true
     } finally {
+      this.inPlayTurns = false
       if (!ok) {
         console.log('Rolling back game state.')
-        this.copyFrom(await GameState.fromJSON(json))
+        this.copyFrom(GameState.fromJSON(json))
         this.dispatchEvent(new GameEvent('turnchange'))
       }
-      this.inPlayTurns = false
     }
     if (this.nextTurnNumber !== oldNextTurnNumber) {
       this.dispatchEvent(new GameEvent('turnchange'))
