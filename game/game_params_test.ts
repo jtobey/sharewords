@@ -13,7 +13,7 @@ describe('game params', () => {
     test('default settings', () => {
       const settings = Settings.forLanguage('en')
       const params = gameParamsFromSettings(settings)
-      expect(params.toString()).toBe('v=0&seed=1')
+      expect(params.toString()).toBe('v=0&bag=.en&seed=1')
     })
 
     test('all settings', () => {

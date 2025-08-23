@@ -1,7 +1,7 @@
 import { Settings, toGameId } from './settings.js'
 import { getBagDefaults, getBagLanguages } from './bag_defaults.js'
 import { Player } from './player.js'
-import { arraysEqual, mapsEqual } from './validation.js'
+import { arraysEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
 import { t } from '../i18n.js'
 
@@ -19,7 +19,7 @@ function getBagParam(settings: Settings): string | undefined {
     ([letter, count]) => `${letterToUrl(letter)}-${count}-${settings.letterValues.get(letter) ?? 0}`
   ).join('.');
 
-  for (const bagLanguage of getBagLanguages()) {
+  for (const { code: bagLanguage } of getBagLanguages()) {
     const defaults = getBagDefaults(bagLanguage)
     const settingsLetters = new Set(settings.letterCounts.keys());
     const defaultLetters = new Set(defaults.letterCounts.keys());
@@ -91,7 +91,7 @@ export function gameParamsFromSettings(settings: Settings) {
   if (settings.bingoBonus !== defaults.bingoBonus) {
     params.set('bingo', String(settings.bingoBonus))
   }
-  const bagParam = getBagParam(settings, defaults)
+  const bagParam = getBagParam(settings)
   if (bagParam) {
     params.set('bag', bagParam)
   }
