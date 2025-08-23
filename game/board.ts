@@ -120,7 +120,7 @@ export class Board extends EventTarget {
   checkWordPlacement(...placements: Array<BoardPlacement>): {
     wordsFormed: Array<string>,
     score: number,
-    mainWord: string,
+    mainWordForUrl: string,
     row: number,
     col: number,
     vertical: boolean,
@@ -249,11 +249,21 @@ export class Board extends EventTarget {
       }
     }
 
-    const mainWord = mainWordTileContent.join('')
+    const mainWordForValidation = mainWordTileContent.join('')
+    // If the word contains only single-character tiles, transmit it as-is.
+    // Otherwise, help the turn URL parser with dots between tile "letters".
+    // This works because single-tile words are not allowed.
+    const mainWordForUrl = (
+      mainWordTileContent.every(
+        tc => [...tc].length === 1  // Length in code points. (`tc.length` is in code units.)
+      )
+        ? mainWordForValidation
+        : mainWordTileContent.join('.')
+    )
     return {
-      wordsFormed: [mainWord, ...crossWords],
+      wordsFormed: [mainWordForValidation, ...crossWords],
       score: mainWordScore + crossWordsScore,
-      mainWord,
+      mainWordForUrl,
       row: mainStartRow,
       col: mainStartCol,
       vertical: Boolean(mainDir.y),

@@ -122,11 +122,11 @@ export class SharedState {
         throw new Error(`Turn number ${turn.turnNumber} belongs to player "${playerId}", not "${turn.playerId}".`)
       }
       if ('playTiles' in turn.move) {
-        const {score, wordsFormed, row, col, vertical, blanks} = this.board.checkWordPlacement(...turn.move.playTiles)
+        const {wordsFormed, score, mainWordForUrl, row, col, vertical, blanks} = this.board.checkWordPlacement(...turn.move.playTiles)
         wordsFormed.forEach((w: string) => wordsToCheck.add(w))
         const bingoBonus = (turn.move.playTiles.length === this.tilesState.rackCapacity ? this.settings.bingoBonus : 0)
         boardChanges.push({playerId, score: score + bingoBonus, placements: turn.move.playTiles})
-        turn.mainWord = wordsFormed[0]!
+        turn.mainWord = mainWordForUrl
         turn.row = row
         turn.col = col
         turn.vertical = vertical
@@ -199,8 +199,9 @@ export class SharedState {
         let col = parseInt(match[2]!, 10)
 
         const placements = [] as Array<BoardPlacement>
-        // TODO - Handle multiple-letter tiles.
-        Array.from(wordPlayed).map((letter, letterIndex) => {
+        // Handle multiple-letter tiles separated by dot.
+        const lettersPlayed = (wordPlayed.indexOf('.') === -1) ? [...wordPlayed] : wordPlayed.split('.')
+        lettersPlayed.map((letter, letterIndex) => {
           const square = this.board.squares[row]?.[col]
           if (!square) throw new UrlError(t('error.url.word_out_of_bounds', { row, col }))
           if (!square.tile) {
