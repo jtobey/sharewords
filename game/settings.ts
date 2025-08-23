@@ -4,6 +4,7 @@
 
 import type { Serializable } from './serializable.js'
 import { arraysEqual } from './validation.js'
+import { getBagDefaults } from './bag_defaults.js'
 import { Player } from './player.js'
 import { PROTOCOL_VERSION } from './version.js'
 import type { DictionaryType } from './dictionary.js'
@@ -32,18 +33,6 @@ export function makeGameId(
   return toGameId(id)
 }
 
-export let DEFAULT_LETTER_COUNTS: Array<[string, number]> = [
-  ['A', 9], ['B', 2], ['C', 2], ['D', 4], ['E', 12], ['F', 2], ['G', 2], ['H', 2], ['I', 9], ['J', 1],
-  ['K', 1], ['L', 4], ['M', 2], ['N', 6], ['O', 8], ['P', 2], ['Q', 1], ['R', 6], ['S', 5], ['T', 6],
-  ['U', 4], ['V', 2], ['W', 2], ['X', 1], ['Y', 2], ['Z', 1], ['', 2]
-]
-
-export let DEFAULT_LETTER_VALUES: Array<[string, number]> = [
-  ['A', 1], ['B', 3], ['C', 4], ['D', 2], ['E', 1], ['F', 4], ['G', 3], ['H', 4], ['I', 1], ['J', 9],
-  ['K', 5], ['L', 1], ['M', 3], ['N', 1], ['O', 1], ['P', 3], ['Q', 10], ['R', 1], ['S', 1], ['T', 1],
-  ['U', 2], ['V', 5], ['W', 4], ['X', 8], ['Y', 4], ['Z', 10], ['', 0]
-]
-
 export let DEFAULT_BOARD_LAYOUT = [
   'D..d..T......T.', // Row 0
   '.D...D...t.t..T', // Row 1
@@ -70,8 +59,6 @@ export class Settings {
   version = PROTOCOL_VERSION
   players = ['1', '2'].map(id => new Player({id}))
   maxPlayerNameLength = 50
-  letterCounts = new Map(DEFAULT_LETTER_COUNTS.map(lc => [...lc]))
-  letterValues = new Map(DEFAULT_LETTER_VALUES.map(lv => [...lv]))
   boardLayout = [...DEFAULT_BOARD_LAYOUT]
   bingoBonus = DEFAULT_BINGO_BONUS
   rackCapacity = DEFAULT_RACK_CAPACITY
@@ -79,6 +66,13 @@ export class Settings {
   tileSystemSettings = {seed: '1'}
   dictionaryType: DictionaryType = 'permissive'
   dictionarySettings = null as Serializable
+
+  constructor(
+    bagLanguage = 'en',
+    bagDefaults = getBagDefaults(bagLanguage),
+    public letterCounts = bagDefaults.letterCounts,
+    public letterValues = bagDefaults.letterValues,
+  ) {}
 
   toJSON() {
     return {

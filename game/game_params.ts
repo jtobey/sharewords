@@ -1,4 +1,5 @@
 import { Settings, toGameId } from './settings.js'
+import { getBagDefaults } from './bag_defaults.js'
 import { Player } from './player.js'
 import { arraysEqual, mapsEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
@@ -199,13 +200,14 @@ export function parseBagParam(settings: Settings, bagParam: string) {
     if (letterConfig === '') {
       // "..en" copies all unspecified letters from default settings.
       const rest = [...iterator].join('.')
-      if (rest !== 'en') {
+      const bagDefaults = getBagDefaults(rest)
+      if (!bagDefaults) {
         throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: rest }))
       }
-      for (const [letter, count] of settings.letterCounts) {
+      for (const [letter, count] of bagDefaults.letterCounts) {
         if (!letterCounts.has(letter)) {
           letterCounts.set(letter, count)
-          letterValues.set(letter, settings.letterValues.get(letter)!)
+          letterValues.set(letter, bagDefaults.letterValues.get(letter)!)
         }
       }
       break
