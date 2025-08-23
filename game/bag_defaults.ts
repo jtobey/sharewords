@@ -28,8 +28,8 @@ const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
   es: {
     name: 'Español',
     letterCounts: {
-      A: 9, B: 2, C: 2, D: 4, E: 9, F: 2, G: 2, H: 2, I: 8, J: 2, K: 1,
-      L: 4, M: 2, N: 6, Ñ: 1, O: 10, P: 2, Qu: 2, R: 6, S: 5, T: 6,
+      A: 10, B: 2, C: 2, D: 3, E: 10, F: 2, G: 2, H: 2, I: 9, J: 2, K: 1,
+      L: 4, M: 2, N: 6, Ñ: 1, O: 11, P: 2, Qu: 2, R: 5, S: 5, T: 4,
       U: 4, V: 2, X: 1, Y: 2, Z: 2, '': 2
     },
     letterValues: {
