@@ -123,71 +123,49 @@ describe('game params', () => {
 
   describe('parseBagParam', () => {
     test('parses letter, count, and value', () => {
-      const settings = Settings.forLanguage('en')
-      parseBagParam(settings, 'A-15-3')
-      expect(settings.letterCounts).toEqual(new Map([['A', 15]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 3]]))
+      const parsed = parseBagParam('A-15-3')
+      expect(parsed.letterCounts).toEqual(new Map([['A', 15]]))
+      expect(parsed.letterValues).toEqual(new Map([['A', 3]]))
     })
 
     test('parses bag with blank tile', () => {
-      const settings = Settings.forLanguage('en')
-      parseBagParam(settings, '_-1-0')
-      expect(settings.letterCounts.get('')).toBe(1)
-      expect(settings.letterValues.get('')).toBe(0)
+      const parsed = parseBagParam('_-1-0')
+      expect(parsed.letterCounts.get('')).toBe(1)
+      expect(parsed.letterValues.get('')).toBe(0)
     })
 
     test('parses bag with emoji tile', () => {
-      const settings = Settings.forLanguage('en')
-      parseBagParam(settings, '😂-1-5')
-      expect(settings.letterCounts.get('😂')).toBe(1)
-      expect(settings.letterValues.get('😂')).toBe(5)
+      const parsed = parseBagParam('😂-1-5')
+      expect(parsed.letterCounts.get('😂')).toBe(1)
+      expect(parsed.letterValues.get('😂')).toBe(5)
     })
 
     test('uses default value', () => {
-      const settings = Settings.forLanguage('en')
-      const letterValues = new Map(settings.letterValues)
-      letterValues.set('A', 1)
-      settings.letterValues = letterValues
-      parseBagParam(settings, 'A-15')
-      expect(settings.letterCounts).toEqual(new Map([['A', 15]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 1]]))
+      const parsed = parseBagParam('A-15..en')
+      expect(parsed.letterCounts.get('A')).toEqual(15)
+      expect(parsed.letterValues.get('A')).toEqual(Settings.forLanguage('en').letterValues.get('A')!)
     })
 
     test('uses default count', () => {
-      const settings = Settings.forLanguage('en')
-      const letterCounts = new Map(settings.letterCounts)
-      letterCounts.set('A', 9)
-      settings.letterCounts = letterCounts
-      parseBagParam(settings, 'A--3')
-      expect(settings.letterCounts).toEqual(new Map([['A', 9]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 3]]))
+      const parsed = parseBagParam('A--3..en')
+      expect(parsed.letterCounts.get('A')).toEqual(Settings.forLanguage('en').letterCounts.get('A')!)
+      expect(parsed.letterValues.get('A')).toEqual(3)
     })
 
-    test('uses default count and value', () => {
+    test('uses default remaining letters', () => {
+      const parsed = parseBagParam('B-2-4..en')
       const settings = Settings.forLanguage('en')
-      settings.letterCounts = new Map([['A', 9], ['B', 3]])
-      settings.letterValues = new Map([['A', 1], ['B', 3]])
-      parseBagParam(settings, 'A')
-      expect(settings.letterCounts).toEqual(new Map([['A', 9]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 1]]))
+      settings.letterCounts.set('B', 2)
+      settings.letterValues.set('B', 4)
+      expect(parsed.letterCounts).toEqual(settings.letterCounts)
+      expect(parsed.letterValues).toEqual(settings.letterValues)
     })
 
-    test.skip('uses default remaining letters', () => {
+    test('uses default all letters', () => {
+      const parsed = parseBagParam('.en')
       const settings = Settings.forLanguage('en')
-      settings.letterCounts = new Map([['A', 9], ['B', 3], ['C', 2]])
-      settings.letterValues = new Map([['A', 1], ['B', 3], ['C', 4]])
-      parseBagParam(settings, 'B-2-4..en')
-      expect(settings.letterCounts).toEqual(new Map([['A', 9], ['B', 2], ['C', 2]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 1], ['B', 4], ['C', 4]]))
-    })
-
-    test.skip('uses default all letters', () => {
-      const settings = Settings.forLanguage('en')
-      settings.letterCounts = new Map([['A', 9], ['B', 3]])
-      settings.letterValues = new Map([['A', 1], ['B', 3]])
-      parseBagParam(settings, '.en')
-      expect(settings.letterCounts).toEqual(new Map([['A', 9], ['B', 3]]))
-      expect(settings.letterValues).toEqual(new Map([['A', 1], ['B', 3]]))
+      expect(parsed.letterCounts).toEqual(settings.letterCounts)
+      expect(parsed.letterValues).toEqual(settings.letterValues)
     })
   })
 })

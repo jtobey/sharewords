@@ -1,3 +1,7 @@
+/**
+ * @file Conversion between `Settings` and URL params.
+ */
+
 import { Settings, toGameId } from './settings.js'
 import { getBagDefaults, getBagLanguages } from './bag_defaults.js'
 import { Player } from './player.js'
@@ -12,6 +16,7 @@ export class UrlError extends Error {
   }
 }
 
+/** Returns a `bag` param value for `settings`. */
 function getBagParam(settings: Settings): string | undefined {
   const letterToUrl = (l: string) => l === '' ? '_' : l;
 
@@ -75,7 +80,7 @@ function getBagParam(settings: Settings): string | undefined {
   return bagParam;
 }
 
-export function gameParamsFromSettings(settings: Settings) {
+export function gameParamsFromSettings(settings: Settings): URLSearchParams {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
   const defaults = Settings.forLanguage('en')
@@ -110,6 +115,38 @@ export function gameParamsFromSettings(settings: Settings) {
   return params
 }
 
+export function parseBagParam(bagParam: string) {
+  const urlToLetter = (s: string) => s === '_' ? '' : s;
+  let letterConfigs = bagParam
+  let letterCounts!: Map<string, number>
+  let letterValues!: Map<string, number>
+  const langMatch = `.${bagParam}`.match(/(.*?)\.\.(.*)/)
+  if (langMatch) {
+    letterConfigs = langMatch[1]!.substring(1)
+    const bagLanguage = langMatch[2]!.substring(2)
+    const defaults = getBagDefaults(bagLanguage)
+    letterCounts = defaults.letterCounts
+    letterValues = defaults.letterValues
+  } else {
+    letterCounts = new Map
+    letterValues = new Map
+  }
+  for (const letterConfig of letterConfigs.split('.')) {
+    if (letterConfig === '') continue
+    const match = letterConfig.match(/^(?<letter>\D+?)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
+    if (!match) {
+      throw new UrlError(t('error.url.invalid_letter_config', { config: letterConfig }))
+    }
+    const g = match.groups!
+    const letter = urlToLetter(g.letter!)
+    const count = g.count ? parseInt(g.count, 10) : letterCounts.get(letter) ?? 1
+    const value = g.value ? parseInt(g.value, 10) : letterValues.get(letter) ?? 1
+    letterCounts.set(letter, count)
+    letterValues.set(letter, value)
+  }
+  return { letterCounts, letterValues }
+}
+
 /**
  * @throws UrlError
  */
@@ -139,7 +176,11 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   }
   if (newPlayers.length) settings.players = newPlayers
   const bagParam = gameParams.get('bag')
-  if (bagParam) parseBagParam(settings, bagParam)
+  if (bagParam) {
+    const parsed = parseBagParam(bagParam)
+    settings.letterCounts = parsed.letterCounts
+    settings.letterValues = parsed.letterValues
+  }
   const boardParam = gameParams.get('board')
   if (boardParam) settings.boardLayout = boardParam.split('-')
   const bingoParam = gameParams.get('bingo')
@@ -176,40 +217,4 @@ function playersEqual(ps1: ReadonlyArray<Player>, ps2: ReadonlyArray<Player>) {
     if (!ps1[index]!.equals(ps2[index])) return false
   }
   return true
-}
-
-export function parseBagParam(settings: Settings, bagParam: string) {
-  const urlToLetter = (s: string) => s === '_' ? '' : s;
-  const letterCounts = new Map<string, number>()
-  const letterValues = new Map<string, number>()
-  const iterator = bagParam.split('.')[Symbol.iterator]()
-  for (const letterConfig of iterator) {
-    if (letterConfig === '') {
-      // "..en" copies all unspecified letters from default settings.
-      const rest = [...iterator].join('.')
-      const bagDefaults = getBagDefaults(rest)
-      if (!bagDefaults) {
-        throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: rest }))
-      }
-      for (const [letter, count] of bagDefaults.letterCounts) {
-        if (!letterCounts.has(letter)) {
-          letterCounts.set(letter, count)
-          letterValues.set(letter, bagDefaults.letterValues.get(letter)!)
-        }
-      }
-      break
-    }
-    const match = letterConfig.match(/^(?<letter>\D+?)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
-    if (!match) {
-      throw new UrlError(t('error.url.invalid_letter_config', { config: letterConfig }))
-    }
-    const g = match.groups!
-    const letter = urlToLetter(g.letter!)
-    const count = g.count ? parseInt(g.count, 10) : settings.letterCounts.get(letter) ?? 1
-    const value = g.value ? parseInt(g.value, 10) : settings.letterValues.get(letter) ?? 1
-    letterCounts.set(letter, count)
-    letterValues.set(letter, value)
-  }
-  settings.letterCounts = letterCounts
-  settings.letterValues = letterValues
 }
