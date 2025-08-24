@@ -149,8 +149,13 @@ export function parseBagParam(bagParam: string) {
     const letter = urlToLetter(g.letter!)
     const count = g.count ? parseInt(g.count, 10) : letterCounts.get(letter) ?? 1
     const value = g.value ? parseInt(g.value, 10) : letterValues.get(letter) ?? 1
-    letterCounts.set(letter, count)
-    letterValues.set(letter, value)
+    if (count) {
+      letterCounts.set(letter, count)
+      letterValues.set(letter, value)
+    } else {
+      letterCounts.delete(letter)
+      letterValues.delete(letter)
+    }
   }
   return { letterCounts, letterValues }
 }
