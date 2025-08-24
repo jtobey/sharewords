@@ -17,7 +17,7 @@ export class UrlError extends Error {
 }
 
 /** Returns a `bag` param value for `settings`. */
-function getBagParam(settings: Settings): string | undefined {
+export function getBagParam(settings: Settings): string | undefined {
   const letterToUrl = (l: string) => l === '' ? '_' : l;
 
   let bagParam = [...settings.letterCounts.entries()].map(
