@@ -1,6 +1,9 @@
 import type { GameState } from '../game/game_state.js';
 import type { Browser } from '../browser.js';
-import { t } from '../i18n.js'
+import { t } from '../i18n.js';
+import { gameParamsFromSettings } from '../game/game_params.js';
+import { Player } from '../game/player.js';
+import { Settings } from '../game/settings.js';
 
 export class GameSetup {
   private gameState: GameState;
@@ -48,26 +51,36 @@ export class GameSetup {
     this.dictionaryType.addEventListener('change', () => this._handleDictChange());
 
     this.startGameButton.addEventListener('click', () => {
-      const params = new URLSearchParams();
+      // Create a new Settings object based on the current settings.
+      // The easiest way to do a deep-enough copy is to serialize and deserialize.
+      const settings = Settings.fromJSON(this.gameState.settings.toJSON());
 
       const playerInputs = Array.from(this.playerList.querySelectorAll('input'));
       const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
-      playerNames.map((name, index) => {
-        params.set(`p${index + 1}n`, name)
-      })
+      settings.players = playerNames.map((name, i) => new Player({ id: String(i + 1), name }));
 
       const dictionaryType = this.dictionaryType.value;
-      params.set('dt', dictionaryType);
+      if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
+        settings.dictionaryType = dictionaryType;
+      }
 
       if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
         const url = this.dictionaryUrl.value;
         if (url) {
-          params.set('ds', url);
+          settings.dictionarySettings = url;
+        } else {
+          settings.dictionarySettings = null;
         }
+      } else {
+        settings.dictionarySettings = null;
       }
 
-      params.set('bingo', this.bingoBonus.value);
-      params.set('seed', this.randomSeed.value || String(Math.floor(1000000 * this.browser.getRandom())));
+      settings.bingoBonus = parseInt(this.bingoBonus.value, 10);
+      settings.tileSystemSettings = {
+        seed: this.randomSeed.value || String(Math.floor(1000000 * this.browser.getRandom()))
+      };
+
+      const params = gameParamsFromSettings(settings);
 
       this.browser.setHash(params.toString())
       this.browser.reload()
