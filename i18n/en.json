@@ -63,7 +63,7 @@
       "dictionary": "Dictionary",
       "dictionary_options": {
         "permissive": "Anything is a word",
-        "freeapi": "freeapi",
+        "freeapi": "Free Dictionary API",
         "custom": "custom"
       },
       "dictionary_url_label": "URL:",

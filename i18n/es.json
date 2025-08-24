@@ -63,7 +63,7 @@
       "dictionary": "Diccionario",
       "dictionary_options": {
         "permissive": "Cualquier cosa es una palabra",
-        "freeapi": "freeapi",
+        "freeapi": "Free Dictionary API",
         "custom": "personalizado"
       },
       "dictionary_url_label": "URL:",
