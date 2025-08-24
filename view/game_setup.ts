@@ -1,7 +1,8 @@
 import type { GameState } from '../game/game_state.js';
 import type { Browser } from '../browser.js';
 import { t } from '../i18n.js';
-import { gameParamsFromSettings } from '../game/game_params.js';
+import { gameParamsFromSettings, getBagParam } from '../game/game_params.js';
+import { getBagDefaults, getBagLanguages, hasBagDefaults } from '../game/bag_defaults.js';
 import { Player } from '../game/player.js';
 import { Settings } from '../game/settings.js';
 
@@ -17,6 +18,7 @@ export class GameSetup {
   private dictionaryType: HTMLSelectElement;
   private dictionaryUrlContainer: HTMLElement;
   private dictionaryUrl: HTMLInputElement;
+  private tileDistribution: HTMLSelectElement;
   private bingoBonus: HTMLInputElement;
   private randomSeed: HTMLInputElement;
   private startGameButton: HTMLButtonElement;
@@ -33,6 +35,7 @@ export class GameSetup {
     this.dictionaryType = this.doc.getElementById('dictionary-type')! as HTMLSelectElement;
     this.dictionaryUrlContainer = this.doc.getElementById('dictionary-url-container')!;
     this.dictionaryUrl = this.doc.getElementById('dictionary-url')! as HTMLInputElement;
+    this.tileDistribution = this.doc.getElementById('tile-distribution')! as HTMLSelectElement;
     this.bingoBonus = this.doc.getElementById('bingo-bonus')! as HTMLInputElement;
     this.randomSeed = this.doc.getElementById('random-seed')! as HTMLInputElement;
     this.startGameButton = this.doc.getElementById('start-game-with-settings')! as HTMLButtonElement;
@@ -73,6 +76,13 @@ export class GameSetup {
         }
       } else {
         settings.dictionarySettings = null;
+      }
+
+      const bagLanguage = this.tileDistribution.value;
+      if (hasBagDefaults(bagLanguage)) {
+        const defaults = getBagDefaults(bagLanguage)!;
+        settings.letterCounts = defaults.letterCounts;
+        settings.letterValues = defaults.letterValues;
       }
 
       settings.bingoBonus = parseInt(this.bingoBonus.value, 10);
@@ -152,6 +162,31 @@ export class GameSetup {
 
     // Seed
     this.randomSeed.value = this.gameState.settings.tileSystemSettings.seed;
+
+    this._populateTileDistributionDropdown();
+  }
+
+  private _populateTileDistributionDropdown() {
+    this.tileDistribution.innerHTML = '';
+
+    for (const lang of getBagLanguages()) {
+      const option = this.doc.createElement('option');
+      option.value = lang.code;
+      option.textContent = lang.name;
+      this.tileDistribution.appendChild(option);
+    }
+
+    const bagParam = getBagParam(this.gameState.settings) ?? '';
+    const langMatch = bagParam.match(/^\.(.+)$/);
+    if (langMatch && hasBagDefaults(langMatch[1]!)) {
+      this.tileDistribution.value = langMatch[1]!;
+    } else {
+      const option = this.doc.createElement('option');
+      option.value = 'custom';
+      option.textContent = t('ui.settings.tile_distribution_options.custom');
+      this.tileDistribution.appendChild(option);
+      this.tileDistribution.value = 'custom';
+    }
   }
 
   showSettingsDialog() {

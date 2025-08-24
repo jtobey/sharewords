@@ -68,6 +68,10 @@
         "custom": "custom"
       },
       "dictionary_url_label": "URL:",
+      "tile_distribution": "Tile Distribution",
+      "tile_distribution_options": {
+        "custom": "Custom"
+      },
       "bingo_bonus": "Bingo Bonus",
       "random_seed": "Random Seed",
       "player_placeholder": "Player ${index}"

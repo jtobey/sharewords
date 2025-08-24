@@ -68,6 +68,10 @@
         "custom": "personalizado"
       },
       "dictionary_url_label": "URL:",
+      "tile_distribution": "Distribución de Fichas",
+      "tile_distribution_options": {
+        "custom": "Personalizada"
+      },
       "bingo_bonus": "Bono de Bingo",
       "random_seed": "Semilla Aleatoria",
       "player_placeholder": "Jugador ${index}"
