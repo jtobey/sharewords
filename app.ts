@@ -1,4 +1,5 @@
 import { toGameId, makeGameId } from './game/settings.js'
+import { hasBagDefaults } from './game/bag_defaults.js'
 import { GameState, makeStorageKey } from './game/game_state.js'
 import { View } from './view/view.js'
 import { Controller } from './controller/controller.js'
@@ -53,11 +54,12 @@ export class App {
         await this.gameState.applyTurnParams(params)
       } else if (this.gameState) {
         this.browser.reload()
-        console.log(`Switched to new game "${gidParam}".`)
+        console.log('Switched to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
         return
       } else {
-        console.log(`Switching to new game "${gidParam}".`)
+        console.log('Switching to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
+        if (!params.get('bag')) params.set('bag', '.' + this.chooseBagLanguage())
         this.gameState = await GameState.fromParams(params);
         await loadTranslations(...this.browser.languages);
         initI18n(this.browser.getDocument());
@@ -103,6 +105,13 @@ export class App {
 
     this.browser.addHashChangeListener(handleGameChange);
     await handleGameChange();
+  }
+
+  chooseBagLanguage() {
+    for (const bagLanguage of this.browser.languages) {
+      if (hasBagDefaults(bagLanguage)) return bagLanguage
+    }
+    return 'en'
   }
 
   initDebug() {

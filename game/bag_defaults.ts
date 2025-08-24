@@ -1,3 +1,7 @@
+/**
+ * @file Letters and values of tiles in the bag.
+ */
+
 export type BagDefaults = {
   letterCounts: Map<string, number>
   letterValues: Map<string, number>
@@ -13,10 +17,8 @@ type _BagDefaults = {
   }[]
 }
 
-const DEFAULT_BAG_LANGUAGE = 'en'
-
-const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
-  en: {
+const BAG_DEFAULTS = new Map<string, _BagDefaults>([
+  ['en', {
     name: 'English',
     letterCounts: {
       A: 9, B: 2, C: 2, D: 4, E: 12, F: 2, G: 2, H: 2, I: 9, J: 1,
@@ -31,8 +33,8 @@ const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
     dictionaries: [
       { dictionaryType: 'freeapi', dictionarySettings: null },
     ],
-  },
-  es: {
+  }],
+  ['es', {
     name: 'Español',
     letterCounts: {
       A: 10, B: 2, C: 2, D: 3, E: 10, F: 2, G: 2, H: 2, I: 9, J: 2, K: 1,
@@ -46,8 +48,8 @@ const BAG_DEFAULTS: {[key: string]: _BagDefaults} = {
     },
     dictionaries: [
     ],
-  },
-}
+  }],
+])
 
 export function getBagLanguages(): Iterable<{
   code: string
@@ -57,21 +59,29 @@ export function getBagLanguages(): Iterable<{
     dictionarySettings: any
   }[]
 }> {
-  return Object.entries(BAG_DEFAULTS).map(([key, value]) => ({
+  return BAG_DEFAULTS.entries().map(([key, value]) => ({
     code: key,
     name: value.name,
     dictionaries: JSON.parse(JSON.stringify(value.dictionaries)),
   }))
 }
 
-export function getBagDefaults(bagLanguage: string): BagDefaults {
-  let defaults = BAG_DEFAULTS[bagLanguage]
-  if (!defaults) {
-    console.warn(`Unsupported bag language "${bagLanguage}", defaulting to "${DEFAULT_BAG_LANGUAGE}".`)
-    defaults = BAG_DEFAULTS[DEFAULT_BAG_LANGUAGE]!
+export function getBagDefaults(bagLanguage: string): BagDefaults | null;
+export function getBagDefaults(bagLanguage: ''): BagDefaults;
+export function getBagDefaults(bagLanguage: 'en'): BagDefaults;
+
+export function getBagDefaults(bagLanguage: string): BagDefaults | null {
+  if (bagLanguage === '') {
+    return {letterCounts: new Map, letterValues: new Map}
   }
+  const defaults = BAG_DEFAULTS.get(bagLanguage)
+  if (!defaults) return null
   return {
     letterCounts: new Map(Object.entries(defaults.letterCounts)),
     letterValues: new Map(Object.entries(defaults.letterValues)),
   }
+}
+
+export function hasBagDefaults(bagLanguage: string) {
+  return BAG_DEFAULTS.has(bagLanguage)
 }

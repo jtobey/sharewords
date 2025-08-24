@@ -75,7 +75,7 @@ describe('game params', () => {
     test('default settings', () => {
       const params = new URLSearchParams('v=0&seed=1&tn=1')
       const { settings, playerId, turnParams } = parseGameParams(params)
-      const defaultSettings = Settings.forLanguage('en')
+      const defaultSettings = Settings.forLanguage('')
       defaultSettings.tileSystemSettings.seed = '1'
       expect(settings).toEqual(defaultSettings)
       expect(playerId).toBe('1')
@@ -117,7 +117,7 @@ describe('game params', () => {
 
     test('invalid letter config', () => {
       const params = new URLSearchParams('v=0&seed=&bag=A1')
-      expect(() => parseGameParams(params)).toThrow('Invalid letter configuration in URL: A1')
+      expect(() => parseGameParams(params)).toThrow('Invalid letter configuration: A1')
     })
   })
 
@@ -145,7 +145,6 @@ describe('game params', () => {
       expect(parsed.letterCounts.get('A')).toEqual(15)
       expect(parsed.letterValues.get('A')).toEqual(Settings.forLanguage('en').letterValues.get('A')!)
     })
-
     test('uses default count', () => {
       const parsed = parseBagParam('A--3..en')
       expect(parsed.letterCounts.get('A')).toEqual(Settings.forLanguage('en').letterCounts.get('A')!)

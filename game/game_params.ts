@@ -3,7 +3,7 @@
  */
 
 import { Settings, toGameId } from './settings.js'
-import { getBagDefaults, getBagLanguages } from './bag_defaults.js'
+import { getBagDefaults, getBagLanguages, type BagDefaults } from './bag_defaults.js'
 import { Player } from './player.js'
 import { arraysEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
@@ -25,7 +25,7 @@ function getBagParam(settings: Settings): string | undefined {
   ).join('.');
 
   for (const { code: bagLanguage } of getBagLanguages()) {
-    const defaults = getBagDefaults(bagLanguage)
+    const defaults = getBagDefaults(bagLanguage)!
     const settingsLetters = new Set(settings.letterCounts.keys());
     const defaultLetters = new Set(defaults.letterCounts.keys());
     const diffParts: string[] = [];
@@ -83,7 +83,7 @@ function getBagParam(settings: Settings): string | undefined {
 export function gameParamsFromSettings(settings: Settings): URLSearchParams {
   const params = new URLSearchParams
   // Not all players have played. Include any non-default game settings.
-  const defaults = Settings.forLanguage('en')
+  const defaults = Settings.forLanguage('')
   params.set('v', settings.version)
   if (!playersEqual(settings.players, defaults.players)) {
     settings.players.forEach((p, index) => {
@@ -117,20 +117,24 @@ export function gameParamsFromSettings(settings: Settings): URLSearchParams {
 
 export function parseBagParam(bagParam: string) {
   const urlToLetter = (s: string) => s === '_' ? '' : s;
-  let letterConfigs = bagParam
-  let letterCounts!: Map<string, number>
-  let letterValues!: Map<string, number>
+  let letterConfigs!: string
+  let defaults!: BagDefaults
   const langMatch = `.${bagParam}`.match(/(.*?)\.\.(.*)/)
   if (langMatch) {
     letterConfigs = langMatch[1]!.substring(1)
-    const bagLanguage = langMatch[2]!.substring(2)
-    const defaults = getBagDefaults(bagLanguage)
-    letterCounts = defaults.letterCounts
-    letterValues = defaults.letterValues
+    const bagLanguage = langMatch[2]!
+    const maybeDefaults = getBagDefaults(bagLanguage)
+    if (!maybeDefaults) {
+      throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: bagLanguage }))
+    }
+    defaults = maybeDefaults
   } else {
-    letterCounts = new Map
-    letterValues = new Map
+    letterConfigs = bagParam
+    defaults = getBagDefaults('')
   }
+  const lettersSeen = new Set<string>
+  const letterCounts = defaults.letterCounts
+  const letterValues = defaults.letterValues
   for (const letterConfig of letterConfigs.split('.')) {
     if (letterConfig === '') continue
     const match = letterConfig.match(/^(?<letter>\D+?)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
@@ -138,6 +142,10 @@ export function parseBagParam(bagParam: string) {
       throw new UrlError(t('error.url.invalid_letter_config', { config: letterConfig }))
     }
     const g = match.groups!
+    if (lettersSeen.has(g.letter!)) {
+      throw new UrlError(t('error.url.duplicate_letter_config', { letter: g.letter! }))
+    }
+    lettersSeen.add(g.letter!)
     const letter = urlToLetter(g.letter!)
     const count = g.count ? parseInt(g.count, 10) : letterCounts.get(letter) ?? 1
     const value = g.value ? parseInt(g.value, 10) : letterValues.get(letter) ?? 1
@@ -161,7 +169,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
       gameParams.append(name, value)
     }
   }
-  const settings = Settings.forLanguage('en')
+  const settings = Settings.forLanguage('')
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
     throw new UrlError(t('error.url.protocol_not_supported', { version: vParam }))

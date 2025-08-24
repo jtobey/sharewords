@@ -73,8 +73,13 @@ export class Settings {
     public letterValues = bagDefaults.letterValues,
   ) {}
 
+  static forLanguage(bagLanguage: string): Settings | null;
+  static forLanguage(bagLanguage: ''): Settings;
+  static forLanguage(bagLanguage: 'en'): Settings;
+
   static forLanguage(bagLanguage: string) {
-    return new Settings(getBagDefaults(bagLanguage))
+    const defaults = getBagDefaults(bagLanguage)
+    return defaults && new Settings(defaults)
   }
 
   toJSON() {
@@ -112,7 +117,7 @@ export class Settings {
       && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
         throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
       }
-    const settings = Settings.forLanguage('en')
+    const settings = Settings.forLanguage('')
     settings.version = json.version
     settings.players = json.players.map(Player.fromJSON)
     settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts)
