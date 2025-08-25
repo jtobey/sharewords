@@ -1,0 +1,40 @@
+/**
+ * @file Compressed format for fetching dictionaries.
+ */
+/*
+   Compile with:
+   protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+     --ts_proto_out=. \
+     ./dict/dict.proto
+*/
+
+syntax = "proto3";
+
+message Macro {
+  message Clear {};
+  oneof macro {
+    // Clears the word buffer. Placing this every so often in sorted
+    // dictionaries can enable binary searches.
+    Clear clear = 1;
+    // Appends `subword` (typically a single UTF-8 letter) to the word buffer.
+    string subword = 2;
+    // Emits a copy of the word buffer, then deletes its last `backup` chars.
+    uint64 backup = 3;
+  };
+};
+
+message Metadata {
+  string name = 1;
+  string description = 2;
+  repeated Macro macros = 3;
+};
+
+// A word list, compressed and optimized for zero-copy searching.
+message Lexicon {
+  Metadata metadata = 1;
+  // A sequence of indices into `metadata.macros` for generating a word list.
+  // A "word buffer" is initialized as an empty string. Each instruction is
+  // applied. Some instructions emit words to the list. After the last
+  // instruction, if the word buffer is not empty, it is added to the list.
+  repeated uint64 instructions = 2 [packed=true];
+};
