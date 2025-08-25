@@ -26,7 +26,8 @@ message Macro {
 message Metadata {
   string name = 1;
   string description = 2;
-  repeated Macro macros = 3;
+  uint64 clear_interval = 3;
+  repeated Macro macros = 4;
 };
 
 // A word list, compressed and optimized for zero-copy searching.

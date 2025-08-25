@@ -4,7 +4,7 @@ import { Lexicon } from './dict.js'
 
 describe('compiler', () => {
   it('should compile a lexicon', () => {
-    const words = ['the', 'three', 'green', 'peas']
+    const words = ['green', 'peas', 'the', 'three']
     const alphabet = [...'aeghnprst']
     const SUBWORD = {
       a: 1,
@@ -24,6 +24,7 @@ describe('compiler', () => {
       metadata: {
         name,
         description,
+        clearInterval: 1024,
         macros: [
           { clear: true },
           { subword: 'a' },
@@ -66,6 +67,70 @@ describe('compiler', () => {
     })))
     const actual = Lexicon.fromJSON(Lexicon.toJSON(
       compile({ words, alphabet, name, description })
+    ))
+    expect(actual).toEqual(expected)
+  })
+
+  it('should clear the word buffer at intervals', () => {
+    const words = ['eager', 'green', 'greener', 'greenest', 'groan', 'groaner']
+    const alphabet = [...'aegnorst']
+    const SUBWORD = {a: 1, e: 2, g: 3, n: 4, o: 5, r: 6, s: 7, t: 8}
+    const BACKUP0 = 1 + alphabet.length
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const clearInterval = 11
+    const expected = Lexicon.fromJSON(Lexicon.toJSON(Lexicon.create({
+      metadata: {
+        name,
+        description,
+        clearInterval,
+        macros: [
+          { clear: true },
+          ...alphabet.map(subword => ({subword})),
+          { backup: 0 },
+          { backup: 1 },
+          { backup: 2 },
+          { backup: 3 },
+          { backup: 4 },
+          { backup: 5 },
+        ],
+      },
+      instructions: [
+        SUBWORD.e!,   // "e"
+        SUBWORD.a!,   // "ea"
+        SUBWORD.g!,   // "eag"
+        SUBWORD.e!,   // "eage"
+        SUBWORD.r!,   // "eager"
+        BACKUP0 + 5,  // ""
+        SUBWORD.g!,   // "g"
+        SUBWORD.r!,   // "gr"
+        SUBWORD.e!,   // "gre"
+        SUBWORD.e!,   // "gree"
+        SUBWORD.n!,   // "green"
+        0,            // ""
+        SUBWORD.g!,   // "g"
+        SUBWORD.r!,   // "gr"
+        SUBWORD.e!,   // "gre"
+        SUBWORD.e!,   // "gree"
+        SUBWORD.n!,   // "green"
+        SUBWORD.e!,   // "greene"
+        SUBWORD.r!,   // "greener"
+        BACKUP0 + 1,  // "greene"
+        SUBWORD.s!,   // "greenes"
+        SUBWORD.t!,   // "greenest"
+        0,            // ""
+        SUBWORD.g!,   // "g"
+        SUBWORD.r!,   // "gr"
+        SUBWORD.o!,   // "gro"
+        SUBWORD.a!,   // "groa"
+        SUBWORD.n!,   // "groan"
+        BACKUP0,      // "groan"
+        SUBWORD.e!,   // "groane"
+        SUBWORD.r!,   // "groaner"
+      ],
+    })))
+    const actual = Lexicon.fromJSON(Lexicon.toJSON(
+      compile({ words, alphabet, name, description, clearInterval })
     ))
     expect(actual).toEqual(expected)
   })

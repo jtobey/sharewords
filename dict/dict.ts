@@ -31,6 +31,7 @@ export interface Macro_Clear {
 export interface Metadata {
   name: string;
   description: string;
+  clearInterval: number;
   macros: Macro[];
 }
 
@@ -186,7 +187,7 @@ export const Macro_Clear: MessageFns<Macro_Clear> = {
 };
 
 function createBaseMetadata(): Metadata {
-  return { name: "", description: "", macros: [] };
+  return { name: "", description: "", clearInterval: 0, macros: [] };
 }
 
 export const Metadata: MessageFns<Metadata> = {
@@ -197,8 +198,11 @@ export const Metadata: MessageFns<Metadata> = {
     if (message.description !== "") {
       writer.uint32(18).string(message.description);
     }
+    if (message.clearInterval !== 0) {
+      writer.uint32(24).uint64(message.clearInterval);
+    }
     for (const v of message.macros) {
-      Macro.encode(v!, writer.uint32(26).fork()).join();
+      Macro.encode(v!, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -227,7 +231,15 @@ export const Metadata: MessageFns<Metadata> = {
           continue;
         }
         case 3: {
-          if (tag !== 26) {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.clearInterval = longToNumber(reader.uint64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
             break;
           }
 
@@ -247,6 +259,7 @@ export const Metadata: MessageFns<Metadata> = {
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : "",
+      clearInterval: isSet(object.clearInterval) ? globalThis.Number(object.clearInterval) : 0,
       macros: globalThis.Array.isArray(object?.macros) ? object.macros.map((e: any) => Macro.fromJSON(e)) : [],
     };
   },
@@ -258,6 +271,9 @@ export const Metadata: MessageFns<Metadata> = {
     }
     if (message.description !== "") {
       obj.description = message.description;
+    }
+    if (message.clearInterval !== 0) {
+      obj.clearInterval = Math.round(message.clearInterval);
     }
     if (message.macros?.length) {
       obj.macros = message.macros.map((e) => Macro.toJSON(e));
@@ -272,6 +288,7 @@ export const Metadata: MessageFns<Metadata> = {
     const message = createBaseMetadata();
     message.name = object.name ?? "";
     message.description = object.description ?? "";
+    message.clearInterval = object.clearInterval ?? 0;
     message.macros = object.macros?.map((e) => Macro.fromPartial(e)) || [];
     return message;
   },
