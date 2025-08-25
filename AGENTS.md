@@ -13,7 +13,9 @@ Prefer to submit fixes on the feature branch that you created, since multiple le
 
 # Repository layout
 
-Browser users test the app using `bun index.html`. app.ts is the main TypeScript entry point.
+* Browser users test the app using `bun index.html`.
+* `app.ts` is the main TypeScript entry point.
+* Message translations belong in `i18n/*.json`.
 
 # Overview
 
