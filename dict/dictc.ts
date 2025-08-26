@@ -2,6 +2,7 @@ import { parseArgs } from 'util'
 import * as fs from 'fs'
 import * as readline from 'readline'
 import { compile } from './compiler.js'
+import { Lexicon } from './dict.js'
 
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
@@ -44,5 +45,4 @@ const lexicon = await compile({
   description: values.description,
 })
 
-// TODO - write to `values.output`.
-console.log(lexicon)
+fs.writeFileSync(values.output, Lexicon.encode(lexicon).finish())
