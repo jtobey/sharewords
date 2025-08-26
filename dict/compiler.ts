@@ -18,6 +18,7 @@ export function compile({
     metadata: {
       name,
       description,
+      clearInterval,
       macros: [{ clear: {} }],
     },
   })
