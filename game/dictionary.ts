@@ -95,6 +95,9 @@ async function checkWordUsingUrl(wordToCheck: string, url: string, dictionaryNam
 }
 
 function makeCustomDictionary(dictionarySettings: any) {
+  if (typeof dictionarySettings !== 'string') {
+    throw new TypeError('Custom dictionary requires a URL.')
+  }
   return async (...words: Array<string>) => {
     // TODO - fetch swdict, check for words.
     console.warn(`I want to validiate [${words}] using ${dictionarySettings}.`)
