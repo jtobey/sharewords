@@ -1,4 +1,5 @@
 import { t } from '../i18n.js'
+import { WordList } from '../dict/word_list.js'
 
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
@@ -98,8 +99,37 @@ function makeCustomDictionary(dictionarySettings: any) {
   if (typeof dictionarySettings !== 'string') {
     throw new TypeError('Custom dictionary requires a URL.')
   }
+
+  let wordListPromise: Promise<WordList> | null = null;
+
+  const getWordList = () => {
+    if (!wordListPromise) {
+      wordListPromise = (async () => {
+        const response = await fetch(dictionarySettings);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch custom dictionary from ${dictionarySettings}: ${response.statusText}`);
+        }
+        const buffer = await response.arrayBuffer();
+        return new WordList(new Uint8Array(buffer));
+      })();
+    }
+    return wordListPromise;
+  };
+
   return async (...words: Array<string>) => {
-    // TODO - fetch swdict, check for words.
-    console.warn(`I want to validiate [${words}] using ${dictionarySettings}.`)
-  }
+    const wordList = await getWordList();
+
+    const errors = words.map(word => {
+        if (!wordList.has(word.toLowerCase())) {
+            return new WordNotFoundError(word, dictionarySettings);
+        }
+        return null;
+    }).filter((r): r is WordNotFoundError => r !== null);
+
+    if (errors.length === 0) return;
+    if (errors.length === 1) throw errors[0];
+
+    const invalidWords = errors.map(e => e.word);
+    throw new PlayRejectedError(t('error.play_rejected.not_words_in_dictionary', { dictionaryName: dictionarySettings, invalidWords: invalidWords.join(', ') }));
+  };
 }
