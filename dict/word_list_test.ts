@@ -5,7 +5,7 @@ import { WordList } from './word_list.js'
 
 describe('word list', () => {
   it('should know what is a word', async () => {
-    const words = ['blue', 'bluer', 'bluest', 'green', 'greener', 'greenest']
+    const words = ['blue', 'bluer', 'bluest', 'green', 'greener', 'greenery', 'greenest']
     const alphabet = [...new Set(words.join(''))]
     const name = 'Test Lexicon'
     const description = 'Lexicon for testing.'
@@ -24,6 +24,8 @@ describe('word list', () => {
     expect(wordList.has('greene')).toBeFalse()
     expect(wordList.has('greener')).toBeTrue()
     expect(wordList.has('greeners')).toBeFalse()
+    expect(wordList.has('greenery')).toBeTrue()
+    expect(wordList.has('greenes')).toBeFalse()
     expect(wordList.has('greenest')).toBeTrue()
     expect(wordList.has('indigo')).toBeFalse()
   })

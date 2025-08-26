@@ -17,7 +17,7 @@ export class InvalidLexiconError extends Error {
 }
 
 export class WordList {
-  private metadata: Metadata
+  private _metadata: Metadata
   private instructions: Uint8Array
 
   constructor(arrayBuffer: ArrayBuffer | Uint8Array) {
@@ -45,14 +45,14 @@ export class WordList {
     }
     if (!insns) throw new InvalidLexiconError('No `instructions` field.')
     if (!metadata) throw new InvalidLexiconError('No `metadata` field.')
-    this.metadata = metadata
+    this._metadata = metadata
     this.instructions = insns
   }
 
-  get macros() { return this.metadata.macros }
+  get metadata() { return this._metadata }
+  private get macros() { return this._metadata.macros }
 
-  private *scanFrom(ip: Pointer) {
-    const wordBuffer: string[] = []
+  private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
     while (!ip.atEnd) {
       const insn = this.macros[ip.varintNumber()]
       if (!insn) {
@@ -81,12 +81,14 @@ export class WordList {
   has(possibleWord: string): boolean {
     // This performs a binary search through blocks delimited by "clear" instructions,
     // followed by a scan within a block.
-    let loProbe = new Pointer(this.instructions)
-    const blockSize = this.metadata.clearInterval
+    let iterator = this[Symbol.iterator]()
+    const blockSize = this._metadata.clearInterval
+    console.debug(`blockSize is ${blockSize}`)
     if (blockSize > 0) {
       let loBlock = 0, hiBlock = Math.ceil(this.instructions.length / blockSize)
       while (true) {
         const midBlock = Math.floor((loBlock + hiBlock) / 2)
+        console.debug(`lo=${loBlock * blockSize} mid=${midBlock * blockSize} hi=${hiBlock * blockSize}`)
         if (midBlock === loBlock) break
         const probe = new Pointer(this.instructions, midBlock * blockSize)
         probe.skipToVarint()
@@ -94,32 +96,41 @@ export class WordList {
           if (this.macros[probe.varintNumber()]!.clear) break
         }
         if (probe.atEnd || probe.offset >= hiBlock * blockSize) break
-        const midWord = this.scanFrom(probe).next().value!
-        switch (codePointCompare(possibleWord, midWord)) {
+        console.debug(`clear insn at ${probe.offset}`)
+        const midIterator = this.scanFrom(probe)
+        const midWord = midIterator.next().value!
+        // TODO - Instead of [...midWord] use the iterator's wordBuffer.
+        switch (codePointCompare(possibleWord, [...midWord])) {
           case 0:
+            console.debug('matched mid')
             return true
           case -1:
             hiBlock = midBlock
             continue
           case 1:
             loBlock = midBlock
-            loProbe = probe
+            iterator = midIterator
             continue
         }
       }
     }
-    for (const word of this.scanFrom(loProbe)) {
+    console.debug(`scanning for "${possibleWord}"`)
+    for (const word of iterator) {
+      console.debug(`scanned "${word}"`)
       switch (codePointCompare(possibleWord, word)) {
         case 0:
+          console.debug('matched')
           return true
         case 1:
           // `possibleWord` sorts after `word`. Keep scanning.
           continue
         case -1:
           // `possibleWord` sorts before `word`. Not found.
+          console.debug('overshot')
           return false
       }
     }
+    console.debug('out of words')
     return false
   }
 }
