@@ -11,9 +11,9 @@ export class PlayRejectedError extends Error {
   }
 }
 
-export function makeDictionary(dictionaryType: DictionaryType, dictionarySettings: any) {
+export function makeDictionary(dictionaryType: DictionaryType, dictionarySettings: any, baseUrl: string) {
   if (dictionaryType === 'permissive') return async (...words: string[]) => null
-  if (dictionaryType === 'custom') return makeCustomDictionary(dictionarySettings)
+  if (dictionaryType === 'custom') return makeCustomDictionary(dictionarySettings, baseUrl)
   if (dictionaryType === 'freeapi') {
     let urlTemplate!: string, dictionaryName!: string
     if (dictionarySettings) {
@@ -95,19 +95,21 @@ async function checkWordUsingUrl(wordToCheck: string, url: string, dictionaryNam
   }
 }
 
-function makeCustomDictionary(dictionarySettings: any) {
+function makeCustomDictionary(dictionarySettings: any, baseUrl: string) {
   if (typeof dictionarySettings !== 'string') {
     throw new TypeError('Custom dictionary requires a URL.')
   }
+  const dictBase = new URL('dict', baseUrl).href
+  const dictionaryUrl = new URL(dictionarySettings, dictBase).href
 
   let wordListPromise: Promise<WordList> | null = null;
 
   const getWordList = () => {
     if (!wordListPromise) {
       wordListPromise = (async () => {
-        const response = await fetch(dictionarySettings);
+        const response = await fetch(dictionaryUrl);
         if (!response.ok) {
-          throw new Error(`Failed to fetch custom dictionary from ${dictionarySettings}: ${response.statusText}`);
+          throw new Error(`Failed to fetch custom dictionary from ${dictionaryUrl}: ${response.statusText}`);
         }
         const buffer = await response.arrayBuffer();
         return new WordList(new Uint8Array(buffer));

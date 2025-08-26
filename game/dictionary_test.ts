@@ -38,24 +38,24 @@ describe('makeDictionary', () => {
     })
 
     test('accepts valid words', async () => {
-      const dictionary = makeDictionary('custom', dictUrl)
+      const dictionary = makeDictionary('custom', dictUrl, 'http://localhost/')
       await expect(dictionary('hello')).resolves.toBeUndefined()
       await expect(dictionary('world')).resolves.toBeUndefined()
       await expect(dictionary('HELLO')).resolves.toBeUndefined() // testing case-insensitivity
     })
 
     test('rejects invalid words', async () => {
-      const dictionary = makeDictionary('custom', dictUrl)
+      const dictionary = makeDictionary('custom', dictUrl, 'http://localhost/')
       await expect(dictionary('goodbye')).rejects.toThrow(PlayRejectedError)
     })
 
     test('rejects multiple words with one invalid', async () => {
-        const dictionary = makeDictionary('custom', dictUrl)
+        const dictionary = makeDictionary('custom', dictUrl, 'http://localhost/')
         await expect(dictionary('hello', 'goodbye')).rejects.toThrow(PlayRejectedError)
     })
 
     test('reports correct invalid words', async () => {
-        const dictionary = makeDictionary('custom', dictUrl)
+        const dictionary = makeDictionary('custom', dictUrl, 'http://localhost/')
         const promise = dictionary('hello', 'goodbye', 'world', 'cruel')
         await expect(promise).rejects.toThrow(PlayRejectedError)
         await expect(promise).rejects.toThrow(`Not words in Test Dictionary: goodbye, cruel. Play rejected.`)

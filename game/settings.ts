@@ -56,6 +56,7 @@ export let DEFAULT_RACK_CAPACITY = 7
 
 export class Settings {
   gameId: GameId | undefined  // Not serialized with Settings.
+  baseUrl = 'http://nonet/'  // Not serialized with Settings.
   version = PROTOCOL_VERSION
   players = ['1', '2'].map(id => new Player({id}))
   maxPlayerNameLength = 50

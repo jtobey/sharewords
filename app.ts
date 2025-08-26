@@ -60,7 +60,8 @@ export class App {
         console.log('Switching to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         if (!params.get('bag')) params.set('bag', '.' + this.chooseBagLanguage())
-        this.gameState = await GameState.fromParams(params);
+        this.gameState = await GameState.fromParams(params)
+        this.gameState.settings.baseUrl = this.browser.getHref()
         await loadTranslations(...this.browser.languages);
         initI18n(this.browser.getDocument());
         this.gameState.storage = this.browser.localStorage

@@ -45,12 +45,12 @@ import { t } from '../i18n.js'
 
 export class SharedState {
   constructor(
-    readonly settings: Readonly<Settings>,
+    readonly settings: Settings,
     readonly gameId = settings.gameId ?? makeGameId(),
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
-    private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings),
+    private checkWords = makeDictionary(settings.dictionaryType, settings.dictionarySettings, settings.baseUrl),
     readonly gameParams = gameParamsFromSettings(settings),
   ) {
     this.settings.players.forEach((player, index) => {
