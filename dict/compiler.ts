@@ -71,15 +71,15 @@ export function compile({
         wordBuffer.length = commonPrefixLength
       }
     }
-    word.splice(commonPrefixLength).forEach(subword => {
-      const indexForSubword = macroIndexForSubword.get(subword)
-      if (indexForSubword === undefined) {
-        // TODO - Automatically build the alphabet.
-        throw new Error(`Word "${wordStr}" contains "${subword}" missing from alphabet.`)
-      }
-      lexicon.instructions.push(indexForSubword)
+    const subwordsToAdd = word.splice(commonPrefixLength)
+    if (!subwordsToAdd.every(subword => macroIndexForSubword.has(subword))) {
+      // TODO - Automatically build the alphabet.
+      throw new Error(`Word "${wordStr}" contains characters missing from alphabet.`)
+    }
+    for (const subword of subwordsToAdd) {
+      lexicon.instructions.push(macroIndexForSubword.get(subword)!)
       wordBuffer.push(subword)
-    })
+    }
   }
   return lexicon
 }
