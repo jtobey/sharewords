@@ -83,10 +83,12 @@ export class WordList {
     // followed by a scan within a block.
     let loProbe = new Pointer(this.instructions)
     const blockSize = this.metadata.clearInterval
+    console.debug(`blockSize is ${blockSize}`)
     if (blockSize > 0) {
       let loBlock = 0, hiBlock = Math.ceil(this.instructions.length / blockSize)
       while (true) {
         const midBlock = Math.floor((loBlock + hiBlock) / 2)
+        console.debug(`lo=${loBlock * blockSize} mid=${midBlock * blockSize} hi=${hiBlock * blockSize}`)
         if (midBlock === loBlock) break
         const probe = new Pointer(this.instructions, midBlock * blockSize)
         probe.skipToVarint()
@@ -94,9 +96,11 @@ export class WordList {
           if (this.macros[probe.varintNumber()]!.clear) break
         }
         if (probe.atEnd || probe.offset >= hiBlock * blockSize) break
+        console.debug(`clear insn at ${probe.offset}`)
         const midWord = this.scanFrom(probe).next().value!
         switch (codePointCompare(possibleWord, midWord)) {
           case 0:
+            console.debug('matched mid')
             return true
           case -1:
             hiBlock = midBlock
@@ -108,18 +112,23 @@ export class WordList {
         }
       }
     }
+    console.debug(`scanning for "${possibleWord}" from ${loProbe.offset}`)
     for (const word of this.scanFrom(loProbe)) {
+      console.debug(`scanned "${word}"`)
       switch (codePointCompare(possibleWord, word)) {
         case 0:
+          console.debug('matched')
           return true
         case 1:
           // `possibleWord` sorts after `word`. Keep scanning.
           continue
         case -1:
           // `possibleWord` sorts before `word`. Not found.
+          console.debug('overshot')
           return false
       }
     }
+    console.debug('out of words')
     return false
   }
 }
