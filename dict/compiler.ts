@@ -6,14 +6,28 @@ import { codePointCompare } from './code_point_compare.js'
 import { Lexicon } from './dict.js'
 
 export function compile({
-  words, alphabet, name, description, clearInterval=1024
+  words, name, description, clearInterval=1024, alphabet=null
 }: {
   words: Iterable<string>,
-  alphabet: Array<string>,
   name: string,
   description: string,
   clearInterval?: number,
+  alphabet?: Array<string> | null,
 }): Lexicon {
+  if (!alphabet) {
+    const tempWords: string[] = []
+    const subwords = new Set<string>
+    for (const word of words) {
+      tempWords.push(word)
+      for (const subword of [...word]) {
+        subwords.add(subword)
+      }
+    }
+    tempWords.sort(codePointCompare)
+    words = tempWords
+    alphabet = [...subwords]
+    alphabet.sort(codePointCompare)
+  }
   const lexicon = Lexicon.create({
     metadata: {
       name,
@@ -34,12 +48,12 @@ export function compile({
   let lastWordStr: string | null = null
   for (const wordStr of words) {
     if (lastWordStr !== null) {
-      // TODO - Automatically sort.
       switch (codePointCompare(lastWordStr, wordStr)) {
         case 0:
-          throw new Error(`Duplicate word "${wordStr}".`)
+          console.warn(`Duplicate word "${wordStr}".`)
+          continue
         case 1:
-          throw new Error(`Words are out of order: "${lastWordStr}" should follow "${wordStr}".`)
+          throw new Error(`Alphabet passed but words are out of order: "${lastWordStr}" should follow "${wordStr}".`)
       }
     }
     lastWordStr = wordStr

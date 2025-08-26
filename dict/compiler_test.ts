@@ -2,6 +2,7 @@ import { expect, describe, it } from 'bun:test'
 import { compile } from './compiler.js'
 import { Lexicon } from './dict.js'
 import { WordList } from './word_list.js'
+import { codePointCompare } from './code_point_compare.js'
 
 describe('compiler', () => {
   it('should compile a lexicon', () => {
@@ -146,5 +147,15 @@ describe('compiler', () => {
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
     expect([...wordList]).toEqual(words)
+  })
+
+  it('should infer alphabet and sort words', () => {
+    const words = ['blue', 'bluer', 'green', 'bluest', 'greener', 'greenest', 'mauve']
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const lexicon = compile({ words, name, description })
+    const binary = Lexicon.encode(lexicon).finish()
+    const wordList = new WordList(binary)
+    expect([...wordList]).toEqual(words.toSorted(codePointCompare))
   })
 })
