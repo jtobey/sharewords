@@ -119,9 +119,10 @@ function makeCustomDictionary(dictionarySettings: any) {
   return async (...words: Array<string>) => {
     const wordList = await getWordList();
 
+    const dictionaryName = wordList.metadata?.name || dictionarySettings
     const errors = words.map(word => {
         if (!wordList.has(word.toLowerCase())) {
-            return new WordNotFoundError(word, dictionarySettings);
+            return new WordNotFoundError(word, dictionaryName);
         }
         return null;
     }).filter((r): r is WordNotFoundError => r !== null);
@@ -130,7 +131,6 @@ function makeCustomDictionary(dictionarySettings: any) {
     if (errors.length === 1) throw errors[0];
 
     const invalidWords = errors.map(e => e.word);
-    const dictionaryName = wordList.metadata?.name || dictionarySettings
     throw new PlayRejectedError(t('error.play_rejected.not_words_in_dictionary', { dictionaryName, invalidWords: invalidWords.join(', ') }));
   };
 }
