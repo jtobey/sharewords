@@ -1,6 +1,7 @@
 import { expect, describe, it } from 'bun:test'
 import { compile } from './compiler.js'
 import { Lexicon } from './dict.js'
+import { WordList } from './word_list.js'
 
 describe('compiler', () => {
   it('should compile a lexicon', () => {
@@ -133,5 +134,17 @@ describe('compiler', () => {
       compile({ words, alphabet, name, description, clearInterval })
     ))
     expect(actual).toEqual(expected)
+  })
+
+  it('should roundtrip a word list', () => {
+    const words = ['blue', 'bluer', 'bluest', 'green', 'greener', 'greenest']
+    const alphabet = [...new Set(words.join(''))]
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const clearInterval = 16
+    const lexicon = compile({ words, alphabet, name, description, clearInterval })
+    const binary = Lexicon.encode(lexicon).finish()
+    const wordList = new WordList(binary)
+    expect([...wordList]).toEqual(words)
   })
 })
