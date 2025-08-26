@@ -5,7 +5,7 @@ import { WordList } from './word_list.js'
 import { codePointCompare } from './code_point_compare.js'
 
 describe('compiler', () => {
-  it('should compile a lexicon', () => {
+  it('should compile a lexicon', async () => {
     const words = ['green', 'peas', 'the', 'three']
     const alphabet = [...'aeghnprst']
     const SUBWORD = {
@@ -68,12 +68,12 @@ describe('compiler', () => {
       ],
     })))
     const actual = Lexicon.fromJSON(Lexicon.toJSON(
-      compile({ words, alphabet, name, description })
+      await compile({ words, alphabet, name, description })
     ))
     expect(actual).toEqual(expected)
   })
 
-  it('should clear the word buffer at intervals', () => {
+  it('should clear the word buffer at intervals', async () => {
     const words = ['eager', 'green', 'greener', 'greenest', 'groan', 'groaner']
     const alphabet = [...'aegnorst']
     const SUBWORD = {a: 1, e: 2, g: 3, n: 4, o: 5, r: 6, s: 7, t: 8}
@@ -132,28 +132,28 @@ describe('compiler', () => {
       ],
     })))
     const actual = Lexicon.fromJSON(Lexicon.toJSON(
-      compile({ words, alphabet, name, description, clearInterval })
+      await compile({ words, alphabet, name, description, clearInterval })
     ))
     expect(actual).toEqual(expected)
   })
 
-  it('should roundtrip a word list', () => {
+  it('should roundtrip a word list', async () => {
     const words = ['blue', 'bluer', 'bluest', 'green', 'greener', 'greenest']
     const alphabet = [...new Set(words.join(''))]
     const name = 'Test Lexicon'
     const description = 'Lexicon for testing.'
     const clearInterval = 16
-    const lexicon = compile({ words, alphabet, name, description, clearInterval })
+    const lexicon = await compile({ words, alphabet, name, description, clearInterval })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
     expect([...wordList]).toEqual(words)
   })
 
-  it('should infer alphabet and sort words', () => {
+  it('should infer alphabet and sort words', async () => {
     const words = ['blue', 'bluer', 'green', 'bluest', 'greener', 'greenest', 'mauve']
     const name = 'Test Lexicon'
     const description = 'Lexicon for testing.'
-    const lexicon = compile({ words, name, description })
+    const lexicon = await compile({ words, name, description })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
     expect([...wordList]).toEqual(words.toSorted(codePointCompare))

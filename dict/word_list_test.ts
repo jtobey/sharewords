@@ -4,13 +4,13 @@ import { Lexicon } from './dict.js'
 import { WordList } from './word_list.js'
 
 describe('word list', () => {
-  it('should know what is a word', () => {
+  it('should know what is a word', async () => {
     const words = ['blue', 'bluer', 'bluest', 'green', 'greener', 'greenest']
     const alphabet = [...new Set(words.join(''))]
     const name = 'Test Lexicon'
     const description = 'Lexicon for testing.'
     const clearInterval = 16
-    const lexicon = compile({ words, alphabet, name, description, clearInterval })
+    const lexicon = await compile({ words, alphabet, name, description, clearInterval })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
     expect(wordList.has('aqua')).toBeFalse()

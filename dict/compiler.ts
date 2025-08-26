@@ -5,19 +5,19 @@
 import { codePointCompare } from './code_point_compare.js'
 import { Lexicon } from './dict.js'
 
-export function compile({
+export async function compile({
   words, name, description, clearInterval=1024, alphabet=null
 }: {
-  words: Iterable<string>,
+  words: Iterable<string> | AsyncIterable<string>,
   name: string,
   description: string,
   clearInterval?: number,
   alphabet?: Array<string> | null,
-}): Lexicon {
+}): Promise<Lexicon> {
   if (!alphabet) {
     const tempWords: string[] = []
     const subwords = new Set<string>
-    for (const word of words) {
+    for await (const word of words) {
       tempWords.push(word)
       for (const subword of [...word]) {
         subwords.add(subword)
@@ -46,7 +46,7 @@ export function compile({
   let wordBuffer: string[] = []
   let nextClear = clearInterval
   let lastWordStr: string | null = null
-  for (const wordStr of words) {
+  for await (const wordStr of words) {
     if (lastWordStr !== null) {
       switch (codePointCompare(lastWordStr, wordStr)) {
         case 0:
