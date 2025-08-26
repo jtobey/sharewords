@@ -130,6 +130,7 @@ function makeCustomDictionary(dictionarySettings: any) {
     if (errors.length === 1) throw errors[0];
 
     const invalidWords = errors.map(e => e.word);
-    throw new PlayRejectedError(t('error.play_rejected.not_words_in_dictionary', { dictionaryName: dictionarySettings, invalidWords: invalidWords.join(', ') }));
+    const dictionaryName = wordList.metadata?.name || dictionarySettings
+    throw new PlayRejectedError(t('error.play_rejected.not_words_in_dictionary', { dictionaryName, invalidWords: invalidWords.join(', ') }));
   };
 }

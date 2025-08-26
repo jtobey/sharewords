@@ -58,7 +58,7 @@ describe('makeDictionary', () => {
         const dictionary = makeDictionary('custom', dictUrl)
         const promise = dictionary('hello', 'goodbye', 'world', 'cruel')
         await expect(promise).rejects.toThrow(PlayRejectedError)
-        await expect(promise).rejects.toThrow(`Not words in ${dictUrl}: goodbye, cruel. Play rejected.`)
+        await expect(promise).rejects.toThrow(`Not words in Test Dictionary: goodbye, cruel. Play rejected.`)
     })
   })
 })
