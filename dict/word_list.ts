@@ -99,8 +99,7 @@ export class WordList {
         console.debug(`clear insn at ${probe.offset}`)
         const midIterator = this.scanFrom(probe)
         const midWord = midIterator.next().value!
-        // TODO - Instead of [...midWord] use the iterator's wordBuffer.
-        switch (codePointCompare(possibleWord, [...midWord])) {
+        switch (codePointCompare(possibleWord, midWord)) {
           case 0:
             console.debug('matched mid')
             return true
