@@ -453,8 +453,9 @@ export class GameState extends EventTarget {
     await this.playTurns(this.shared.turnsFromParams(iterator, turnNumber))
   }
 
-  static async fromParams(params: Readonly<URLSearchParams>) {
+  static async fromParams(params: Readonly<URLSearchParams>, baseUrl = 'http://localhost/') {
     const { settings, playerId, turnParams } = parseGameParams(params)
+    settings.baseUrl = baseUrl
     const gameState = new GameState(playerId, settings)
     await gameState.init()
     await gameState.applyTurnParams(turnParams)

@@ -29,6 +29,8 @@ export class App {
     if (this.browser.getURLSearchParams(this.browser.getSearch()).has('debug')) {
       this.initDebug();
     }
+    await loadTranslations(...this.browser.languages);
+    initI18n(this.browser.getDocument());
 
     const handleGameChange = async () => {
       const params = this.browser.getURLSearchParams(this.browser.getHash()?.substring(1) || '');
@@ -48,8 +50,7 @@ export class App {
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
         this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
-        await loadTranslations(...this.browser.languages);
-        initI18n(this.browser.getDocument());
+        this.gameState.settings.baseUrl = this.browser.getHref()
         this.gameState.storage = this.browser.localStorage
         await this.gameState.applyTurnParams(params)
       } else if (this.gameState) {
@@ -60,10 +61,7 @@ export class App {
         console.log('Switching to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
         if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
         if (!params.get('bag')) params.set('bag', '.' + this.chooseBagLanguage())
-        this.gameState = await GameState.fromParams(params)
-        this.gameState.settings.baseUrl = this.browser.getHref()
-        await loadTranslations(...this.browser.languages);
-        initI18n(this.browser.getDocument());
+        this.gameState = await GameState.fromParams(params, this.browser.getHref())
         this.gameState.storage = this.browser.localStorage
       }
 

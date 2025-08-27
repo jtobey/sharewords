@@ -4,6 +4,8 @@ import { WordList } from '../dict/word_list.js'
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 
+const SWDICT_SUFFIX = '.swdict'
+
 export class PlayRejectedError extends Error {
   constructor(message: string) {
     super(t('error.play_rejected.play_rejected', { message }))
@@ -11,24 +13,24 @@ export class PlayRejectedError extends Error {
   }
 }
 
-export function makeDictionary(dictionaryType: DictionaryType, dictionarySettings: any, baseUrl: string) {
-  if (dictionaryType === 'permissive') return async (...words: string[]) => null
-  if (dictionaryType === 'custom') return makeCustomDictionary(dictionarySettings, baseUrl)
-  if (dictionaryType === 'freeapi') {
+export function makeDictionary(settings: { dictionaryType: DictionaryType, dictionarySettings: any, baseUrl: string }) {
+  if (settings.dictionaryType === 'permissive') return async (...words: string[]) => null
+  if (settings.dictionaryType === 'custom') return makeCustomDictionary(settings)
+  if (settings.dictionaryType === 'freeapi') {
     let urlTemplate!: string, dictionaryName!: string
-    if (dictionarySettings) {
-      if (typeof dictionarySettings !== 'string') {
-        throw new Error(`Dictionary type "${dictionaryType}" requires setting a URL template.`)
+    if (settings.dictionarySettings) {
+      if (typeof settings.dictionarySettings !== 'string') {
+        throw new Error(`Dictionary type "${settings.dictionaryType}" requires setting a URL template.`)
       }
-      urlTemplate = dictionarySettings
-      dictionaryName = dictionarySettings
+      urlTemplate = settings.dictionarySettings
+      dictionaryName = settings.dictionarySettings
     } else {
       urlTemplate = 'https://api.dictionaryapi.dev/api/v2/entries/en/{lower}'
       dictionaryName = 'Free Dictionary API'
     }
     return makeUrlTemplateDictionary(urlTemplate, dictionaryName)
   }
-  throw new Error(`dictionaryType ${dictionaryType} is not supported.`)
+  throw new Error(`dictionaryType ${settings.dictionaryType} is not supported.`)
 }
 
 class WordNotInDictionaryError extends PlayRejectedError {
@@ -95,17 +97,27 @@ async function checkWordUsingUrl(wordToCheck: string, url: string, dictionaryNam
   }
 }
 
-function makeCustomDictionary(dictionarySettings: any, baseUrl: string) {
+function makeCustomDictionary(settings: {dictionarySettings: any, baseUrl: string}) {
+  const dictionarySettings = settings.dictionarySettings
   if (typeof dictionarySettings !== 'string') {
-    throw new TypeError('Custom dictionary requires a URL.')
+    throw new TypeError(`Custom dictionary requires a string URL, not ${dictionarySettings}.`)
   }
-  const dictBase = new URL('dict', baseUrl).href
-  const dictionaryUrl = new URL(dictionarySettings, dictBase).href
 
   let wordListPromise: Promise<WordList> | null = null;
 
   const getWordList = () => {
     if (!wordListPromise) {
+      let dictionaryUrl: string
+      try {
+        dictionaryUrl = new URL(dictionarySettings).href
+        // `dictionarySettings` is an absolute URL.
+      } catch (e: any) {
+        if (!(e instanceof TypeError)) throw e
+        // `dictionarySettings` is a relative URL or simple identifier.
+        const maybeSuffix = (dictionarySettings.slice(-SWDICT_SUFFIX.length) === SWDICT_SUFFIX ? '' : SWDICT_SUFFIX)
+        const relativeUrl = dictionarySettings + maybeSuffix
+        dictionaryUrl = new URL(relativeUrl, new URL('dict/', settings.baseUrl)).href
+      }
       wordListPromise = (async () => {
         const response = await fetch(dictionaryUrl);
         if (!response.ok) {

@@ -151,8 +151,8 @@ export class GameSetup {
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
     this._handleDictChange();
-    if (this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings === 'object' && 'url' in this.gameState.settings.dictionarySettings && typeof this.gameState.settings.dictionarySettings.url === 'string') {
-      this.dictionaryUrl.value = this.gameState.settings.dictionarySettings.url;
+    if (typeof this.gameState.settings.dictionarySettings === 'string') {
+      this.dictionaryUrl.value = this.gameState.settings.dictionarySettings
     } else {
       this.dictionaryUrl.value = '';
     }
