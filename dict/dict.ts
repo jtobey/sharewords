@@ -22,10 +22,22 @@ export interface Macro {
     | string
     | undefined;
   /** Emits a copy of the word buffer, then deletes its last `backup` chars. */
-  backup?: number | undefined;
+  backup?:
+    | number
+    | undefined;
+  /**
+   * A list of macros with which to replace this macro.
+   * Recursion is not allowed.
+   */
+  subroutine?: Macro_Subroutine | undefined;
 }
 
 export interface Macro_Clear {
+}
+
+export interface Macro_Subroutine {
+  /** Index into `metadata.macros`. */
+  instructions: number[];
 }
 
 export interface Metadata {
@@ -50,7 +62,7 @@ export interface Lexicon {
 }
 
 function createBaseMacro(): Macro {
-  return { clear: undefined, subword: undefined, backup: undefined };
+  return { clear: undefined, subword: undefined, backup: undefined, subroutine: undefined };
 }
 
 export const Macro: MessageFns<Macro> = {
@@ -63,6 +75,9 @@ export const Macro: MessageFns<Macro> = {
     }
     if (message.backup !== undefined) {
       writer.uint32(24).uint64(message.backup);
+    }
+    if (message.subroutine !== undefined) {
+      Macro_Subroutine.encode(message.subroutine, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -98,6 +113,14 @@ export const Macro: MessageFns<Macro> = {
           message.backup = longToNumber(reader.uint64());
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.subroutine = Macro_Subroutine.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -112,6 +135,7 @@ export const Macro: MessageFns<Macro> = {
       clear: isSet(object.clear) ? Macro_Clear.fromJSON(object.clear) : undefined,
       subword: isSet(object.subword) ? globalThis.String(object.subword) : undefined,
       backup: isSet(object.backup) ? globalThis.Number(object.backup) : undefined,
+      subroutine: isSet(object.subroutine) ? Macro_Subroutine.fromJSON(object.subroutine) : undefined,
     };
   },
 
@@ -126,6 +150,9 @@ export const Macro: MessageFns<Macro> = {
     if (message.backup !== undefined) {
       obj.backup = Math.round(message.backup);
     }
+    if (message.subroutine !== undefined) {
+      obj.subroutine = Macro_Subroutine.toJSON(message.subroutine);
+    }
     return obj;
   },
 
@@ -139,6 +166,9 @@ export const Macro: MessageFns<Macro> = {
       : undefined;
     message.subword = object.subword ?? undefined;
     message.backup = object.backup ?? undefined;
+    message.subroutine = (object.subroutine !== undefined && object.subroutine !== null)
+      ? Macro_Subroutine.fromPartial(object.subroutine)
+      : undefined;
     return message;
   },
 };
@@ -182,6 +212,80 @@ export const Macro_Clear: MessageFns<Macro_Clear> = {
   },
   fromPartial<I extends Exact<DeepPartial<Macro_Clear>, I>>(_: I): Macro_Clear {
     const message = createBaseMacro_Clear();
+    return message;
+  },
+};
+
+function createBaseMacro_Subroutine(): Macro_Subroutine {
+  return { instructions: [] };
+}
+
+export const Macro_Subroutine: MessageFns<Macro_Subroutine> = {
+  encode(message: Macro_Subroutine, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    writer.uint32(10).fork();
+    for (const v of message.instructions) {
+      writer.uint64(v);
+    }
+    writer.join();
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): Macro_Subroutine {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMacro_Subroutine();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag === 8) {
+            message.instructions.push(longToNumber(reader.uint64()));
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.instructions.push(longToNumber(reader.uint64()));
+            }
+
+            continue;
+          }
+
+          break;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Macro_Subroutine {
+    return {
+      instructions: globalThis.Array.isArray(object?.instructions)
+        ? object.instructions.map((e: any) => globalThis.Number(e))
+        : [],
+    };
+  },
+
+  toJSON(message: Macro_Subroutine): unknown {
+    const obj: any = {};
+    if (message.instructions?.length) {
+      obj.instructions = message.instructions.map((e) => Math.round(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(base?: I): Macro_Subroutine {
+    return Macro_Subroutine.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(object: I): Macro_Subroutine {
+    const message = createBaseMacro_Subroutine();
+    message.instructions = object.instructions?.map((e) => e) || [];
     return message;
   },
 };

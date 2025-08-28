@@ -12,6 +12,10 @@ syntax = "proto3";
 
 message Macro {
   message Clear {};
+  message Subroutine {
+    // Index into `metadata.macros`.
+    repeated uint64 instructions = 1;
+  }
   oneof macro {
     // Clears the word buffer. Placing this every so often in sorted
     // dictionaries can enable binary searches.
@@ -20,6 +24,9 @@ message Macro {
     string subword = 2;
     // Emits a copy of the word buffer, then deletes its last `backup` chars.
     uint64 backup = 3;
+    // A list of macros with which to replace this macro.
+    // Recursion is not allowed.
+    Subroutine subroutine = 4;
   };
 };
 

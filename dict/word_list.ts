@@ -65,6 +65,9 @@ export class WordList {
       yield wordBuffer.join('')
       if (insn.clear) wordBuffer.length = 0
       else if (insn.backup !== undefined) wordBuffer.length -= insn.backup
+      else if (insn.subroutine) {
+        // TODO - Follow `insn.subroutine.instructions` avoiding recursion.
+      }
     }
     if (wordBuffer.length) {
       yield wordBuffer.join('')
