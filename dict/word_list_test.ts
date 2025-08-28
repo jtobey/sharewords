@@ -29,4 +29,67 @@ describe('word list', () => {
     expect(wordList.has('greenest')).toBeTrue()
     expect(wordList.has('indigo')).toBeFalse()
   })
+
+  it.skip('should follow a subroutine', () => {
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const lexicon = Lexicon.create({
+      metadata: {
+        name,
+        description,
+        macros: [
+          { clear: true },                 // 0
+          { subword: 'A' },                // 1 'A'
+          { subword: 'B' },                // 2 'B'
+          { subroutine: [ 1, 2, 2, 1 ] },  // 3 'ABBA'
+        ],
+      },
+      instructions: [ 3 ],
+    })
+    const binary = Lexicon.encode(lexicon).finish()
+    const wordList = new WordList(binary)
+    expect([...wordList]).toEqual(['ABBA'])
+  })
+
+  it.skip('should follow a nested subroutine', () => {
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const lexicon = Lexicon.create({
+      metadata: {
+        name,
+        description,
+        macros: [
+          { clear: true },              // 0
+          { subword: 'Z' },             // 1 'Z'
+          { subword: 'Y' },             // 2 'Y'
+          { subroutine: [ 2, 2 ] },     // 3 'YY'
+          { subroutine: [ 1, 3, 1 ] },  // 4 'ZYYZ'
+        ],
+      },
+      instructions: [ 4 ],
+    })
+    const binary = Lexicon.encode(lexicon).finish()
+    const wordList = new WordList(binary)
+    expect([...wordList]).toEqual(['ZYYZ'])
+  })
+
+  it.skip('should should reject a recurive subroutine', () => {
+    const name = 'Test Lexicon'
+    const description = 'Lexicon for testing.'
+    const lexicon = Lexicon.create({
+      metadata: {
+        name,
+        description,
+        macros: [
+          { clear: true },           // 0
+          { subword: 'a' },          // 1
+          { subroutine: [ 1, 3 ] },  // 2
+          { subroutine: [ 2, 1 ] },  // 3
+        ],
+      },
+      instructions: [ 3 ],
+    })
+    const binary = Lexicon.encode(lexicon).finish()
+    expect(() => new WordList(binary)).toThrow()
+  })
 })
