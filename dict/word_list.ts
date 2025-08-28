@@ -67,6 +67,7 @@ export class WordList {
       else if (insn.backup !== undefined) wordBuffer.length -= insn.backup
       else if (insn.subroutine) {
         // TODO - Follow `insn.subroutine.instructions` avoiding recursion.
+        throw new Error('Subroutines are not yet supported.')
       }
     }
     if (wordBuffer.length) {
