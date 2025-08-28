@@ -53,25 +53,55 @@ export class WordList {
   private get macros() { return this._metadata.macros }
 
   private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
-    while (!ip.atEnd) {
-      const insn = this.macros[ip.varintNumber()]
-      if (!insn) {
-        throw new InvalidLexiconError(`Instruction ${insn} out of range [0, ${this.macros.length - 1}).`)
-      }
-      if (insn.subword !== undefined) {
-        wordBuffer.push(insn.subword)
-        continue
-      }
-      yield wordBuffer.join('')
-      if (insn.clear) wordBuffer.length = 0
-      else if (insn.backup !== undefined) wordBuffer.length -= insn.backup
-      else if (insn.subroutine) {
-        // TODO - Follow `insn.subroutine.instructions` avoiding recursion.
-        throw new Error('Subroutines are not yet supported.')
-      }
+    const stack: { it: Iterator<number>, macroIndex?: number }[] =
+        [{ it: this.readInstructions(ip) }]
+    const activeSubroutines: Set<number> = new Set()
+
+    while (stack.length > 0) {
+        const frame = stack[stack.length - 1]!
+        const next = frame.it.next()
+
+        if (next.done) {
+            if (frame.macroIndex !== undefined) {
+                activeSubroutines.delete(frame.macroIndex)
+            }
+            stack.pop()
+            continue
+        }
+
+        const macroIndex = next.value
+        const insn = this.macros[macroIndex]
+
+        if (!insn) {
+            throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
+        }
+
+        if (insn.subword !== undefined) {
+            wordBuffer.push(insn.subword)
+        } else if (insn.subroutine) {
+            if (activeSubroutines.has(macroIndex)) {
+                throw new InvalidLexiconError('Recursive subroutine detected.')
+            }
+            activeSubroutines.add(macroIndex)
+            stack.push({ it: insn.subroutine.instructions[Symbol.iterator](), macroIndex })
+        } else {
+            yield wordBuffer.join('')
+            if (insn.clear) {
+                wordBuffer.length = 0
+            } else if (insn.backup !== undefined) {
+                wordBuffer.length -= insn.backup
+            }
+        }
     }
+
     if (wordBuffer.length) {
-      yield wordBuffer.join('')
+        yield wordBuffer.join('')
+    }
+}
+
+  private *readInstructions(ip: Pointer): Generator<number> {
+    while (!ip.atEnd) {
+      yield ip.varintNumber()
     }
   }
 
