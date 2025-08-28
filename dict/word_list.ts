@@ -80,12 +80,11 @@ export class WordList {
   }
 
   private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
-    const stack: { it: Iterator<number> }[] =
-        [{ it: this.readInstructions(ip) }]
+    const stack: Iterator<number>[] = [this.readInstructions(ip)]
 
     while (stack.length > 0) {
-        const frame = stack[stack.length - 1]!
-        const next = frame.it.next()
+        const it = stack[stack.length - 1]!
+        const next = it.next()
 
         if (next.done) {
             stack.pop()
@@ -102,7 +101,7 @@ export class WordList {
         if (insn.subword !== undefined) {
             wordBuffer.push(insn.subword)
         } else if (insn.subroutine) {
-            stack.push({ it: insn.subroutine.instructions[Symbol.iterator]() })
+            stack.push(insn.subroutine.instructions[Symbol.iterator]())
         } else {
             yield wordBuffer.join('')
             if (insn.clear) {
