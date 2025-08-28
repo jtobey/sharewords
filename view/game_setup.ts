@@ -62,20 +62,17 @@ export class GameSetup {
       const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
       settings.players = playerNames.map((name, i) => new Player({ id: String(i + 1), name }));
 
-      const dictionaryType = this.dictionaryType.value;
-      if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-        settings.dictionaryType = dictionaryType;
-      }
-
-      if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-        const url = this.dictionaryUrl.value;
-        if (url) {
-          settings.dictionarySettings = url;
-        } else {
-          settings.dictionarySettings = null;
-        }
-      } else {
+      const dictionaryValue = this.dictionaryType.value;
+      if (dictionaryValue === 'permissive') {
+        settings.dictionaryType = 'permissive';
         settings.dictionarySettings = null;
+      } else if (dictionaryValue === 'freeapi' || dictionaryValue === 'custom') {
+        settings.dictionaryType = dictionaryValue;
+        settings.dictionarySettings = this.dictionaryUrl.value || null;
+      } else {
+        // This is a pre-packaged dictionary
+        settings.dictionaryType = 'custom';
+        settings.dictionarySettings = dictionaryValue;
       }
 
       const bagLanguage = this.tileDistribution.value;
@@ -142,6 +139,9 @@ export class GameSetup {
     } else {
       this.dictionaryUrlContainer.hidden = true;
     }
+    if (selectedValue !== 'custom' && selectedValue !== 'freeapi') {
+      this.dictionaryUrl.value = '';
+    }
   }
 
   private _populateSettingsDialog() {
@@ -150,6 +150,11 @@ export class GameSetup {
 
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
+    if (this.gameState.settings.dictionaryType === 'custom' &&
+        typeof this.gameState.settings.dictionarySettings === 'string' &&
+        this.dictionaryType.querySelector(`option[value="${this.gameState.settings.dictionarySettings}"]`)) {
+      this.dictionaryType.value = this.gameState.settings.dictionarySettings;
+    }
     this._handleDictChange();
     if (typeof this.gameState.settings.dictionarySettings === 'string') {
       this.dictionaryUrl.value = this.gameState.settings.dictionarySettings
