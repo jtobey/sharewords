@@ -3,7 +3,7 @@
  */
 
 import { codePointCompare } from './code_point_compare.js'
-import { Lexicon } from './dict.js'
+import { Lexicon } from './swdict.js'
 
 export async function compile({
   words, name, description, clearInterval=1024, alphabet=null

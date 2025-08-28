@@ -1,6 +1,6 @@
 import { expect, describe, it } from 'bun:test'
 import { compile } from './compiler.js'
-import { Lexicon } from './dict.js'
+import { Lexicon } from './swdict.js'
 import { WordList } from './word_list.js'
 
 describe('word list', () => {

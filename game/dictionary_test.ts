@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { makeDictionary, PlayRejectedError } from './dictionary.js'
 import { loadTranslations } from '../i18n.js'
 import { compile } from '../dict/compiler.js'
-import { Lexicon } from '../dict/dict.js'
+import { Lexicon } from '../dict/swdict.js'
 
 describe('makeDictionary', () => {
   beforeAll(async () => {

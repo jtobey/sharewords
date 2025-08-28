@@ -3,7 +3,7 @@
  */
 
 import { codePointCompare } from './code_point_compare.js'
-import { Metadata } from './dict.js'
+import { Metadata } from './swdict.js'
 import { Pointer } from './pointer.js'
 
 const METADATA_FIELD_NUMBER = 1

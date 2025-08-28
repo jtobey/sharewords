@@ -2,7 +2,7 @@ import { parseArgs } from 'util'
 import * as fs from 'fs'
 import * as readline from 'readline'
 import { compile } from './compiler.js'
-import { Lexicon } from './dict.js'
+import { Lexicon } from './swdict.js'
 
 const { values: args } = parseArgs({
   args: Bun.argv.slice(2),
