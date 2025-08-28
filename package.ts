@@ -1,4 +1,7 @@
 // Script that packages the game into one HTML file (printed to stdout).
+import * as fs from 'fs';
+import * as path from 'path';
+import { Lexicon } from './dict/swdict.js';
 
 const result = await Bun.build({entrypoints: ['./index.html']})
 const byPath = new Map<string, string>
@@ -15,8 +18,36 @@ function getText(path: string) {
   return text
 }
 
+// Find custom dictionaries
+const dictDir = './dict';
+const dictFiles = fs.readdirSync(dictDir).filter(file => file.endsWith('.swdict'));
+
+const customDictOptions: string[] = [];
+for (const file of dictFiles) {
+    const filePath = path.join(dictDir, file);
+    const buffer = fs.readFileSync(filePath);
+    const lexicon = Lexicon.decode(new Uint8Array(buffer));
+    if (lexicon.metadata?.name) {
+        const dictId = path.basename(file, '.swdict');
+        customDictOptions.push(`<option value="${dictId}">${lexicon.metadata.name}</option>`);
+    }
+}
+
 const bunBuiltHtml = await getText('./index.html')
-const inlined = bunBuiltHtml.replace(
+
+// Inject custom dictionary options
+let processedHtml = bunBuiltHtml;
+if (customDictOptions.length > 0) {
+    const optionsString = '                ' + customDictOptions.join('\n                ');
+    // Insert before the "custom" option.
+    processedHtml = processedHtml.replace(
+        /(<option value="custom")/,
+        `${optionsString}\n                $1`
+    );
+}
+
+
+const inlined = processedHtml.replace(
   /<link rel="stylesheet"(?: crossorigin)? href="(.+?)">/,
   (match, path) => {
     const css = getText(path)

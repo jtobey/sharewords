@@ -65,6 +65,9 @@ export class GameSetup {
       const dictionaryType = this.dictionaryType.value;
       if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
         settings.dictionaryType = dictionaryType;
+      } else {
+        settings.dictionaryType = 'custom';
+        settings.dictionarySettings = dictionaryType;
       }
 
       if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
@@ -142,6 +145,9 @@ export class GameSetup {
     } else {
       this.dictionaryUrlContainer.hidden = true;
     }
+    if (selectedValue !== 'custom' && selectedValue !== 'freeapi') {
+      this.dictionaryUrl.value = '';
+    }
   }
 
   private _populateSettingsDialog() {
@@ -150,6 +156,11 @@ export class GameSetup {
 
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
+    if (this.gameState.settings.dictionaryType === 'custom' &&
+        typeof this.gameState.settings.dictionarySettings === 'string' &&
+        this.dictionaryType.querySelector(`option[value="${this.gameState.settings.dictionarySettings}"]`)) {
+      this.dictionaryType.value = this.gameState.settings.dictionarySettings;
+    }
     this._handleDictChange();
     if (typeof this.gameState.settings.dictionarySettings === 'string') {
       this.dictionaryUrl.value = this.gameState.settings.dictionarySettings
