@@ -73,7 +73,7 @@ describe('word list', () => {
     expect([...wordList]).toEqual(['ZYYZ'])
   })
 
-  it('should should reject a recurive subroutine', () => {
+  it('should reject a recursive subroutine', () => {
     const name = 'Test Lexicon'
     const description = 'Lexicon for testing.'
     const lexicon = Lexicon.create({
@@ -90,7 +90,6 @@ describe('word list', () => {
       instructions: [ 3 ],
     })
     const binary = Lexicon.encode(lexicon).finish()
-    const wordList = new WordList(binary)
-    expect(() => [...wordList]).toThrow()
+    expect(() => new WordList(binary)).toThrow()
   })
 })
