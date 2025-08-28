@@ -62,23 +62,17 @@ export class GameSetup {
       const playerNames = playerInputs.map(input => input.value).filter(name => name.trim() !== '');
       settings.players = playerNames.map((name, i) => new Player({ id: String(i + 1), name }));
 
-      const dictionaryType = this.dictionaryType.value;
-      if (dictionaryType === 'permissive' || dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-        settings.dictionaryType = dictionaryType;
-      } else {
-        settings.dictionaryType = 'custom';
-        settings.dictionarySettings = dictionaryType;
-      }
-
-      if (dictionaryType === 'freeapi' || dictionaryType === 'custom') {
-        const url = this.dictionaryUrl.value;
-        if (url) {
-          settings.dictionarySettings = url;
-        } else {
-          settings.dictionarySettings = null;
-        }
-      } else {
+      const dictionaryValue = this.dictionaryType.value;
+      if (dictionaryValue === 'permissive') {
+        settings.dictionaryType = 'permissive';
         settings.dictionarySettings = null;
+      } else if (dictionaryValue === 'freeapi' || dictionaryValue === 'custom') {
+        settings.dictionaryType = dictionaryValue;
+        settings.dictionarySettings = this.dictionaryUrl.value || null;
+      } else {
+        // This is a pre-packaged dictionary
+        settings.dictionaryType = 'custom';
+        settings.dictionarySettings = dictionaryValue;
       }
 
       const bagLanguage = this.tileDistribution.value;
