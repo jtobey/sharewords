@@ -47,31 +47,79 @@ export class WordList {
     if (!metadata) throw new InvalidLexiconError('No `metadata` field.')
     this._metadata = metadata
     this.instructions = insns
+    this._checkForRecursion()
   }
 
   get metadata() { return this._metadata }
   private get macros() { return this._metadata.macros }
 
-  private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
-    while (!ip.atEnd) {
-      const insn = this.macros[ip.varintNumber()]
-      if (!insn) {
-        throw new InvalidLexiconError(`Instruction ${insn} out of range [0, ${this.macros.length - 1}).`)
-      }
-      if (insn.subword !== undefined) {
-        wordBuffer.push(insn.subword)
-        continue
-      }
-      yield wordBuffer.join('')
-      if (insn.clear) wordBuffer.length = 0
-      else if (insn.backup !== undefined) wordBuffer.length -= insn.backup
-      else if (insn.subroutine) {
-        // TODO - Follow `insn.subroutine.instructions` avoiding recursion.
-        throw new Error('Subroutines are not yet supported.')
+  private _checkForRecursion() {
+    const visiting = new Set<number>()
+    const visited = new Set<number>()
+    for (let i = 0; i < this.macros.length; ++i) {
+      if (visited.has(i)) continue
+      this._dfs(i, visiting, visited)
+    }
+  }
+
+  private _dfs(macroIndex: number, visiting: Set<number>, visited: Set<number>) {
+    visiting.add(macroIndex)
+    const macro = this.macros[macroIndex]
+    if (macro?.subroutine) {
+      for (const subMacroIndex of macro.subroutine.instructions) {
+        if (visiting.has(subMacroIndex)) {
+          throw new InvalidLexiconError('Recursive subroutine detected.')
+        }
+        if (!visited.has(subMacroIndex)) {
+          this._dfs(subMacroIndex, visiting, visited)
+        }
       }
     }
+    visiting.delete(macroIndex)
+    visited.add(macroIndex)
+  }
+
+  private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
+    const stack: Iterator<number>[] = [this.readInstructions(ip)]
+
+    while (stack.length > 0) {
+        const it = stack[stack.length - 1]!
+        const next = it.next()
+
+        if (next.done) {
+            stack.pop()
+            continue
+        }
+
+        const macroIndex = next.value
+        const insn = this.macros[macroIndex]
+
+        if (!insn) {
+            throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
+        }
+
+        if (insn.subword !== undefined) {
+            wordBuffer.push(insn.subword)
+        } else if (insn.subroutine) {
+            stack.push(insn.subroutine.instructions[Symbol.iterator]())
+        } else {
+            yield wordBuffer.join('')
+            if (insn.clear) {
+                wordBuffer.length = 0
+            } else if (insn.backup !== undefined) {
+                wordBuffer.length -= insn.backup
+            }
+        }
+    }
+
     if (wordBuffer.length) {
-      yield wordBuffer.join('')
+        yield wordBuffer.join('')
+    }
+}
+
+  private *readInstructions(ip: Pointer): Generator<number> {
+    while (!ip.atEnd) {
+      yield ip.varintNumber()
     }
   }
 
