@@ -198,6 +198,9 @@ export class GameSetup {
     if (this.settingsDialog.hidden) {
       this._populateSettingsDialog();
       this.settingsDialog.hidden = false;
+      if (this.startGameButton) {
+        this.startGameButton.focus()
+      }
     } else {
       this.settingsDialog.hidden = true;
     }
