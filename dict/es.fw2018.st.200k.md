@@ -15,7 +15,7 @@ perl -nle '
   my ($word, $frequency) = /^(.*?)\s+(\d+)/u;  # Parse the line.
   next if length(word) < 2;    # Filter out single-letter words.
   next if $word =~ /[^a-zñ]/;  # Filter out punctuation etc.
-  next if $word !~ /           # Filter out foreign and irregular words.
+  next if $word !~ /           # Filter out most foreign and irregular words.
     ^(
       y
     |
@@ -23,6 +23,8 @@ perl -nle '
     |
       (
         ^(anti|ex|post)(?=.)
+      |
+        ^kilo
       |
         (
           (
