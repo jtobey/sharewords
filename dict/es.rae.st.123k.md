@@ -6,6 +6,7 @@
 ## Source of es.rae.st.123k.swdict
 
 * Here `../CREA_total.TXT` is one of the frequent word lists in ISO Latin 1 encoding from the Real Academia Española (https://corpus.rae.es/lfrecuencias.html)
+  * Be sure to check with the copyright owner before publishing this data.
 
 ### Bash script
 
