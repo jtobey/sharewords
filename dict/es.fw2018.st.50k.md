@@ -1,9 +1,9 @@
-# es.fw2018.st.200k
+# es.fw2018.st.50k
 
-* 200k palabras frecuentes en español sin tilde en las vocales
-* 200k frequent Spanish words with accent marks removed from vowels
+* 50k palabras frecuentes en español sin tilde en las vocales
+* 50k frequent Spanish words with accent marks removed from vowels
 
-## Source of es.fw2018.st.200k
+## Source of es.fw2018.st.50k
 
 * Here `../FrequencyWords` is a clone of https://github.com/hermitdave/FrequencyWords.git.
 
@@ -70,8 +70,8 @@ perl -Mstrict -wnle '
   ' ../FrequencyWords/content/2018/es/es_full.txt > dict/es.fw2018.st.sharewords~
 bun run dict/dictc.ts \
     -i dict/es.fw2018.st.sharewords~ \
-    --top-n=200k \
-    -o dict/es.fw2018.st.200k.swdict \
-    --name="Español FrequencyWords 200k" \
-    --description="$(< dict/es.fw2018.st.200k.md)"
+    --top-n=50k \
+    -o dict/es.fw2018.st.50k.swdict \
+    --name="Español FrequencyWords 50k" \
+    --description="$(< dict/es.fw2018.st.50k.md)"
 ```
