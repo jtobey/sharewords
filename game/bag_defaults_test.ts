@@ -13,6 +13,13 @@ describe('getBagDefaults', () => {
     expect(defaults!.letterValues.get('A')).toBe(1)
   })
 
+  it('should return Spanish defaults', () => {
+    const defaults = getBagDefaults('es', 100)
+    expect(defaults).not.toBeNull()
+    expect(defaults!.letterCounts.get('A')).toBe(12)
+    expect(defaults!.letterValues.get('A')).toBe(1)
+  })
+
   it('should scale letter counts deterministically', () => {
     const defaults = getBagDefaults('en', 50)
     expect(defaults).not.toBeNull()
