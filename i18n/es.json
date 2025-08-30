@@ -15,7 +15,7 @@
       "play_rejected": "${message} Jugada rechazada.",
       "word_not_in_dictionary": "La palabra \"${word}\" ${status} en ${dictionaryName}.",
       "status": {
-        "not_found": "no encontrada",
+        "not_found": "no se encuentra",
         "has_no_definition": "no tiene definición"
       }
     },
