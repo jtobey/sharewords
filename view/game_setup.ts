@@ -154,7 +154,17 @@ export class GameSetup {
 
   private _populateSettingsDialog() {
     // Players
-    this._updatePlayerList(this.gameState.players);
+    const players = this.gameState.players;
+    const localPlayerIndex = players.findIndex(p => p.id === this.gameState.playerId);
+    if (localPlayerIndex > 0) {
+      const rotatedPlayers = [
+        ...players.slice(localPlayerIndex),
+        ...players.slice(0, localPlayerIndex)
+      ];
+      this._updatePlayerList(rotatedPlayers);
+    } else {
+      this._updatePlayerList(players);
+    }
 
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
