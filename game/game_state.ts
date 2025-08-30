@@ -238,7 +238,7 @@ export class GameState extends EventTarget {
           for (let col = toCol; true; col += pushDirection) {
             if (col < 0 || col >= capacity) return null
             const rowmate = newRowmates.get(col)
-            if (rowmate) newToPush.push(rowmate)
+            if (rowmate) newToPush.unshift(rowmate)
             else return newToPush
           }
         }
