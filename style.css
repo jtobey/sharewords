@@ -188,8 +188,11 @@
 }
 
 @media (max-width: 601px) {
-  #board-container {
+  #board-container, #buttons-container {
     width: 98vw;
+  }
+
+  #board-container {
     height: 98vw;
   }
 
