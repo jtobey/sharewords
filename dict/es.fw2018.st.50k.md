@@ -10,7 +10,11 @@
 ### Bash script
 
 ```shell
-perl -Mstrict -wnle '
+perl -Mutf8 -Mstrict -wnle '
+  BEGIN {
+    binmode STDIN, ":encoding(UTF-8)";
+    binmode STDOUT, ":encoding(UTF-8)";
+  }
   tr/áéíóúü/aeiouu/;           # Strip diacritics from vowels.
   my ($word, $frequency) = /^(.*?)\s+(\d+)/u;  # Parse the line.
   next if length($word) < 2;   # Filter out single-letter words.
@@ -67,7 +71,7 @@ perl -Mstrict -wnle '
     )$
   /xu;
   print;
-  ' ../FrequencyWords/content/2018/es/es_full.txt > dict/es.fw2018.st.sharewords~
+  ' < ../FrequencyWords/content/2018/es/es_full.txt > dict/es.fw2018.st.sharewords~
 bun run dict/dictc.ts \
     -i dict/es.fw2018.st.sharewords~ \
     --top-n=50k \
