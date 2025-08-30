@@ -240,9 +240,9 @@ export class View {
 
     const count = this.gameState.exchangeTilesCount
     if (count === 0) {
-      passExchangeButton.textContent = t('ui.buttons.pass_turn')
+      passExchangeButton.title = t('ui.buttons.pass_turn')
     } else {
-      passExchangeButton.textContent = t('ui.buttons.exchange_count', { count })
+      passExchangeButton.title = t('ui.buttons.exchange_count', { count })
     }
   }
 
