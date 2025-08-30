@@ -13,18 +13,26 @@ describe('getBagDefaults', () => {
     expect(defaults!.letterValues.get('A')).toBe(1)
   })
 
-  it('should scale letter counts', () => {
+  it('should scale letter counts deterministically', () => {
     const defaults = getBagDefaults('en', 50)
     expect(defaults).not.toBeNull()
     const totalTiles = [...defaults!.letterCounts.values()].reduce((a, b) => a + b, 0)
     expect(totalTiles).toBe(50)
+    // These values are calculated based on the deterministic algorithm
+    expect(defaults!.letterCounts.get('')).toBe(1)
+    expect(defaults!.letterCounts.get('A')).toBe(4)
+    expect(defaults!.letterCounts.get('E')).toBe(6)
   })
 
-  it('should scale letter counts up', () => {
+  it('should scale letter counts up deterministically', () => {
     const defaults = getBagDefaults('en', 200)
     expect(defaults).not.toBeNull()
     const totalTiles = [...defaults!.letterCounts.values()].reduce((a, b) => a + b, 0)
     expect(totalTiles).toBe(200)
+    // These values are calculated based on the deterministic algorithm
+    expect(defaults!.letterCounts.get('')).toBe(4)
+    expect(defaults!.letterCounts.get('A')).toBe(18)
+    expect(defaults!.letterCounts.get('E')).toBe(24)
   })
 
   it('should handle zero tile count', () => {

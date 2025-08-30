@@ -80,26 +80,32 @@ export function getBagDefaults(bagLanguage: string, tileCount?: number): BagDefa
   if (tileCount !== undefined) {
     const defaultTileCount = [...letterCounts.values()].reduce((a, b) => a + b, 0)
     if (defaultTileCount > 0) {
-      const scale = tileCount / defaultTileCount
-      let total = 0
-      for (const [letter, count] of letterCounts.entries()) {
-        const newCount = Math.round(count * scale)
-        letterCounts.set(letter, newCount)
-        total += newCount
+      const newLetterCounts = new Map<string, number>()
+      for (const letter of letterCounts.keys()) {
+        newLetterCounts.set(letter, 0)
       }
-      // Add or remove tiles to match tileCount due to rounding
-      let diff = tileCount - total
-      const step = Math.sign(diff)
-      if (step !== 0) {
-        const letters = [...letterCounts.keys()]
-        while (diff !== 0) {
-          const letter = letters[Math.floor(Math.random() * letters.length)]!
-          const count = letterCounts.get(letter)!
-          if (count + step >= 0) {
-            letterCounts.set(letter, count + step)
-            diff -= step
-          }
-        }
+
+      const letterSegments: {letter: string, end: number}[] = []
+      let currentEnd = 0
+      const sortedLetters = [...letterCounts.keys()].sort()
+      for (const letter of sortedLetters) {
+        const count = letterCounts.get(letter)!
+        currentEnd += count / defaultTileCount
+        letterSegments.push({letter, end: currentEnd})
+      }
+      // Ensure the last segment ends at exactly 1.0 to avoid floating point issues
+      if (letterSegments.length > 0) {
+        letterSegments[letterSegments.length - 1]!.end = 1.0
+      }
+
+      for (let i = 0; i < tileCount; i++) {
+        const value = (i + 0.5) / tileCount
+        const segment = letterSegments.find(s => value < s.end)!
+        newLetterCounts.set(segment.letter, newLetterCounts.get(segment.letter)! + 1)
+      }
+      return {
+        letterCounts: newLetterCounts,
+        letterValues: new Map(Object.entries(defaults.letterValues)),
       }
     }
   }
