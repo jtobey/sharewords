@@ -74,6 +74,7 @@
       },
       "bingo_bonus": "Bingo Bonus",
       "random_seed": "Random Seed",
+      "random_seed_random_label": "Random?",
       "player_placeholder": "Player ${index}"
     },
     "bag_tile_count": "Tiles in bag: ${count}",

@@ -21,6 +21,7 @@ export class GameSetup {
   private tileDistribution: HTMLSelectElement;
   private bingoBonus: HTMLInputElement;
   private randomSeed: HTMLInputElement;
+  private randomSeedCheckbox: HTMLInputElement;
   private startGameButton: HTMLButtonElement;
   private cancelSettingsButton: HTMLButtonElement;
 
@@ -38,6 +39,7 @@ export class GameSetup {
     this.tileDistribution = this.doc.getElementById('tile-distribution')! as HTMLSelectElement;
     this.bingoBonus = this.doc.getElementById('bingo-bonus')! as HTMLInputElement;
     this.randomSeed = this.doc.getElementById('random-seed')! as HTMLInputElement;
+    this.randomSeedCheckbox = this.doc.getElementById('random-seed-checkbox')! as HTMLInputElement;
     this.startGameButton = this.doc.getElementById('start-game-with-settings')! as HTMLButtonElement;
     this.cancelSettingsButton = this.doc.getElementById('cancel-settings')! as HTMLButtonElement;
 
@@ -52,6 +54,10 @@ export class GameSetup {
     });
 
     this.dictionaryType.addEventListener('change', () => this._handleDictChange());
+
+    this.randomSeedCheckbox.addEventListener('change', () => {
+      this.randomSeed.disabled = this.randomSeedCheckbox.checked;
+    });
 
     this.startGameButton.addEventListener('click', () => {
       // Create a new Settings object based on the current settings.
@@ -86,7 +92,7 @@ export class GameSetup {
 
       settings.bingoBonus = parseInt(this.bingoBonus.value, 10);
       settings.tileSystemSettings = {
-        seed: this.randomSeed.value || String(Math.floor(1000000 * this.browser.getRandom()))
+        seed: this.randomSeedCheckbox.checked ? '' : this.randomSeed.value
       };
 
       const params = gameParamsFromSettings(settings);
@@ -169,6 +175,8 @@ export class GameSetup {
 
     // Seed
     this.randomSeed.value = this.gameState.settings.tileSystemSettings.seed;
+    this.randomSeedCheckbox.checked = true;
+    this.randomSeed.disabled = true;
 
     this._populateTileDistributionDropdown();
   }

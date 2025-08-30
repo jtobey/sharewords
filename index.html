@@ -52,7 +52,11 @@
             </div>
             <div class="settings-group">
               <h3 data-i18n="ui.settings.random_seed"></h3>
-              <input type="text" id="random-seed">
+              <input type="tel" id="random-seed" pattern="[0-9]*" maxlength="10">
+              <label>
+                <input type="checkbox" id="random-seed-checkbox" checked>
+                <span data-i18n="ui.settings.random_seed_random_label"></span>
+              </label>
             </div>
           </div>
           <div class="buttons">
