@@ -43,8 +43,15 @@
   margin-top: 20px;
 }
 
+#buttons-container {
+  display: flex;
+  width: 310px;
+  gap: 5px;
+}
+
 #buttons-container button {
-  margin-bottom: 4px;
+  flex: 1;
+  height: 30px;
 }
 
 #rack-container, #exchange-container {
@@ -181,8 +188,11 @@
 }
 
 @media (max-width: 601px) {
-  #board-container {
+  #board-container, #buttons-container {
     width: 98vw;
+  }
+
+  #board-container {
     height: 98vw;
   }
 
