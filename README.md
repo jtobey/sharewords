@@ -37,7 +37,8 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
     *   Alternatively, exchange tiles with the bag or pass your turn.
 4.  After your turn, the game will generate a "turn URL". Send this URL to the other player.
 5.  When you receive a turn URL from the other player, open it in your browser to update your game state.
-6.  Play continues until the bag is empty and one player plays their last tile.
+6.  Play continues until the bag is empty and one player plays their last tile. (UNTESTED)
+7.  Final scores are calculated, and a winner is determined. (UNTESTED)
 
 ## Development
 

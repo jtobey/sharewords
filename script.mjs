@@ -1,3 +1,18 @@
+/*
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import {
     BOARD_SIZE,
     RACK_SIZE,
@@ -288,17 +303,13 @@ function updateGameStatus(gameState) {
     if (tilesInBagEl) tilesInBagEl.textContent = gameState.bag.length;
 
     if (gameState.isGameOver) {
-        const existingMessage = document.getElementById('game-over-message');
-        if (!existingMessage) {
-            const gameOverMessage = document.createElement('div');
-            gameOverMessage.id = 'game-over-message';
-            gameOverMessage.textContent = 'Game Over';
-            gameOverMessage.style.fontSize = '2em';
-            gameOverMessage.style.textAlign = 'center';
-            gameOverMessage.style.marginTop = '20px';
-            const container = document.getElementById('game-status');
-            container.appendChild(gameOverMessage);
-        }
+        const gameOverMessage = document.createElement('div');
+        gameOverMessage.textContent = 'Game Over';
+        gameOverMessage.style.fontSize = '2em';
+        gameOverMessage.style.textAlign = 'center';
+        gameOverMessage.style.marginTop = '20px';
+        const container = document.getElementById('game-status');
+        container.appendChild(gameOverMessage);
     }
 }
 
@@ -1108,7 +1119,7 @@ function handleConfirmExchange() {
     currentGame.turnNumber++;
     currentGame.currentPlayerIndex = (currentGame.currentPlayerIndex + 1) % currentGame.players.length;
 
-    // 6. Generate Turn URL
+    // 7. Generate Turn URL
     // The `exchangeData` for the URL should be the comma-separated string of original rack indices.
     const urlExchangeIndicesString = currentRackIndicesForURL.join(',');
     const isFirstTurnByP1 = (currentGame.turnNumber === 1 && localPlayerId === 'player1');

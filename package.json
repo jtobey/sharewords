@@ -9,6 +9,11 @@
   },
   "author": "",
   "devDependencies": {
-    "jsdom": "^26.1.0"
+    "chai": "^5.2.1",
+    "jsdom": "^26.1.0",
+    "mocha": "^11.7.1"
+  },
+  "dependencies": {
+    "esm": "^3.2.25"
   }
 }
