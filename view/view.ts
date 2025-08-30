@@ -324,12 +324,13 @@ export class View {
       content.appendChild(copyUrlContainer);
     }
 
-    const dialog = new Dialog(this.doc, title, content, [t('ui.buttons.ok'), t('ui.buttons.cancel_settings')]);
+    const okButtonText = t('ui.buttons.ok')
+    const dialog = new Dialog(this.doc, title, content, [okButtonText, t('ui.buttons.cancel_settings')]);
     const result = await dialog.show();
 
     return {
-      confirmed: result === 'OK',
-      copyUrl: result === 'OK' && (copyUrlCheckbox?.checked ?? false),
+      confirmed: result === okButtonText,
+      copyUrl: result === okButtonText && (copyUrlCheckbox?.checked ?? false),
     };
   }
 
