@@ -50,22 +50,64 @@ perl -Mutf8 -Mstrict -wnle '
   next if $word !~ /           # Filter out most foreign and irregular words.
     ^(
       y
-    |
+      |
       ( kas? | kappas? | kelvins? | zetas? )
-    |
+      |
       (
-        ^( anti | ex | post )(?=.)
-      |
+        ^( anti | des | ex | post )(?=.)
+        |
         ^kilo
-      |
+        |
         (
           (
-            ([dhjlmnrsv]|ñ|[bcfgp][lr]?|ch|(ll|y)(?!i[aeou])|qu(?=e|i(?![iy]))|x(?=[ei])|[dt]r?|z(?=[aou]))
-            (u(?!u)|i(?!i))?
+            (
+              [dhjlmnñrsv]
+              |
+              [bcfgp][lr]?
+              |
+              ch
+              |
+              (ll|y)(?!i[aeou])
+              |
+              qu(?=e|i(?![iy]))
+              |
+              x(?=[ei])
+              |
+              [dt]r?
+              |
+              z(?=[aou])
+            )
+            (
+              u(?!u)
+              |
+              i(?!i)
+            )?
           )?
           (a(?!aa)|e(?!ee)|i(?!i)|o(?!oo)|u(?!u))
           (u(?!u)|i(?!i|$)|y$)?
-          ([cdjlrsz]?|n(?![bp])|m(?=[bnp])|([bdn]s|x)(?=[tpc])|x(?=[haeiou])|b(?!$)|p(?=[cnst])|g(?=[mn])|t(?=[lmn])|[rn]s(?!$))
+          (
+            [cdjlrz]?
+            |
+            ([bdn]s|x)(?=[tpc])
+            |
+            b(?!$)
+            |
+            g(?=[mn])
+            |
+            [nr]s(?!$)
+            |
+            n(?![bp])
+            |
+            m(?=[bnp])
+            |
+            p(?=[cnst])
+            |
+            s(?!h)
+            |
+            t(?=[lmn])
+            |
+            x(?=[haeiou])
+          )
         )
       )+
     )$
