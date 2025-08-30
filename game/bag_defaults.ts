@@ -66,18 +66,45 @@ export function getBagLanguages(): Iterable<{
   }))
 }
 
-export function getBagDefaults(bagLanguage: string): BagDefaults | null;
-export function getBagDefaults(bagLanguage: ''): BagDefaults;
-export function getBagDefaults(bagLanguage: 'en'): BagDefaults;
+export function getBagDefaults(bagLanguage: string, tileCount?: number): BagDefaults | null;
+export function getBagDefaults(bagLanguage: '', tileCount?: number): BagDefaults;
+export function getBagDefaults(bagLanguage: 'en', tileCount?: number): BagDefaults;
 
-export function getBagDefaults(bagLanguage: string): BagDefaults | null {
+export function getBagDefaults(bagLanguage: string, tileCount?: number): BagDefaults | null {
   if (bagLanguage === '') {
     return {letterCounts: new Map, letterValues: new Map}
   }
   const defaults = BAG_DEFAULTS.get(bagLanguage)
   if (!defaults) return null
+  const letterCounts = new Map(Object.entries(defaults.letterCounts))
+  if (tileCount !== undefined) {
+    const defaultTileCount = [...letterCounts.values()].reduce((a, b) => a + b, 0)
+    if (defaultTileCount > 0) {
+      const scale = tileCount / defaultTileCount
+      let total = 0
+      for (const [letter, count] of letterCounts.entries()) {
+        const newCount = Math.round(count * scale)
+        letterCounts.set(letter, newCount)
+        total += newCount
+      }
+      // Add or remove tiles to match tileCount due to rounding
+      let diff = tileCount - total
+      const step = Math.sign(diff)
+      if (step !== 0) {
+        const letters = [...letterCounts.keys()]
+        while (diff !== 0) {
+          const letter = letters[Math.floor(Math.random() * letters.length)]!
+          const count = letterCounts.get(letter)!
+          if (count + step >= 0) {
+            letterCounts.set(letter, count + step)
+            diff -= step
+          }
+        }
+      }
+    }
+  }
   return {
-    letterCounts: new Map(Object.entries(defaults.letterCounts)),
+    letterCounts,
     letterValues: new Map(Object.entries(defaults.letterValues)),
   }
 }

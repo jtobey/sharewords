@@ -79,7 +79,9 @@ export class Settings {
   static forLanguage(bagLanguage: 'en'): Settings;
 
   static forLanguage(bagLanguage: string) {
-    const defaults = getBagDefaults(bagLanguage)
+    const boardSize = DEFAULT_BOARD_LAYOUT.reduce((acc, row) => acc + row.length, 0);
+    const tileCount = Math.round(boardSize / (15 * 15) * 100);
+    const defaults = getBagDefaults(bagLanguage, tileCount)
     return defaults && new Settings(defaults)
   }
 

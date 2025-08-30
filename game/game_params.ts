@@ -24,8 +24,11 @@ export function getBagParam(settings: Settings): string | undefined {
     ([letter, count]) => `${letterToUrl(letter)}-${count}-${settings.letterValues.get(letter) ?? 0}`
   ).join('.');
 
+  const boardSize = settings.boardLayout.reduce((acc, row) => acc + row.length, 0);
+  const tileCount = Math.round(boardSize / (15 * 15) * 100);
+
   for (const { code: bagLanguage } of getBagLanguages()) {
-    const defaults = getBagDefaults(bagLanguage)!
+    const defaults = getBagDefaults(bagLanguage, tileCount)!
     const settingsLetters = new Set(settings.letterCounts.keys());
     const defaultLetters = new Set(defaults.letterCounts.keys());
     const diffParts: string[] = [];
@@ -115,7 +118,7 @@ export function gameParamsFromSettings(settings: Settings): URLSearchParams {
   return params
 }
 
-export function parseBagParam(bagParam: string) {
+export function parseBagParam(bagParam: string, boardLayout: string[]) {
   const urlToLetter = (s: string) => s === '_' ? '' : s;
   let letterConfigs!: string
   let defaults!: BagDefaults
@@ -123,7 +126,9 @@ export function parseBagParam(bagParam: string) {
   if (langMatch) {
     letterConfigs = langMatch[1]!.substring(1)
     const bagLanguage = langMatch[2]!
-    const maybeDefaults = getBagDefaults(bagLanguage)
+    const boardSize = boardLayout.reduce((acc, row) => acc + row.length, 0);
+    const tileCount = Math.round(boardSize / (15 * 15) * 100);
+    const maybeDefaults = getBagDefaults(bagLanguage, tileCount)
     if (!maybeDefaults) {
       throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: bagLanguage }))
     }
@@ -188,14 +193,14 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
     newPlayers.push(new Player({id: String(playerNumber), name: pnParam.slice(0, settings.maxPlayerNameLength)}))
   }
   if (newPlayers.length) settings.players = newPlayers
+  const boardParam = gameParams.get('board')
+  if (boardParam) settings.boardLayout = boardParam.split('-')
   const bagParam = gameParams.get('bag')
   if (bagParam) {
-    const parsed = parseBagParam(bagParam)
+    const parsed = parseBagParam(bagParam, settings.boardLayout)
     settings.letterCounts = parsed.letterCounts
     settings.letterValues = parsed.letterValues
   }
-  const boardParam = gameParams.get('board')
-  if (boardParam) settings.boardLayout = boardParam.split('-')
   const bingoParam = gameParams.get('bingo')
   if (bingoParam) settings.bingoBonus = parseInt(bingoParam, 10)
   const racksizeParam = gameParams.get('racksize')

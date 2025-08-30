@@ -122,37 +122,39 @@ describe('game params', () => {
   })
 
   describe('parseBagParam', () => {
+    const boardLayout = Settings.forLanguage('en').boardLayout
+
     test('parses letter, count, and value', () => {
-      const parsed = parseBagParam('A-15-3')
+      const parsed = parseBagParam('A-15-3', [])
       expect(parsed.letterCounts).toEqual(new Map([['A', 15]]))
       expect(parsed.letterValues).toEqual(new Map([['A', 3]]))
     })
 
     test('parses bag with blank tile', () => {
-      const parsed = parseBagParam('_-1-0')
+      const parsed = parseBagParam('_-1-0', [])
       expect(parsed.letterCounts.get('')).toBe(1)
       expect(parsed.letterValues.get('')).toBe(0)
     })
 
     test('parses bag with emoji tile', () => {
-      const parsed = parseBagParam('😂-1-5')
+      const parsed = parseBagParam('😂-1-5', [])
       expect(parsed.letterCounts.get('😂')).toBe(1)
       expect(parsed.letterValues.get('😂')).toBe(5)
     })
 
     test('uses default value', () => {
-      const parsed = parseBagParam('A-15..en')
+      const parsed = parseBagParam('A-15..en', boardLayout)
       expect(parsed.letterCounts.get('A')).toEqual(15)
       expect(parsed.letterValues.get('A')).toEqual(Settings.forLanguage('en').letterValues.get('A')!)
     })
     test('uses default count', () => {
-      const parsed = parseBagParam('A--3..en')
+      const parsed = parseBagParam('A--3..en', boardLayout)
       expect(parsed.letterCounts.get('A')).toEqual(Settings.forLanguage('en').letterCounts.get('A')!)
       expect(parsed.letterValues.get('A')).toEqual(3)
     })
 
     test('uses default remaining letters', () => {
-      const parsed = parseBagParam('B-2-4..en')
+      const parsed = parseBagParam('B-2-4..en', boardLayout)
       const settings = Settings.forLanguage('en')
       settings.letterCounts.set('B', 2)
       settings.letterValues.set('B', 4)
@@ -161,7 +163,7 @@ describe('game params', () => {
     })
 
     test('uses default all letters', () => {
-      const parsed = parseBagParam('.en')
+      const parsed = parseBagParam('.en', boardLayout)
       const settings = Settings.forLanguage('en')
       expect(parsed.letterCounts).toEqual(settings.letterCounts)
       expect(parsed.letterValues).toEqual(settings.letterValues)
