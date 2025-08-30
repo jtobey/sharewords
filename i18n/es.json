@@ -46,7 +46,7 @@
     }
   },
   "ui": {
-    "title": "Constructor de Crucigramas",
+    "title": "Enlacegrama",
     "buttons": {
       "play_word": "Jugar Palabra",
       "pass_turn": "Pasar Turno",

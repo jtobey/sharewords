@@ -46,7 +46,7 @@
     }
   },
   "ui": {
-    "title": "Crossword Builder",
+    "title": "Sharewords",
     "buttons": {
       "play_word": "Play Word",
       "pass_turn": "Pass Turn",
