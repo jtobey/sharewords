@@ -24,7 +24,7 @@ perl -Mstrict -wnle '
     ja | je | ji | ju | ka | la | le | lo |
     me | mi | mu | ni | no | ñu |
     oa | oc | oh | os | ox |
-    pe | pi | pu | re | ro | se | so | su | ta | te | to | tu |
+    pe | pi | pu | re | ro | se | so | su | ta | te | ti | to | tu |
     uf | uh | un |
     va | ve | vi | xi | ya | ye | yo | za
   /xu;
