@@ -74,6 +74,7 @@
       },
       "bingo_bonus": "Bono de Bingo",
       "random_seed": "Semilla Aleatoria",
+      "random_seed_random_label": "¿Aleatorio?",
       "player_placeholder": "Jugador ${index}"
     },
     "bag_tile_count": "Fichas en la bolsa: ${count}",
