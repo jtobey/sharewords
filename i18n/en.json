@@ -82,7 +82,7 @@
       "copy_turn_url": "Copy turn URL to clipboard",
       "confirm_title": "Confirm",
       "play_word_title": "Play word?",
-      "play_word_details": "{word} for {score} points"
+      "play_word_details": "${word} for ${score} points"
     },
     "game": {
       "join_link": "join"

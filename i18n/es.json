@@ -80,7 +80,9 @@
     "bag_tile_count": "Fichas en la bolsa: ${count}",
     "dialog": {
       "copy_turn_url": "¿Copiar URL del turno?",
-      "confirm_title": "Confirmar"
+      "confirm_title": "Confirmar",
+      "play_word_title": "¿Jugar palabra?",
+      "play_word_details": "${word} por ${score} puntos"
     },
     "game": {
       "join_link": "unirse"
