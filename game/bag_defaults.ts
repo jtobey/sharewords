@@ -66,18 +66,51 @@ export function getBagLanguages(): Iterable<{
   }))
 }
 
-export function getBagDefaults(bagLanguage: string): BagDefaults | null;
-export function getBagDefaults(bagLanguage: ''): BagDefaults;
-export function getBagDefaults(bagLanguage: 'en'): BagDefaults;
+export function getBagDefaults(bagLanguage: string, tileCount?: number): BagDefaults | null;
+export function getBagDefaults(bagLanguage: '', tileCount?: number): BagDefaults;
+export function getBagDefaults(bagLanguage: 'en', tileCount?: number): BagDefaults;
 
-export function getBagDefaults(bagLanguage: string): BagDefaults | null {
+export function getBagDefaults(bagLanguage: string, tileCount?: number): BagDefaults | null {
   if (bagLanguage === '') {
     return {letterCounts: new Map, letterValues: new Map}
   }
   const defaults = BAG_DEFAULTS.get(bagLanguage)
   if (!defaults) return null
+  const letterCounts = new Map(Object.entries(defaults.letterCounts))
+  if (tileCount !== undefined) {
+    const defaultTileCount = [...letterCounts.values()].reduce((a, b) => a + b, 0)
+    if (defaultTileCount > 0) {
+      const newLetterCounts = new Map<string, number>()
+      for (const letter of letterCounts.keys()) {
+        newLetterCounts.set(letter, 0)
+      }
+
+      const letterSegments: {letter: string, end: number}[] = []
+      let currentEnd = 0
+      const sortedLetters = [...letterCounts.keys()].sort()
+      for (const letter of sortedLetters) {
+        const count = letterCounts.get(letter)!
+        currentEnd += count / defaultTileCount
+        letterSegments.push({letter, end: currentEnd})
+      }
+      // Ensure the last segment ends at exactly 1.0 to avoid floating point issues
+      if (letterSegments.length > 0) {
+        letterSegments[letterSegments.length - 1]!.end = 1.0
+      }
+
+      for (let i = 0; i < tileCount; i++) {
+        const value = (i + 0.5) / tileCount
+        const segment = letterSegments.find(s => value < s.end)!
+        newLetterCounts.set(segment.letter, newLetterCounts.get(segment.letter)! + 1)
+      }
+      return {
+        letterCounts: newLetterCounts,
+        letterValues: new Map(Object.entries(defaults.letterValues)),
+      }
+    }
+  }
   return {
-    letterCounts: new Map(Object.entries(defaults.letterCounts)),
+    letterCounts,
     letterValues: new Map(Object.entries(defaults.letterValues)),
   }
 }

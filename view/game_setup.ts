@@ -77,7 +77,9 @@ export class GameSetup {
 
       const bagLanguage = this.tileDistribution.value;
       if (hasBagDefaults(bagLanguage)) {
-        const defaults = getBagDefaults(bagLanguage)!;
+        const boardSize = settings.boardLayout.reduce((acc, row) => acc + row.length, 0);
+        const tileCount = Math.round(boardSize / (15 * 15) * 100);
+        const defaults = getBagDefaults(bagLanguage, tileCount)!;
         settings.letterCounts = defaults.letterCounts;
         settings.letterValues = defaults.letterValues;
       }
