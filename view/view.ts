@@ -1,7 +1,7 @@
 import { Dialog } from './dialog.js'
 import { t } from '../i18n.js'
 import { GameSetup } from './game_setup.js'
-import type { GameState } from '../game/game_state.js'
+import type { GameState, TurnPreviewSuccess } from '../game/game_state.js'
 import type { Tile, TilePlacementRow } from '../game/tile.js'
 import { isBoardPlacementRow } from '../game/tile.js'
 import type { Square } from '../game/board.ts'
@@ -306,8 +306,18 @@ export class View {
   async showConfirmationDialog(
     title: string,
     showCopyCheckbox: boolean,
+    preview?: TurnPreviewSuccess,
   ): Promise<{confirmed: boolean, copyUrl: boolean}> {
     const content = this.doc.createElement('div');
+
+    if (preview) {
+      const details = this.doc.createElement('div');
+      details.textContent = t('ui.dialog.play_word_details', {
+        word: preview.mainWordForUrl,
+        score: preview.score,
+      });
+      content.appendChild(details);
+    }
 
     let copyUrlCheckbox: HTMLInputElement | undefined;
     if (showCopyCheckbox) {

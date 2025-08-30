@@ -24,6 +24,23 @@ export function makeStorageKey(gameId: string) {
   return 'sharewords_' + gameId
 }
 
+export type TurnPreviewSuccess = {
+  wordsFormed: string[];
+  score: number;
+  mainWordForUrl: string;
+  row: number;
+  col: number;
+  vertical: boolean;
+  blanks: number[];
+  error: null;
+};
+export type TurnPreviewError = { error: string };
+export type TurnPreviewResult = TurnPreviewSuccess | TurnPreviewError;
+
+export function isTurnPreviewSuccess(result: TurnPreviewResult): result is TurnPreviewSuccess {
+  return result.error === null;
+}
+
 export class GameState extends EventTarget {
   readonly shared: SharedState
   private inPlayTurns = false
@@ -291,6 +308,21 @@ export class GameState extends EventTarget {
       }
       this.moveTile(placement.row, placement.col, 'rack', nextFreeSpot)
       ++nextFreeSpot
+    }
+  }
+
+  getTurnPreview() {
+    const placements = this.tilesHeld.filter(isBoardPlacement);
+    try {
+      const result = this.board.checkWordPlacement(...placements);
+      const bingoBonus = (placements.length === this.settings.rackCapacity ? this.settings.bingoBonus : 0);
+      return {
+        ...result,
+        score: result.score + bingoBonus,
+        error: null,
+      };
+    } catch (e: any) {
+      return { error: e.message };
     }
   }
 
