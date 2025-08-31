@@ -79,8 +79,10 @@
     },
     "bag_tile_count": "Tiles in bag: ${count}",
     "dialog": {
-      "copy_turn_url": "Copy Turn URL?",
-      "confirm_title": "Confirm"
+      "copy_turn_url": "Copy turn URL to clipboard",
+      "confirm_title": "Confirm",
+      "play_word_title": "Play word?",
+      "play_word_details": "${word} for ${score} points"
     },
     "game": {
       "join_link": "join"

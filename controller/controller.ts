@@ -1,4 +1,5 @@
-import type { GameState } from '../game/game_state.js'
+import { t } from '../i18n.js';
+import { isTurnPreviewSuccess, type GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
 import { PlayRejectedError } from '../game/dictionary.js'
 import { KeyHandler } from './key_handler.js'
@@ -22,22 +23,28 @@ export class Controller {
   }
 
   private async playWordClick() {
-    const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
-      'Play Word?',
-      this.browser.hasClipboard(),
-    );
+    const preview = this.gameState.getTurnPreview();
+    if (isTurnPreviewSuccess(preview)) {
+      const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
+        t('ui.dialog.play_word_title'),
+        this.browser.hasClipboard(),
+        preview,
+      );
 
-    if (!confirmed) return;
+      if (!confirmed) return;
 
-    try {
-      await this.gameState.playWord()
-      if (copyUrl) {
-        const url = new URL(this.browser.getHref());
-        url.hash = this.gameState.turnUrlParams.toString();
-        await this.browser.writeToClipboard(url.toString());
+      try {
+        await this.gameState.playWord()
+        if (copyUrl) {
+          const url = new URL(this.browser.getHref());
+          url.hash = this.gameState.turnUrlParams.toString();
+          await this.browser.writeToClipboard(url.toString());
+        }
+      } catch (e: any) {
+        alert(e instanceof PlayRejectedError ? e.message : e)
       }
-    } catch (e: any) {
-      alert(e instanceof PlayRejectedError ? e.message : e)
+    } else {
+      alert(preview.error);
     }
   }
 
