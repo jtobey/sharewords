@@ -44,7 +44,7 @@ perl -Mutf8 -Mstrict -wnle '
     ava | ajo | rol | tos | ame | tia | pro | zoo | ire |
     che | vil | bon | zar | tac | eje | ano | tic | gin |
     jai | pos | per | uva | aro | len | faz | non | fez |
-    tao | too | osa | yen | lei | ata
+    tao | too | osa | yen | lei | ata | kas
   /xu;
   next if $word =~ /[^a-zñ]/;  # Filter out punctuation etc.
   next if $word !~ /           # Filter out most foreign and irregular words.
