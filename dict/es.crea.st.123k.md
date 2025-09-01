@@ -1,9 +1,9 @@
-# es.rae.st.123k
+# es.crea.st.123k
 
 * 123k palabras frecuentes en español sin tilde en las vocales
 * 123k frequent Spanish words with accent marks removed from vowels
 
-## Source of es.rae.st.123k.swdict
+## Source of es.crea.st.123k.swdict
 
 * Here `../CREA_total.TXT` is one of the frequent word lists in ISO Latin 1 encoding from the Real Academia Española (https://corpus.rae.es/lfrecuencias.html)
   * Be sure to check with the copyright owner before publishing this data.
@@ -17,11 +17,11 @@ perl -nle '
   next if !/[aeiou]/;                   # Filter out vowel-less words.
   s/\xF1/\xC3\xB1/g;                    # Convert ñ to UTF-8.
   print;
-  ' ../CREA_total.TXT > dict/es.rae.st.sharewords~
+  ' ../CREA_total.TXT > dict/es.crea.st.sharewords~
 bun run dict/dictc.ts \
-    -i dict/es.rae.st.sharewords~ \
+    -i dict/es.crea.st.sharewords~ \
     --top-n=123k \
-    -o dict/es.rae.st.123k.swdict \
+    -o dict/es.crea.st.123k.swdict \
     --name="Español RAE 123k" \
-    --description="$(< dict/es.rae.st.123k.md)"
+    --description="$(< dict/es.crea.st.123k.md)"
 ```
