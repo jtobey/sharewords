@@ -11,6 +11,7 @@ egrep '^[a-z][a-z]+$' /usr/share/dict/linux.words > dict/linux.sharewords~
 bun run dict/dictc.ts \
     -i dict/linux.sharewords~ \
     -o dict/linux.swdict \
+    --language-code=en \
     --name="Cygwin English" \
     --description="$(< dict/linux.md)"
 ```

@@ -26,6 +26,10 @@ const { values: args } = parseArgs({
       type: 'string',
       short: 'o',
     },
+    'language-code': {
+      // Language code to embed in the output.
+      type: 'string',
+    },
     name: {
       // Display name to embed in the output.
       type: 'string',
@@ -42,6 +46,7 @@ const wordsFile = args['words-file']
 const frequenciesFile = args['frequencies-file'] || wordsFile
 const topN = parseTopNArg(args['top-n'])
 const outputFile = args.output
+const languageCode = args['language-code']
 const name = args.name
 const description = args.description
 
@@ -144,6 +149,7 @@ async function dictc({ wordsFile, frequenciesFile, topN, outputFile, name, descr
   const { words: allWords, frequenciesMap } = await parseWordsAndFrequenciesMap(wordsFile, frequenciesFile)
   const words = await filterByFrequency({ words: allWords, topN, frequenciesMap })
   const lexicon = await compile({ words, name, description })
+  if (languageCode !== undefined) lexicon.metadata?.languageCodes?.push(languageCode)
   fs.writeFileSync(outputFile, Lexicon.encode(lexicon).finish())
 }
 

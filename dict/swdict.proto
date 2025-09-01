@@ -3,7 +3,9 @@
  */
 /*
    Compile with:
-   protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+   protoc \
+     --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+     --ts_proto_opt=useMapType=true \
      --ts_proto_out=. \
      ./dict/swdict.proto
 */
@@ -35,6 +37,9 @@ message Metadata {
   string description = 2;
   uint64 clear_interval = 3;
   repeated Macro macros = 4;
+  map<string, uint64> subword_frequencies = 5;
+  repeated string language_codes = 6;
+  uint64 word_count = 7;
 };
 
 // A word list, compressed and optimized for zero-copy searching.

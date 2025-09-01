@@ -118,6 +118,7 @@ bun run dict/dictc.ts \
     -i dict/es.fw2018.st.sharewords~ \
     --top-n=200k \
     -o dict/es.fw2018.st.200k.swdict \
+    --language-code=es \
     --name="Español FrequencyWords 200k" \
     --description="$(< dict/es.fw2018.st.200k.md)"
 ```

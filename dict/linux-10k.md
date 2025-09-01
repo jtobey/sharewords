@@ -14,6 +14,7 @@ bun run dict/dictc.ts \
     --top-n=10k \
     --frequencies-file ../FrequencyWords/content/2018/en/en_50k.txt \
     -o dict/linux-10k.swdict \
+    --language-code=en \
     --name="Cygwin English 10k" \
     --description="$(< dict/linux-10k.md)"
 ```

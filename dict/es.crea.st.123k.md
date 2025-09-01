@@ -22,6 +22,7 @@ bun run dict/dictc.ts \
     -i dict/es.crea.st.sharewords~ \
     --top-n=123k \
     -o dict/es.crea.st.123k.swdict \
+    --language-code=es \
     --name="Español RAE 123k" \
     --description="$(< dict/es.crea.st.123k.md)"
 ```

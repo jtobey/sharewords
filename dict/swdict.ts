@@ -45,6 +45,14 @@ export interface Metadata {
   description: string;
   clearInterval: number;
   macros: Macro[];
+  subwordFrequencies: Map<string, number>;
+  languageCodes: string[];
+  wordCount: number;
+}
+
+export interface Metadata_SubwordFrequenciesEntry {
+  key: string;
+  value: number;
 }
 
 /** A word list, compressed and optimized for zero-copy searching. */
@@ -291,7 +299,15 @@ export const Macro_Subroutine: MessageFns<Macro_Subroutine> = {
 };
 
 function createBaseMetadata(): Metadata {
-  return { name: "", description: "", clearInterval: 0, macros: [] };
+  return {
+    name: "",
+    description: "",
+    clearInterval: 0,
+    macros: [],
+    subwordFrequencies: new Map(),
+    languageCodes: [],
+    wordCount: 0,
+  };
 }
 
 export const Metadata: MessageFns<Metadata> = {
@@ -307,6 +323,15 @@ export const Metadata: MessageFns<Metadata> = {
     }
     for (const v of message.macros) {
       Macro.encode(v!, writer.uint32(34).fork()).join();
+    }
+    message.subwordFrequencies.forEach((value, key) => {
+      Metadata_SubwordFrequenciesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).join();
+    });
+    for (const v of message.languageCodes) {
+      writer.uint32(50).string(v!);
+    }
+    if (message.wordCount !== 0) {
+      writer.uint32(56).uint64(message.wordCount);
     }
     return writer;
   },
@@ -350,6 +375,33 @@ export const Metadata: MessageFns<Metadata> = {
           message.macros.push(Macro.decode(reader, reader.uint32()));
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          const entry5 = Metadata_SubwordFrequenciesEntry.decode(reader, reader.uint32());
+          if (entry5.value !== undefined) {
+            message.subwordFrequencies.set(entry5.key, entry5.value);
+          }
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.languageCodes.push(reader.string());
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.wordCount = longToNumber(reader.uint64());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -365,6 +417,16 @@ export const Metadata: MessageFns<Metadata> = {
       description: isSet(object.description) ? globalThis.String(object.description) : "",
       clearInterval: isSet(object.clearInterval) ? globalThis.Number(object.clearInterval) : 0,
       macros: globalThis.Array.isArray(object?.macros) ? object.macros.map((e: any) => Macro.fromJSON(e)) : [],
+      subwordFrequencies: isObject(object.subwordFrequencies)
+        ? Object.entries(object.subwordFrequencies).reduce<Map<string, number>>((acc, [key, value]) => {
+          acc.set(key, Number(value));
+          return acc;
+        }, new Map())
+        : new Map(),
+      languageCodes: globalThis.Array.isArray(object?.languageCodes)
+        ? object.languageCodes.map((e: any) => globalThis.String(e))
+        : [],
+      wordCount: isSet(object.wordCount) ? globalThis.Number(object.wordCount) : 0,
     };
   },
 
@@ -382,6 +444,18 @@ export const Metadata: MessageFns<Metadata> = {
     if (message.macros?.length) {
       obj.macros = message.macros.map((e) => Macro.toJSON(e));
     }
+    if (message.subwordFrequencies?.size) {
+      obj.subwordFrequencies = {};
+      message.subwordFrequencies.forEach((v, k) => {
+        obj.subwordFrequencies[k] = Math.round(v);
+      });
+    }
+    if (message.languageCodes?.length) {
+      obj.languageCodes = message.languageCodes;
+    }
+    if (message.wordCount !== 0) {
+      obj.wordCount = Math.round(message.wordCount);
+    }
     return obj;
   },
 
@@ -394,6 +468,97 @@ export const Metadata: MessageFns<Metadata> = {
     message.description = object.description ?? "";
     message.clearInterval = object.clearInterval ?? 0;
     message.macros = object.macros?.map((e) => Macro.fromPartial(e)) || [];
+    message.subwordFrequencies = (() => {
+      const m = new Map();
+      (object.subwordFrequencies as Map<string, number> ?? new Map()).forEach((value, key) => {
+        if (value !== undefined) {
+          m.set(key, globalThis.Number(value));
+        }
+      });
+      return m;
+    })();
+    message.languageCodes = object.languageCodes?.map((e) => e) || [];
+    message.wordCount = object.wordCount ?? 0;
+    return message;
+  },
+};
+
+function createBaseMetadata_SubwordFrequenciesEntry(): Metadata_SubwordFrequenciesEntry {
+  return { key: "", value: 0 };
+}
+
+export const Metadata_SubwordFrequenciesEntry: MessageFns<Metadata_SubwordFrequenciesEntry> = {
+  encode(message: Metadata_SubwordFrequenciesEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== 0) {
+      writer.uint32(16).uint64(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): Metadata_SubwordFrequenciesEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMetadata_SubwordFrequenciesEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.value = longToNumber(reader.uint64());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Metadata_SubwordFrequenciesEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? globalThis.Number(object.value) : 0,
+    };
+  },
+
+  toJSON(message: Metadata_SubwordFrequenciesEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== 0) {
+      obj.value = Math.round(message.value);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>>(
+    base?: I,
+  ): Metadata_SubwordFrequenciesEntry {
+    return Metadata_SubwordFrequenciesEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>>(
+    object: I,
+  ): Metadata_SubwordFrequenciesEntry {
+    const message = createBaseMetadata_SubwordFrequenciesEntry();
+    message.key = object.key ?? "";
+    message.value = object.value ?? 0;
     return message;
   },
 };
@@ -511,6 +676,10 @@ function longToNumber(int64: { toString(): string }): number {
     throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
   }
   return num;
+}
+
+function isObject(value: any): boolean {
+  return typeof value === "object" && value !== null;
 }
 
 function isSet(value: any): boolean {

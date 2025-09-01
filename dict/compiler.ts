@@ -6,11 +6,12 @@ import { codePointCompare } from './code_point_compare.js'
 import { Lexicon } from './swdict.js'
 
 export async function compile({
-  words, name, description, clearInterval=1024, alphabet=null
+  words, name, description, languageCodes=[], clearInterval=1024, alphabet=null
 }: {
   words: Iterable<string> | AsyncIterable<string>,
   name: string,
   description: string,
+  languageCodes?: string[],
   clearInterval?: number,
   alphabet?: Array<string> | null,
 }): Promise<Lexicon> {
@@ -32,6 +33,7 @@ export async function compile({
     metadata: {
       name,
       description,
+      languageCodes,
       clearInterval,
       macros: [{ clear: {} }],
     },
@@ -56,8 +58,12 @@ export async function compile({
           throw new Error(`Alphabet passed but words are out of order: "${lastWordStr}" should follow "${wordStr}".`)
       }
     }
+    ++metadata.wordCount
     lastWordStr = wordStr
     const word = [...wordStr]  // Deal in code points, not code units.
+    word.forEach(subword => {
+      metadata.subwordFrequencies.set(subword, 1 + (metadata.subwordFrequencies.get(subword) ?? 0))
+    })
     let commonPrefixLength = 0
     if (wordBuffer.length) {
       if (lexicon.instructions.length >= nextClear) {
