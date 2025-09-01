@@ -1,6 +1,6 @@
 # 10,000 frequent, playable English words
 
-## Source of linux-10k.swdict
+## Source of en.linux-10k.swdict
 
 * `/usr/share/dict/linux.words` is from Cygwin's words-3.0.1 package.
 * `../FrequencyWords` is from https://github.com/hermitdave/FrequencyWords.
@@ -8,13 +8,13 @@
 ### Bash script
 
 ```shell
-egrep '^[a-z][a-z]+$' /usr/share/dict/linux.words > dict/linux.sharewords~
+egrep '^[a-z][a-z]+$' /usr/share/dict/linux.words > dict/en.linux.sharewords~
 bun run dict/dictc.ts \
-    -i dict/linux.sharewords~ \
+    -i dict/en.linux.sharewords~ \
     --top-n=10k \
     --frequencies-file ../FrequencyWords/content/2018/en/en_50k.txt \
-    -o dict/linux-10k.swdict \
+    -o dict/en.linux-10k.swdict \
     --language-code=en \
     --name="Cygwin English 10k" \
-    --description="$(< dict/linux-10k.md)"
+    --description="$(< dict/en.linux-10k.md)"
 ```

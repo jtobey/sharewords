@@ -1,17 +1,17 @@
 # Circa 113,000 playable English words
 
-## Source of linux.swdict
+## Source of en.linux.swdict
 
 * `/usr/share/dict/linux.words` is from Cygwin's words-3.0.1 package.
 
 ### Bash script
 
 ```shell
-egrep '^[a-z][a-z]+$' /usr/share/dict/linux.words > dict/linux.sharewords~
+egrep '^[a-z][a-z]+$' /usr/share/dict/linux.words > dict/en.linux.sharewords~
 bun run dict/dictc.ts \
-    -i dict/linux.sharewords~ \
-    -o dict/linux.swdict \
+    -i dict/en.linux.sharewords~ \
+    -o dict/en.linux.swdict \
     --language-code=en \
     --name="Cygwin English" \
-    --description="$(< dict/linux.md)"
+    --description="$(< dict/en.linux.md)"
 ```
