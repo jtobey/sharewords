@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="./app.ts" type="module"></script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <h1 data-i18n="ui.title"></h1>
+    <div id="game-container">
+      <div id="center-panel">
+        <div id="score-panel"></div>
+        <div id="board-container"></div>
+      </div>
+      <div id="controls-container">
+        <div id="bag-tile-count-container"></div>
+        <div id="rack-container"></div>
+        <div id="exchange-container"></div>
+        <div id="buttons-container">
+          <button id="play-word" data-i18n-title="ui.buttons.play_word">✅</button>
+          <button id="recall-tiles" data-i18n-title="ui.buttons.recall_tiles">❌</button>
+          <button id="pass-exchange">♻</button>
+          <button id="game-setup" data-i18n-title="ui.buttons.game_setup">⚙️</button>
+        </div>
+        <div id="settings-dialog" hidden>
+          <div class="content">
+            <div class="settings-group">
+              <h3 data-i18n="ui.settings.players"></h3>
+              <div id="player-list"></div>
+              <button id="add-player-button" data-i18n="ui.buttons.add_player"></button>
+            </div>
+            <div class="settings-group">
+              <h3 data-i18n="ui.settings.dictionary"></h3>
+              <select id="dictionary-type">
+                <option value="permissive" data-i18n="ui.settings.dictionary_options.permissive"></option>
+                <option value="freeapi" data-i18n="ui.settings.dictionary_options.freeapi"></option>
+                <option value="custom" data-i18n="ui.settings.dictionary_options.custom"></option>
+              </select>
+              <div id="dictionary-url-container" hidden>
+                <label data-i18n="ui.settings.dictionary_url_label"><input type="text" id="dictionary-url" placeholder="URL"></label>
+              </div>
+            </div>
+            <div class="settings-group">
+              <h3 data-i18n="ui.settings.tile_distribution"></h3>
+              <select id="tile-distribution">
+              </select>
+            </div>
+            <div class="settings-group">
+              <h3 data-i18n="ui.settings.bingo_bonus"></h3>
+              <input type="number" id="bingo-bonus">
+            </div>
+            <div class="settings-group">
+              <h3 data-i18n="ui.settings.random_seed"></h3>
+              <input type="tel" id="random-seed" pattern="[0-9]*" maxlength="10">
+              <label>
+                <input type="checkbox" id="random-seed-checkbox" checked>
+                <span data-i18n="ui.settings.random_seed_random_label"></span>
+              </label>
+            </div>
+          </div>
+          <div class="buttons">
+            <button id="start-game-with-settings" data-i18n="ui.buttons.start_game_with_settings"></button>
+            <button id="cancel-settings" data-i18n="ui.buttons.cancel_settings"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

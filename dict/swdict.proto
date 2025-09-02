@@ -1,0 +1,68 @@
+/**
+ * @file Compressed format for fetching dictionaries.
+ */
+/*
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+/*
+   Compile with:
+   protoc \
+     --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+     --ts_proto_opt=useMapType=true \
+     --ts_proto_out=. \
+     ./dict/swdict.proto
+*/
+
+syntax = "proto3";
+
+message Macro {
+  message Clear {};
+  message Subroutine {
+    // Index into `metadata.macros`.
+    repeated uint64 instructions = 1;
+  }
+  oneof macro {
+    // Clears the word buffer. Placing this every so often in sorted
+    // dictionaries can enable binary searches.
+    Clear clear = 1;
+    // Appends `subword` (typically a single UTF-8 letter) to the word buffer.
+    string subword = 2;
+    // Emits a copy of the word buffer, then deletes its last `backup` chars.
+    uint64 backup = 3;
+    // A list of macros with which to replace this macro.
+    // Recursion is not allowed.
+    Subroutine subroutine = 4;
+  };
+};
+
+message Metadata {
+  string name = 1;
+  string description = 2;
+  uint64 clear_interval = 3;
+  repeated Macro macros = 4;
+  map<string, uint64> subword_frequencies = 5;
+  repeated string language_codes = 6;
+  uint64 word_count = 7;
+};
+
+// A word list, compressed and optimized for zero-copy searching.
+message Lexicon {
+  Metadata metadata = 1;
+  // A sequence of indices into `metadata.macros` for generating a word list.
+  // A "word buffer" is initialized as an empty string. Each instruction is
+  // applied. Some instructions emit words to the list. After the last
+  // instruction, if the word buffer is not empty, it is added to the list.
+  repeated uint64 instructions = 2 [packed=true];
+};

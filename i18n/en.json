@@ -1,0 +1,91 @@
+{
+  "error": {
+    "word_placement": {
+      "no_tiles": "Drag some tiles onto the board, and try again.",
+      "blank_tiles_must_be_assigned_letters": "Blank tiles must be assigned letters.",
+      "non_blank_tiles_cannot_be_assigned_letters": "Non-blank tiles cannot be assigned letters.",
+      "tiles_not_in_line": "Tiles are not in a line.",
+      "square_occupied": "Square ${row},${col} is occupied.",
+      "line_with_gaps": "Tiles form a line with gaps between them.",
+      "no_single_letter_words": "No single-letter words accepted.",
+      "must_connect_to_existing": "Tiles must connect to existing words or cover the center square."
+    },
+    "play_rejected": {
+      "not_words_in_dictionary": "Not words in ${dictionaryName}: ${invalidWords}.",
+      "play_rejected": "${message} Play rejected.",
+      "word_not_in_dictionary": "Word \"${word}\" ${status} in ${dictionaryName}.",
+      "status": {
+        "not_found": "not found",
+        "has_no_definition": "has no definition"
+      }
+    },
+    "url": {
+      "protocol_not_supported": "Protocol version not supported: ${version}",
+      "no_random_seed": "No random seed in URL.",
+      "unknown_dictionary_type": "Unknown dictionary type: \"${type}\".",
+      "custom_dictionary_requires_url": "Custom dictionary requires a URL.",
+      "invalid_tile_distribution": "Invalid tile distribution specifier: ${specifier}",
+      "invalid_letter_config": "Invalid letter configuration: ${config}",
+      "duplicate_letter_config": "Duplicate configuration for letter \"${letter}\".",
+      "tn_not_a_number": "\"tn\" param is not a turn number: \"${param}\"",
+      "both_word_and_exchange": "Found both word and exchange data for turn ${turnNumber}.",
+      "invalid_bt_component": "Invalid \"bt\" parameter component: \"${component}\"",
+      "duplicate_bt_index": "Duplicate blank tile assignment index: bt=${param}",
+      "bt_index_out_of_range": "Blank tile assignment index out of range: no \"${word}\"[${index}].",
+      "invalid_wl_param": "Invalid \"wl\" parameter: \"${param}\"",
+      "word_out_of_bounds": "Attempted to play a word out of bounds: ${row},${col}.",
+      "wrong_letter": "Word requires \"${requiredLetter}\" at ${row},${col}, but \"${actualLetter}\" is there.",
+      "invalid_letter": "Attempt to play an invalid letter: \"${letter}\"",
+      "bt_index_range": "\"bt\" parameter has index ${index} out of range 0-${maxIndex}.",
+      "incomplete_turn_data": "Incomplete data for turn ${turnNumber}: wl=${wl} ${direction}=${word} bt=${bt}",
+      "invalid_exchange_index": "Invalid exchange tile index: \"${index}\"",
+      "invalid_player_id": "Invalid turn URL: Player ID \"${id}\" should be in 1-${maxId}.",
+      "duplicate_bt_param": "Duplicate \"bt\" parameter for turn ${turnNumber}.",
+      "duplicate_word_params": "Duplicate word parameters for turn ${turnNumber}.",
+      "unrecognized_param": "Unrecognized parameter name: \"${param}\""
+    }
+  },
+  "ui": {
+    "title": "Sharewords",
+    "buttons": {
+      "play_word": "Play Word",
+      "pass_turn": "Pass Turn",
+      "exchange_count": "Exchange ${count}",
+      "recall_tiles": "Recall Tiles",
+      "game_setup": "Game Setup",
+      "add_player": "Add Player",
+      "remove_player": "-",
+      "start_game_with_settings": "Start Game with Settings",
+      "cancel_settings": "Cancel",
+      "ok": "OK"
+    },
+    "settings": {
+      "players": "Players",
+      "dictionary": "Dictionary",
+      "dictionary_options": {
+        "permissive": "Anything is a word",
+        "freeapi": "Free Dictionary API",
+        "custom": "custom"
+      },
+      "dictionary_url_label": "URL:",
+      "tile_distribution": "Tile Distribution",
+      "tile_distribution_options": {
+        "custom": "Custom"
+      },
+      "bingo_bonus": "Bingo Bonus",
+      "random_seed": "Random Seed",
+      "random_seed_random_label": "Random?",
+      "player_placeholder": "Player ${index}"
+    },
+    "bag_tile_count": "Tiles in bag: ${count}",
+    "dialog": {
+      "copy_turn_url": "Copy turn URL to clipboard",
+      "confirm_title": "Confirm",
+      "play_word_title": "Play word?",
+      "play_word_details": "${word} for ${score} points"
+    },
+    "game": {
+      "join_link": "join"
+    }
+  }
+}
