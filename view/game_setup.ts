@@ -144,6 +144,7 @@ export class GameSetup {
       if (this.gameState.keepAllHistory && player.id !== undefined) {
         const historyParams = this.gameState.getHistoryUrlParamsForPlayer(player.id);
         const replayLink = this.doc.createElement('a');
+        replayLink.className = 'replay-link';
         const gameUrl = this.browser.getHref().replace(this.browser.getHash(), '');
         replayLink.href = gameUrl + '#' + historyParams;
         const linkText = this.doc.createTextNode(t('ui.game.join_link'));
