@@ -27,28 +27,22 @@ type _BagDefaults = {
   name: string,
   letterCounts: {[key: string]: number}
   letterValues: {[key: string]: number}
-  dictionaries:  {
-    dictionaryType: string
-    dictionarySettings: any
-  }[]
 }
 
 const BAG_DEFAULTS = new Map<string, _BagDefaults>([
   ['en', {
     name: 'English',
     letterCounts: {
-      A: 9, B: 2, C: 2, D: 4, E: 12, F: 2, G: 2, H: 2, I: 9, J: 1,
-      K: 1, L: 4, M: 2, N: 6, O: 8, P: 2, Q: 1, R: 6, S: 5, T: 6,
-      U: 4, V: 2, W: 2, X: 1, Y: 2, Z: 1, '': 2
+      A: 721, B: 187, C: 360, D: 363, E: 1122, F: 134, G: 293, H: 212,
+      I: 813, J: 100, K: 100, L: 494, M: 260, N: 636, O: 573, P: 271, Q: 100,
+      R: 683, S: 909, T: 600, U: 327, V: 100, W: 100, X: 100, Y: 142, Z: 100,
+      '': 200
     },
     letterValues: {
-      A: 1, B: 3, C: 4, D: 2, E: 1, F: 4, G: 3, H: 4, I: 1, J: 9,
-      K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1,
-      U: 2, V: 5, W: 4, X: 8, Y: 4, Z: 10, '': 0
+      A: 1, B: 4, C: 4, D: 2, E: 1, F: 4, G: 3, H: 4, I: 1, J: 9,
+      K: 5, L: 2, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1,
+      U: 2, V: 5, W: 4, X: 8, Y: 4, Z: 8, '': 0
     },
-    dictionaries: [
-      { dictionaryType: 'freeapi', dictionarySettings: null },
-    ],
   }],
   ['es', {
     name: 'Español',
@@ -64,23 +58,16 @@ const BAG_DEFAULTS = new Map<string, _BagDefaults>([
       Qu: 6, R: 1, S: 1, T: 1, U: 2, V: 4, X: 8, Y: 5, Z: 5,
       '': 0
     },
-    dictionaries: [
-    ],
   }],
 ])
 
 export function getBagLanguages(): Iterable<{
   code: string
   name: string
-  dictionaries: {
-    dictionaryType: string
-    dictionarySettings: any
-  }[]
 }> {
   return BAG_DEFAULTS.entries().map(([key, value]) => ({
     code: key,
     name: value.name,
-    dictionaries: JSON.parse(JSON.stringify(value.dictionaries)),
   }))
 }
 

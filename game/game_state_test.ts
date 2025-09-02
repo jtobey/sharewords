@@ -35,7 +35,7 @@ describe('game state', () => {
     const player1GameState = new GameState('1', settings)
     await player1GameState.init()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter)
-    expect(initialRack.join('')).toEqual('WTIUTNC')
+    expect(initialRack.join('')).toEqual('VTKTTNC')
 
     // Exchange the first, third, and last tiles.
     player1GameState.moveTile('rack', 0, 'exchange', 0)
@@ -45,7 +45,7 @@ describe('game state', () => {
 
     // The rack should have new tiles.
     const newRack = player1GameState.tilesHeld.map(t => t.tile.letter)
-    expect(newRack.join('')).toEqual('TUTNKEE')
+    expect(newRack.join('')).toEqual('TTTNLEE')
 
     // The turnUrlParams should contain the exchange.
     const params = player1GameState.turnUrlParams
@@ -54,7 +54,7 @@ describe('game state', () => {
     // A new game state created from the params should have the same rack.
     const player2GameState = await GameState.fromParams(params)
     const player2Rack = await player2GameState.getTiles('1')
-    expect(player2Rack.map(t => t.letter).join('')).toEqual('TUTNKEE')
+    expect(player2Rack.map(t => t.letter).join('')).toEqual('TTTNLEE')
   })
 
   it('should apply the bingo bonus', async () => {
@@ -112,12 +112,12 @@ describe('game state', () => {
     const player1GameState = new GameState('1', settings)
     await player1GameState.init()
     const initialRack = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
-    expect(initialRack).toBe('ESOQTSI')
+    expect(initialRack).toBe('ESPRTSJ')
 
     // Pass (exchange no tiles)
     await player1GameState.passOrExchange()
     const rackAfterPass = player1GameState.tilesHeld.map(t => t.tile.letter).join('')
-    expect(rackAfterPass).toBe('ESOQTSI')
+    expect(rackAfterPass).toBe('ESPRTSJ')
   })
 
   it('should exchange tiles 2', async () => {
@@ -126,7 +126,7 @@ describe('game state', () => {
     const gameState = new GameState('1', settings)
     await gameState.init()
     const initialRack = gameState.tilesHeld.map(t => t.tile.letter).join('')
-    expect(initialRack).toBe('MLRVTSE')
+    expect(initialRack).toBe('MLRUTSE')
 
     // Move tiles to the exchange area.
     gameState.moveTile('rack', 0, 'exchange', 0)
@@ -135,7 +135,7 @@ describe('game state', () => {
     // Exchange tiles.
     await gameState.passOrExchange()
     const rackAfterPass = gameState.tilesHeld.map(t => t.tile.letter).join('')
-    expect(rackAfterPass).toBe('RVTSEIR')
+    expect(rackAfterPass).toBe('RUTSEIS')
   })
 
   describe('params', () => {

@@ -22,9 +22,9 @@ describe('getBagDefaults', () => {
   })
 
   it('should return English defaults', () => {
-    const defaults = getBagDefaults('en')
+    const defaults = getBagDefaults('en', 100)
     expect(defaults).not.toBeNull()
-    expect(defaults!.letterCounts.get('A')).toBe(9)
+    expect(defaults!.letterCounts.get('A')).toBe(7)
     expect(defaults!.letterValues.get('A')).toBe(1)
   })
 
@@ -53,8 +53,8 @@ describe('getBagDefaults', () => {
     expect(totalTiles).toBe(200)
     // These values are calculated based on the deterministic algorithm
     expect(defaults!.letterCounts.get('')).toBe(4)
-    expect(defaults!.letterCounts.get('A')).toBe(18)
-    expect(defaults!.letterCounts.get('E')).toBe(24)
+    expect(defaults!.letterCounts.get('A')).toBe(14)
+    expect(defaults!.letterCounts.get('E')).toBe(22)
   })
 
   it('should handle zero tile count', () => {
