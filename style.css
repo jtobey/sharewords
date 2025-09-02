@@ -274,6 +274,14 @@ dialog button {
   margin-left: 0.5em;
 }
 
+.replay-link {
+  padding: 1em;
+}
+
+.source-link {
+  padding: 1em;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #121212;
