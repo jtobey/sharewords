@@ -60,6 +60,18 @@ describe('compiler', () => {
           { backup: 4 },
           { backup: 5 },
         ],
+        subwordFrequencies: new Map([
+          ["g", 1],
+          ["r", 2],
+          ["e", 6],
+          ["n", 1],
+          ["p", 1],
+          ["a", 1],
+          ["s", 1],
+          ["t", 2],
+          ["h", 2],
+        ]),
+        wordCount: 4,
       },
       instructions: [
         SUBWORD.g!,   // "g"
@@ -111,6 +123,17 @@ describe('compiler', () => {
           { backup: 4 },
           { backup: 5 },
         ],
+        subwordFrequencies: new Map([
+          ["e", 11],
+          ["a", 3],
+          ["g", 6],
+          ["r", 8],
+          ["n", 5],
+          ["s", 1],
+          ["t", 1],
+          ["o", 2],
+        ]),
+        wordCount: 6,
       },
       instructions: [
         SUBWORD.e!,   // "e"
