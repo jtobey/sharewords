@@ -4,9 +4,9 @@ Players initiate games and communicate moves by exchanging *Turn URLs.* The URI
 standard [defines](https://datatracker.ietf.org/doc/html/rfc3986#section-3.5) an
 optional "fragment identifier" following a hash (`#`) character. A Turn URL
 contains game or turn data in the fragment. The data has the form of name-value
-pairs such as typically seen in `?` query strings. Example:
+pairs such as typically seen in `?`-query strings. Example:
 
-    `https://jtobey.github.io/sw/#gid=123&v=1&bag=en&seed=12345`
+    https://jtobey.github.io/sw/#gid=123&v=1&bag=en&seed=12345
 
 In this example, the fragment identifier is `gid=123&v=1&bag=en&seed=12345`.
 
@@ -20,7 +20,7 @@ string pairs (called *params*). The serialization involves:
 
 The ordered sequence corresponding to the above example
 is `[["gid", "123"], ["v", "1"], ["bag", "en"], ["seed", "12345"]]`. This
-document defines the allowed string pairs and their meanings in a game context.
+document defines the allowed params and their meanings in a game context.
 
 ## Game histories and deltas
 
@@ -51,14 +51,16 @@ All Turn URLs MUST contain a single Turn Number (`tn`) param whose value is a
 decimal positive integer. Game Params MUST precede `tn`, while Turn Params MUST
 follow it.
 
-...
-
 ## Game Params
 
 ### Protocol Version `v`
 
 This is Version 1 of the Turn URL format. Game URLs that adhere to it SHOULD
 include `v=1`.
+
+### Player ID `pid`
+
+...
 
 ### Random Seed `seed`
 
@@ -98,11 +100,11 @@ include `v=1`.
 
 ## Turn Params
 
-These params MUST appear after Turn Number (`tn`). They represent a sequence of
-player moves. Each move begins with Word Location (`wl`) or Exchange (`ex`),
-and every occurrence of one of those params begins a new move. Each move is
-associated with a number, beginning with with the Turn Number and incrementing
-with each move.
+These params MUST NOT appear before Turn Number (`tn`). They represent a
+sequence of player moves. Each move begins with Word Location (`wl`) or
+Exchange (`ex`), and every occurrence of one of those params begins a new move.
+Each move is associated with a number, beginning with with the Turn Number and
+incrementing with each move.
 
 ### Word Location `wl`
 
