@@ -34,6 +34,7 @@ export class UrlError extends Error {
 
 /** Returns a `bag` param value for `settings`. */
 export function getBagParam(settings: Settings): string | undefined {
+  // TODO(#95): Implement Turn URL V1.
   const letterToUrl = (l: string) => l === '' ? '_' : l;
 
   let bagParam = [...settings.letterCounts.entries()].map(
@@ -135,6 +136,7 @@ export function gameParamsFromSettings(settings: Settings): URLSearchParams {
 }
 
 export function parseBagParam(bagParam: string, boardLayout: string[]) {
+  // TODO(#95): Implement Turn URL V1.
   const urlToLetter = (s: string) => s === '_' ? '' : s;
   let letterConfigs!: string
   let defaults!: BagDefaults
@@ -198,6 +200,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const settings = Settings.forLanguage('')
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
+    // TODO(#95): Consider handling v=0 and v=1.
     throw new UrlError(t('error.url.protocol_not_supported', { version: vParam }))
   }
   const gidParam = gameParams.get('gid')
@@ -228,6 +231,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
     settings.dictionaryType = dtParam
   } else if (dtParam) {
+    // TODO(#95): Support 'consensus' and 'wordlist' types.
     throw new UrlError(t('error.url.unknown_dictionary_type', { type: dtParam }))
   }
   const dsParam = gameParams.get('ds')

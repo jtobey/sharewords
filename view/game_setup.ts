@@ -91,7 +91,9 @@ export class GameSetup {
         settings.dictionaryType = dictionaryValue;
         settings.dictionarySettings = this.dictionaryUrl.value || null;
       } else {
+        // TODO(#95): Support the 'consensus' type.
         // This is a pre-packaged dictionary
+        // TODO(#95): Use the new 'wordlist' type in Turn URL V1.
         settings.dictionaryType = 'custom';
         settings.dictionarySettings = dictionaryValue;
       }

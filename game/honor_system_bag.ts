@@ -30,7 +30,10 @@ export class HonorSystemBag extends Bag {
     tiles: Iterable<Tile>,
     // Args for fromJSON.
     shuffle=true,
-    randomGenerator=new Mulberry32Prng(BigInt(randomSeed))
+    randomGenerator=new Mulberry32Prng(
+      // TODO(#95): Accept any string. (Hash it.)
+      BigInt(randomSeed)
+    ),
   ) {
     super(tiles, randomGenerator, shuffle)
   }

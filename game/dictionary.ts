@@ -17,6 +17,8 @@ import { t } from '../i18n.js'
 import { WordList } from '../dict/word_list.js'
 
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
+
+// TODO(#95): Support 'consensus' and 'wordlist' types.
 export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
 
 const SWDICT_SUFFIX = '.swdict'
@@ -29,6 +31,7 @@ export class PlayRejectedError extends Error {
 }
 
 export function makeDictionary(settings: { dictionaryType: DictionaryType, dictionarySettings: any, baseUrl: string }) {
+  // TODO(#95): Support 'consensus' and 'wordlist' types.
   if (settings.dictionaryType === 'permissive') return async (...words: string[]) => null
   if (settings.dictionaryType === 'custom') return makeCustomDictionary(settings)
   if (settings.dictionaryType === 'freeapi') {
