@@ -176,8 +176,9 @@ The Initial Bag Contents param is parsed by first splitting on period (`.`)
 characters. Each segment is applied to an initially empty bag as follows.
 
 1.  If the segment begins with an ASCII lowercase letter, the segment must be
-    a supported language identifier (currently `en` or `es`). The settings from
-    `game/bag_defaults.ts` augment or override the current settings.
+    a supported language identifier (currently `en` or `es`). The language's
+    settings from `game/bag_defaults.ts` augment or override the current
+    settings.
 2.  ...
 
 ...
