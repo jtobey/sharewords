@@ -97,7 +97,13 @@ starting a game with three or more players.
 
 ### Random Seed (`seed`)
 
-...
+When using Honor System tile management (the only supported kind as of this
+writing), the Game URL must contain a Random Seed param to control how tiles
+are shuffled. Honor System works without a game server and relies on players'
+browsers to remember who holds which tiles. (It is therefore not hard to
+discover your opponents' tiles, hence the name *Honor System.*) The seed lets
+the players' browsers agree on the tiles' state. The seed MAY be any string and
+SHOULD be unlikely to have been used previously.
 
 ### Dictionary Type (`dt`)
 
@@ -119,7 +125,7 @@ a rollback of the shared game state.
 With the `consensus` Dictionary Type, a player sees their replacement tiles
 only after all other players have accepted their last move.
 
-#### `online`
+#### `wordlist`
 
 Words Played are automatically validated in a manner defined by the Dictionary
 Settings param. Players see their replacement tiles immediately after
@@ -127,13 +133,52 @@ successful validation.
 
 ### Dictionary Settings (`ds`)
 
-A URL or other identifier of a word list in SWDICT format.
+A URL or other identifier of a word list in SWDICT format. See `dict/dictc.ts`
+for how to create SWDICT files.
 
 ### Board Layout (`board`)
 
-...
+The Board Layout param defines the board dimensions and the locations of bonus
+squares. The param consists of a sequence of *row strings* separated by hyphen
+(`-`) characters. Each row string consists of a sequence of 1-character *bonus
+codes* with the following interpretation:
+
+*  period (`.`) for ordinary squares without a bonus type
+*  lowercase `d` for double-letter-score squares
+*  lowercase `t` for triple-letter-score squares
+*  uppercase `D` for double-word-score squares
+*  uppercase `T` for triple-word-score squares
+
+For example, `board=T.d.d.T-.D.t.D.-d.t.t.d-.t...t.-d.t.t.d-.D.t.D.-T.d.d.T`
+defines a 7x7-square board with triple-word bonus squares at the corners,
+double-letter bonuses along the edges at intervals of two squares, double-word
+bonuses at the corners of the interior 5x5 square, and triple-letter bonuses in
+a diamond pattern around the center:
+
+    T . d . d . T
+    . D . t . D .
+    d . t . t . d
+    . t . . . t .
+    d . t . t . d
+    . D . t . D .
+    T . d . d . T
+
+The file `game/settings.ts` defines the default board layout.
 
 ### Initial Bag Contents (`bag`)
+
+The Initial Bag Contents param defines the letters and point values on all
+tiles used in the game. If using a word list with a known language, the default
+bag contents come from `game/bag_defaults.ts`. Otherwise, the Initial Bag
+Contents param is required.
+
+The Initial Bag Contents param is parsed by first splitting on period (`.`)
+characters. Each segment is applied to an initially empty bag as follows.
+
+1.  If the segment begins with an ASCII lowercase letter, the segment must be
+    a supported language identifier (currently `en` or `es`). The settings from
+    `game/bag_defaults.ts` augment or override the current settings.
+2.  ...
 
 ...
 
