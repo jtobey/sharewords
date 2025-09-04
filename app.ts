@@ -147,5 +147,10 @@ export class App {
 
 if (typeof window !== 'undefined') {
   const app = new App(new DomBrowser());
-  app.init();
+  try {
+    await app.init();
+  } catch (e: any) {
+    console.error(e);
+    alert(e);
+  }
 }
