@@ -1,3 +1,6 @@
+/**
+ * @file Program to convert a list of words into a SWDICT file.
+ */
 /*
 Copyright 2025 Google LLC
 
