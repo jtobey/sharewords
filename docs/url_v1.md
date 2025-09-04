@@ -76,7 +76,7 @@ include `v=1`.
 The game supports any number of players, subject to limits resulting from bag
 and rack size. Players are identified by an ID, which is their position in the
 order of play: `1`, `2`, etc. The game associates a name with each player. By
-default, there are two players named `Player 1` and `Player 2`. To change
+default, there are two players named `Player 1` and `Player 2`. To specify
 either the number or the names of the players, we support Player Name params of
 the form `p{ID}n`, where `{ID}` is a Player ID.
 
@@ -99,7 +99,7 @@ starting a game with three or more players.
 ### Random Seed (`seed`)
 
 When using Honor System tile management (the only supported kind as of this
-writing), the Game URL must contain a Random Seed param to control how tiles
+writing), the Game URL MUST contain a Random Seed param to control how tiles
 are shuffled. Honor System works without a game server and relies on players'
 browsers to remember who holds which tiles. (It is therefore not hard to
 discover your opponents' tiles, hence the name *Honor System.*) The seed lets
@@ -121,10 +121,11 @@ Any string is a word if all players accept it. On a player's turn, the player
 has received all previous turns' attempted Words Played. The player may signal
 acceptance of their opponents' moves simply by making a move and distributing
 the resulting Turn URL. Or the player may dispute a word, possibly resulting in
-a rollback of the shared game state.
+a rollback of the shared game state. (This document does not specify a means of
+disputing a word or rolling back state.)
 
 With the `consensus` Dictionary Type, a player sees their replacement tiles
-only after all other players have accepted their last move.
+only after all other players have accepted the player's last move.
 
 #### `wordlist`
 
