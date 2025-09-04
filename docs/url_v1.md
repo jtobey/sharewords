@@ -46,7 +46,8 @@ Words Played.
 
 ## Common params
 
-These params appear before any turn data in Turn URLs, including Game URLs.
+These params appear in all Turn URLs (Game URLs and deltas) before any turn
+data.
 
 ### Game ID (`gid`)
 
@@ -61,7 +62,7 @@ short and avoid characters that are typically percent-encoded.
 The value of Turn Number MUST be a decimal positive integer. All generated Turn
 URLs MUST contain a single Turn Number (`tn`) param. A recieved Turn URL that
 contains only Game Params other than Turn Number MUST be interpreted as having
-`tn=1`. Game Params MAY precede `tn`, but Turn Params MUST follow it.
+`tn=1`. Game Params MAY precede `tn`, but Turn Params MUST NOT precede it.
 
 ## Game Params
 
