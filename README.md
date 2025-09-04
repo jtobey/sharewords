@@ -13,7 +13,7 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 -   15x15 game board with bonus squares (Double/Triple Letter, Double/Triple Word).
 -   Standard tile bag (approx. 100 tiles) with letter distributions and point values.
 -   Player racks holding up to 7 tiles.
--   Word validation using a configurable dictionary (default permissive, option for HTTP servers).
+-   Word validation using a configurable dictionary (default permissive).
 -   Scoring based on tile values and board bonuses.
 -   Special seven-tile "bingo bonus".
 -   Blank tiles assignable when placed on the board by players.
@@ -27,9 +27,10 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
 ## How to Play
 
 1.  Start a new game or load an existing game using a turn URL.
-2.  If starting a new game, configure settings or use defaults.
+2.  If starting a new game, configure settings using the "⚙️" (Game Setup) button, or use defaults.
 3.  Players take turns. On your turn:
     *   Drag tiles from your rack to the board to form words.
+        *   If you prefer to exchange tiles and pass your turn, drag tiles to the exchange ("♻") area below the rack.
     *   Alternatively, use the keyboard to select and move a tile.
         *   Tab to navigate among selectable tiles.
         *   Space to select the tile.
@@ -43,10 +44,11 @@ This game is similar to Scrabble™ and Words with Friends™, but with its own 
     *   The first word must cover the center square.
     *   Subsequent words must connect to existing tiles.
     *   All new tiles in a turn must form a single line (horizontal or vertical).
-    *   All resulting sequences of letters (horizontal and vertical) must be valid words.
+    *   All resulting sequences of tiles (horizontal and vertical) must form valid words.
     *   You may move tiles from place to place within the board, your rack, and the exchange area.
-    *   Click "Play Word" and confirm to play the tiles that you have placed on the board.
-    *   Alternatively, click "Pass/Exchange" and confirm to pass or exchange the tiles in the exchange area.
+    *   The "❌" (Recall Tiles) button returns all your unplayed tiles to your rack.
+    *   Click "✅" (Play Word) and confirm to play the tiles that you have placed on the board.
+    *   Alternatively, click "♻" (Pass/Exchange) and confirm to pass or exchange the tiles in the exchange area.
 4.  After your turn:
     *   The game will generate a "turn URL" containing recent turn data in the #fragment.
     *   Send this URL to the other player or players.
