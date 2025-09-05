@@ -1,6 +1,6 @@
 # Turn URL Format V1
 
-STATUS: DRAFT
+STATUS: partially implemented
 
 Players initiate games and communicate moves by exchanging *Turn URLs.* The URI
 standard [defines](https://datatracker.ietf.org/doc/html/rfc3986#section-3.5) an
@@ -71,7 +71,7 @@ contains only Game Params other than Turn Number MUST be interpreted as having
 This is Version 1 of the Turn URL format. Game URLs that adhere to it SHOULD
 include `v=1`.
 
-### Player Names (`p1n`, `p2n`, *etc.*)
+### Player Name (`p1n`, `p2n`, *etc.*)
 
 The game supports any number of players, subject to limits resulting from bag
 and rack size. Players are identified by an ID, which is their position in the
@@ -81,7 +81,7 @@ either the number or the names of the players, we support Player Name params of
 the form `p{ID}n`, where `{ID}` is a Player ID.
 
 If a Game URL contains any Player Name params before the Turn Number, their IDs
-must form an unbroken sequence starting with `1`. They collectively set the
+MUST form an unbroken sequence starting with `1`. They collectively set the
 number of players.
 
 A Player Name param's value sets the corresponding player's name. A name may
@@ -91,10 +91,10 @@ take any form, subject to implementation-defined limits.
 
 The Player ID param is unique in that it takes a different value for each
 player. By default, when a player receives a Game URL containing a new Game ID,
-the player derives their ID from the number of turns played. The first turn
-belongs to Player 1, the second to Player 2, and so on. You might have to set
-Player ID when transferring a game state into a new browser context or when
-starting a game with three or more players.
+the player derives their own ID from the number of turns played. The first turn
+belongs to Player 1, the second to Player 2, and so on. The Player ID param can
+help when transferring a game state into a new browser context or when starting
+a game with three or more players.
 
 ### Random Seed (`seed`)
 
@@ -135,13 +135,17 @@ successful validation.
 
 ### Dictionary Settings (`ds`)
 
-A URL or other identifier of a word list in SWDICT format. See `dict/dictc.ts`
-for how to create SWDICT files.
+For the `wordlist` Dictionary Type, the Dictionary Settings param MUST be a URL
+or other identifier of a word list in SWDICT format. See `dict/dictc.ts` for
+how to create SWDICT files.
+
+For the `permissive` and `consensus` Dictionary Types, Dictionary Settings MAY
+be omitted or MAY have any value.
 
 ### Board Layout (`board`)
 
 The Board Layout param defines the board dimensions and the locations of bonus
-squares. The param consists of a sequence of *row strings* separated by hyphen
+squares. The param consists of one or more *row strings* separated by hyphen
 (`-`) characters. Each row string consists of a sequence of 1-character *bonus
 codes* with the following interpretation:
 
@@ -165,7 +169,24 @@ a diamond pattern around the center:
     . D . t . D .
     T . d . d . T
 
-The file `game/settings.ts` defines the default board layout.
+All row strings MUST have equal length greater than zero. The default layout
+defines a 15x15 board with the following form:
+
+    D . . d . . T . . . . . . T .
+    . D . . . D . . . t . t . . T
+    . . D . . . . . t . . . t . .
+    d . . D . . . t . . . . . t .
+    . . . . D . t . . . D . . . .
+    . D . . . t . d . . . . . t .
+    T . . . d . . . d . . . t . .
+    . . . d . t . . . d . t . . .
+    . . d . . . t . . . t . . . T
+    . d . . . . . t . d . . . D .
+    . . . . D . . . d . D . . . .
+    . d . . . . . d . . . D . . d
+    . . d . . . d . . . . . D . .
+    T . . d . d . . . D . . . D .
+    . T . . . . . . T . . d . . D
 
 ### Initial Bag Contents (`bag`)
 
@@ -182,13 +203,15 @@ characters. Each segment is applied to an initially empty bag as follows.
     treated as a sequence of segments expressing the language's default
     settings as follows:
 
-    *   `en` (English) expands to `A-7-1.B-2-4.C-4-4.D-3-2.E-12-1.F-1-4` +
-        `.G-3-3.H-2-4.I-8-1.J-1-9.K-1-5.L-5-2.M-3-3.N-6-1.O-6-1.P-2-3.Q-1-10` +
-        `.R-7-1.S-9-1.T-6-1.U-4-2.V-1-5.W-1-4.X-1-8.Y-1-4.Z-1-8.-2-0`
+    *   `en` (English) expands to `A-7-1.B-2-4.C-4-4.D-3-2.E-12-1.F-1-4`
+        `.G-3-3.H-2-4.I-8-1.J-1-9.K-1-5.L-5-2.M-3-3.N-6-1.O-6-1.P-2-3.Q-1-10`
+        `.R-7-1.S-9-1.T-6-1.U-4-2.V-1-5.W-1-4.X-1-8.Y-1-4.Z-1-8.-2-0` (without
+        spaces).
 
-    *   `es` (Spanish) expands to `A-12-1.B-2-3.C-5-2.D-3-2.E-11-1.F-1-4` +
-        `.G-2-4.H-1-4.I-7-1.J-1-5.K-1-9.L-4-2.M-3-2.N-6-1.Ñ-1-10.O-8-1.P-3-3` +
-        `.Qu-1-6.R-8-1.S-6-1.T-5-1.U-3-2.V-1-4.X-1-8.Y-1-5.Z-1-5.-2-0`
+    *   `es` (Spanish) expands to `A-12-1.B-2-3.C-5-2.D-3-2.E-11-1.F-1-4`
+        `.G-2-4.H-1-4.I-7-1.J-1-5.K-1-9.L-4-2.M-3-2.N-6-1.Ñ-1-10.O-8-1.P-3-3`
+        `.Qu-1-6.R-8-1.S-6-1.T-5-1.U-3-2.V-1-4.X-1-8.Y-1-5.Z-1-5.-2-0` (without
+        spaces).
 
     Other language identifiers are not supported in this version.
 
@@ -197,9 +220,12 @@ characters. Each segment is applied to an initially empty bag as follows.
 
 2.  Otherwise, the segment defines a letter to be added to the bag, along with
     the letter's count and point value, or to be removed from the bag. "Letter"
-    in this context means a sequence of zero, one, or multiple characters. An
-    empty "letter" represents a blank tile, which when played may be assigned
-    any non-empty letter in the bag defined by the Initial Bag Contents param.
+    in this context means a sequence of zero, one, or multiple characters.
+
+    An empty "letter" represents a blank tile, which when played may be
+    assigned any non-empty letter in the bag defined by the Initial Bag
+    Contents param. A blank tile may be assigned a letter whose count is zero.
+    However, the letter assigment does not affect a blank tile's point value.
 
     *   If the segment ends in hyphen (`-`), followed by a sequence of ASCII
         digits, followed by another hyphen and more ASCII digits, the part
@@ -245,7 +271,7 @@ These params MUST NOT appear before Turn Number (`tn`). They represent a
 sequence of player moves. Each move begins with Word Location (`wl`) or
 Exchange (`ex`), and every occurrence of one of those params begins a new move.
 Each move is associated with a number, beginning with with the Turn Number and
-incrementing with each move.
+increasing by 1 with each move.
 
 ### Word Location (`wl`)
 
@@ -265,11 +291,12 @@ a tile placed on a previous turn.
 ### Word Horizontal (`wh`)
 
 The letters in a horizontal Word Played, including those from previously placed
-and newly placed tiles. If any tile has more than one letter, then the Word
-Horizontal param MUST include period (`.`) characters separating the tile
-contents. For example, if the tile contents are `E`, `Qu`, `A`, and `L`, the
-param must be `wh=E.Qu.A.L`. If, on the other hand, `Q` and `U` are separate
-tiles, the param SHOULD be simply `wh=EQUAL`.
+and newly placed tiles, and including any letters assigned to blank tiles. If
+any tile has more than one character, then the Word Horizontal param MUST
+include period (`.`) characters separating the tile contents. For example, if
+the tile contents are `E`, `Qu`, `A`, and `L`, the param must be `wh=E.Qu.A.L`.
+If, on the other hand, `Q` and `U` are separate tiles, the param SHOULD be
+simply `wh=EQUAL`.
 
 ### Word Vertical (`wv`)
 
@@ -280,4 +307,6 @@ Horizontal.
 
 The rack posistions of tiles returned to the bag in an Exchange, or empty in
 the case of a Pass. The positions are zero-based decimal numbers separated by
-period (`.`) characters.
+period (`.`) characters. Position values are defined by the order drawn from
+the bag, not counting tiles used in Words Played or returned in previous
+Exchanges.
