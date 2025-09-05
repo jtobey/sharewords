@@ -71,11 +71,11 @@ contains only Game Params other than Turn Number MUST be interpreted as having
 This is Version 1 of the Turn URL format. Game URLs that adhere to it SHOULD
 include `v=1`.
 
-### Player Names (`p1n`, `p2n`, etc.)
+### Player Names (`p1n`, `p2n`, *etc.*)
 
 The game supports any number of players, subject to limits resulting from bag
 and rack size. Players are identified by an ID, which is their position in the
-order of play: `1`, `2`, etc. The game associates a name with each player. By
+order of play: `1`, `2`, *etc.( The game associates a name with each player. By
 default, there are two players named `Player 1` and `Player 2`. To specify
 either the number or the names of the players, we support Player Name params of
 the form `p{ID}n`, where `{ID}` is a Player ID.
