@@ -26,7 +26,7 @@ document defines the allowed params and their meanings in a game context.
 
 ## Game histories and deltas
 
-The Turn URL format supports both full game histories and deltas (sequencies of
+The Turn URL format supports both full game histories and deltas (sequences of
 moves within a game). Game histories typically include settings such as
 choice of dictionary, initial random seed, and player names, which deltas
 typically omit, but not always. When a game uses a default setting, the history
