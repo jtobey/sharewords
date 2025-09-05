@@ -301,7 +301,8 @@ simply `wh=EQUAL`.
 ### Word Vertical (`wv`)
 
 The letters in a vertical Word Played. The same rules apply as in Word
-Horizontal.
+Horizontal, and the word MUST include at least two newly placed tiles.
+(Single-tile moves are considered horizontal.)
 
 ### Exchange (`ex`)
 
