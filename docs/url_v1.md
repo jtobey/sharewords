@@ -75,7 +75,7 @@ include `v=1`.
 
 The game supports any number of players, subject to limits resulting from bag
 and rack size. Players are identified by an ID, which is their position in the
-order of play: `1`, `2`, *etc.( The game associates a name with each player. By
+order of play: `1`, `2`, *etc.* The game associates a name with each player. By
 default, there are two players named `Player 1` and `Player 2`. To specify
 either the number or the names of the players, we support Player Name params of
 the form `p{ID}n`, where `{ID}` is a Player ID.
