@@ -25,7 +25,6 @@
       "unknown_dictionary_type": "Unknown dictionary type: \"${type}\".",
       "custom_dictionary_requires_url": "Custom dictionary requires a URL.",
       "invalid_tile_distribution": "Invalid tile distribution specifier: ${specifier}",
-      "invalid_letter_config": "Invalid letter configuration: ${config}",
       "duplicate_letter_config": "Duplicate configuration for letter \"${letter}\".",
       "tn_not_a_number": "\"tn\" param is not a turn number: \"${param}\"",
       "both_word_and_exchange": "Found both word and exchange data for turn ${turnNumber}.",

@@ -28,7 +28,7 @@ describe('game params', () => {
     test('default settings', () => {
       const settings = Settings.forLanguage('en')
       const params = gameParamsFromSettings(settings)
-      expect(params.toString()).toBe('v=0&bag=.en&seed=1')
+      expect(params.toString()).toBe('v=0&bag=en&seed=1')
     })
 
     test('all settings', () => {
@@ -52,7 +52,7 @@ describe('game params', () => {
       letterValues.set('Z', 20)
       settings.letterValues = letterValues
       const params = gameParamsFromSettings(settings)
-      expect(params.get('bag')).toBe('Z--20..en')
+      expect(params.get('bag')).toBe('en.Z--20')
     })
 
     test('bag with removed letter is abbreviated', () => {
@@ -61,7 +61,7 @@ describe('game params', () => {
       letterCounts.delete('A')
       settings.letterCounts = letterCounts
       const params = gameParamsFromSettings(settings)
-      expect(params.get('bag')).toBe('A-0..en')
+      expect(params.get('bag')).toBe('en.A-')
     })
 
     test('bag with removed blank is abbreviated', () => {
@@ -70,7 +70,7 @@ describe('game params', () => {
       letterCounts.delete('') // Remove blank tile
       settings.letterCounts = letterCounts
       const params = gameParamsFromSettings(settings)
-      expect(params.get('bag')).toBe('_-0..en')
+      expect(params.get('bag')).toBe('en.-')
     })
 
     test('bag with extended alphabet is abbreviated', () => {
@@ -82,7 +82,7 @@ describe('game params', () => {
       letterValues.set('Ю', 10)
       settings.letterValues = letterValues
       const params = gameParamsFromSettings(settings)
-      expect(params.get('bag')).toBe('Ю-5-10..en')
+      expect(params.get('bag')).toBe('en.Ю-5-10')
     })
   })
 
@@ -129,11 +129,6 @@ describe('game params', () => {
       const params = new URLSearchParams('v=0')
       expect(() => parseGameParams(params)).toThrow('No random seed in URL.')
     })
-
-    test('invalid letter config', () => {
-      const params = new URLSearchParams('v=0&seed=&bag=A1')
-      expect(() => parseGameParams(params)).toThrow('Invalid letter configuration: A1')
-    })
   })
 
   describe('parseBagParam', () => {
@@ -146,7 +141,7 @@ describe('game params', () => {
     })
 
     test('parses bag with blank tile', () => {
-      const parsed = parseBagParam('_-1-0', [])
+      const parsed = parseBagParam('-1-0', [])
       expect(parsed.letterCounts.get('')).toBe(1)
       expect(parsed.letterValues.get('')).toBe(0)
     })
@@ -158,18 +153,18 @@ describe('game params', () => {
     })
 
     test('uses default value', () => {
-      const parsed = parseBagParam('A-15..en', boardLayout)
+      const parsed = parseBagParam('en.A-15', boardLayout)
       expect(parsed.letterCounts.get('A')).toEqual(15)
       expect(parsed.letterValues.get('A')).toEqual(Settings.forLanguage('en').letterValues.get('A')!)
     })
     test('uses default count', () => {
-      const parsed = parseBagParam('A--3..en', boardLayout)
+      const parsed = parseBagParam('en.A--3', boardLayout)
       expect(parsed.letterCounts.get('A')).toEqual(Settings.forLanguage('en').letterCounts.get('A')!)
       expect(parsed.letterValues.get('A')).toEqual(3)
     })
 
     test('uses default remaining letters', () => {
-      const parsed = parseBagParam('B-2-4..en', boardLayout)
+      const parsed = parseBagParam('en.B-2-4', boardLayout)
       const settings = Settings.forLanguage('en')
       settings.letterCounts.set('B', 2)
       settings.letterValues.set('B', 4)
@@ -178,7 +173,7 @@ describe('game params', () => {
     })
 
     test('uses default all letters', () => {
-      const parsed = parseBagParam('.en', boardLayout)
+      const parsed = parseBagParam('en', boardLayout)
       const settings = Settings.forLanguage('en')
       expect(parsed.letterCounts).toEqual(settings.letterCounts)
       expect(parsed.letterValues).toEqual(settings.letterValues)

@@ -19,7 +19,7 @@ limitations under the License.
  
 
 import { Settings, toGameId } from './settings.js'
-import { getBagDefaults, getBagLanguages, type BagDefaults } from './bag_defaults.js'
+import { getBagDefaults, getBagLanguages } from './bag_defaults.js'
 import { Player } from './player.js'
 import { arraysEqual } from './validation.js'
 import { getPlayerForTurnNumber, toTurnNumber } from './turn.js'
@@ -34,11 +34,8 @@ export class UrlError extends Error {
 
 /** Returns a `bag` param value for `settings`. */
 export function getBagParam(settings: Settings): string | undefined {
-  // TODO(#95): Implement Turn URL V1.
-  const letterToUrl = (l: string) => l === '' ? '_' : l;
-
   let bagParam = [...settings.letterCounts.entries()].map(
-    ([letter, count]) => `${letterToUrl(letter)}-${count}-${settings.letterValues.get(letter) ?? 0}`
+    ([letter, count]) => `${letter}-${count}-${settings.letterValues.get(letter) ?? 0}`
   ).join('.');
 
   const boardSize = settings.boardLayout.reduce((acc, row) => acc + row.length, 0);
@@ -55,7 +52,7 @@ export function getBagParam(settings: Settings): string | undefined {
       if (!defaultLetters.has(letter)) {
         const count = settings.letterCounts.get(letter)!;
         const value = settings.letterValues.get(letter) ?? 0;
-        diffParts.push(`${letterToUrl(letter)}-${count}-${value}`);
+        diffParts.push(`${letter}-${count}-${value}`);
       }
     }
 
@@ -72,11 +69,11 @@ export function getBagParam(settings: Settings): string | undefined {
       }
 
       if (!settingsHasLetter) {
-        diffParts.push(`${letterToUrl(letter)}-0`);
+        diffParts.push(`${letter}-`);
         continue;
       }
 
-      let part = letterToUrl(letter);
+      let part = letter;
       const countIsDefault = count === defaultCount;
       const valueIsDefault = value === defaultValue;
       if (!countIsDefault && !valueIsDefault) {
@@ -91,7 +88,7 @@ export function getBagParam(settings: Settings): string | undefined {
 
     diffParts.sort();
 
-    const abbreviatedBagParam = [...diffParts, `.${bagLanguage}`].join('.')
+    const abbreviatedBagParam = [bagLanguage, ...diffParts].join('.')
 
     if (abbreviatedBagParam.length < bagParam.length) {
       bagParam = abbreviatedBagParam
@@ -136,51 +133,50 @@ export function gameParamsFromSettings(settings: Settings): URLSearchParams {
 }
 
 export function parseBagParam(bagParam: string, boardLayout: string[]) {
-  // TODO(#95): Implement Turn URL V1.
-  const urlToLetter = (s: string) => s === '_' ? '' : s;
-  let letterConfigs!: string
-  let defaults!: BagDefaults
-  const langMatch = `.${bagParam}`.match(/(.*?)\.\.(.*)/)
-  if (langMatch) {
-    letterConfigs = langMatch[1]!.substring(1)
-    const bagLanguage = langMatch[2]!
-    const boardSize = boardLayout.reduce((acc, row) => acc + row.length, 0);
-    const tileCount = Math.round(boardSize / (15 * 15) * 100);
-    const maybeDefaults = getBagDefaults(bagLanguage, tileCount)
-    if (!maybeDefaults) {
-      throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: bagLanguage }))
-    }
-    defaults = maybeDefaults
-  } else {
-    letterConfigs = bagParam
-    defaults = getBagDefaults('')
-  }
-  const lettersSeen = new Set<string>
-  const letterCounts = defaults.letterCounts
-  const letterValues = defaults.letterValues
-  for (const letterConfig of letterConfigs.split('.')) {
-    if (letterConfig === '') continue
-    const match = letterConfig.match(/^(?<letter>\D+?)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u)
-    if (!match) {
-      throw new UrlError(t('error.url.invalid_letter_config', { config: letterConfig }))
-    }
-    const g = match.groups!
-    if (lettersSeen.has(g.letter!)) {
-      throw new UrlError(t('error.url.duplicate_letter_config', { letter: g.letter! }))
-    }
-    lettersSeen.add(g.letter!)
-    const letter = urlToLetter(g.letter!)
-    const count = g.count ? parseInt(g.count, 10) : letterCounts.get(letter) ?? 1
-    const value = g.value ? parseInt(g.value, 10) : letterValues.get(letter) ?? 1
-    if (count) {
-      letterCounts.set(letter, count)
-      letterValues.set(letter, value)
+  const boardSize = boardLayout.reduce((acc, row) => acc + row.length, 0);
+  const tileCount = Math.round(boardSize / (15 * 15) * 100);
+  const bagSettings = getBagDefaults('');
+  const lettersSeen = new Set<string>;
+
+  function mergeLetterConfig(letter: string, count?: number, value?: number) {
+    if (count === undefined && value === undefined) {
+      bagSettings.letterCounts.delete(letter);
+      bagSettings.letterValues.delete(letter);
     } else {
-      letterCounts.delete(letter)
-      letterValues.delete(letter)
+      const oldCount = bagSettings.letterCounts.get(letter);
+      const oldValue = bagSettings.letterValues.get(letter);
+      bagSettings.letterCounts.set(letter, count ?? oldCount ?? 1);
+      bagSettings.letterValues.set(letter, value ?? oldValue ?? 1);
     }
   }
-  return { letterCounts, letterValues }
+
+  for (const config of bagParam.split('.')) {
+    if (config.match(/^[a-z]/)) {
+      const bagLanguage = config;
+      const defaults = getBagDefaults(bagLanguage, tileCount);
+      if (!defaults) {
+        throw new UrlError(t('error.url.invalid_tile_distribution', { specifier: bagLanguage }));
+      }
+      defaults.letterCounts.entries().forEach(([letter, count]) => {
+        mergeLetterConfig(letter, count, defaults.letterValues.get(letter));
+      });
+    } else {
+      const match = config.match(/^(?<letter>.*?)(?:-(?<count>(?:\d+$|\d*))(?:-(?<value>\d+))?)?$/u);
+      if (!match) {
+        throw new Error(`Letter config pattern does not match "${config}".`);
+      }
+      const g = match.groups!
+      const letter = g.letter!
+      if (lettersSeen.has(letter)) {
+        throw new UrlError(t('error.url.duplicate_letter_config', { letter }));
+      }
+      lettersSeen.add(letter);
+      const count = (g.count === '' || g.count === undefined ? undefined : parseInt(g.count, 10));
+      const value = (g.value === '' || g.value === undefined ? undefined : parseInt(g.value, 10));
+      mergeLetterConfig(letter, count, value);
+    }
+  }
+  return bagSettings;
 }
 
 /**

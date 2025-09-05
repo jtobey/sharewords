@@ -255,7 +255,7 @@ describe('multi-player', () => {
       expect(player1Hash).toEqual(`#${new URLSearchParams([
         ['gid', app1.gameState.gameId],
         ['v', '0'],
-        ['bag', '.en'],
+        ['bag', 'en'],
         ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
         ['tn', '1'],
         ['ex', ''],
@@ -290,7 +290,7 @@ describe('multi-player', () => {
       expect(player1Hash1).toEqual('#' + new URLSearchParams([
         ['gid', app1.gameState.gameId],
         ['v', '0'],
-        ['bag', '.en'],
+        ['bag', 'en'],
         ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
         ['tn', '1'],
         ['ex', ''],

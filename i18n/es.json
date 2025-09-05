@@ -25,7 +25,6 @@
       "unknown_dictionary_type": "Tipo de diccionario desconocido: \"${type}\".",
       "custom_dictionary_requires_url": "El diccionario personalizado requiere una URL.",
       "invalid_tile_distribution": "Especificador de distribución de fichas no válido: ${specifier}",
-      "invalid_letter_config": "Configuración de letras no válida: ${config}",
       "duplicate_letter_config": "Configuración duplicada para la letra \"${letter}\".",
       "tn_not_a_number": "El parámetro \"tn\" no es un número de turno: \"${param}\"",
       "both_word_and_exchange": "Se encontraron datos de palabra e intercambio para el turno ${turnNumber}.",
