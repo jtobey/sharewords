@@ -249,9 +249,8 @@ characters. Each segment is applied to an initially empty bag as follows.
     *   If the segment ends in a hyphen (`-`), the part preceding the hyphen is
         parsed as the letter. The letter is removed from the bag.
 
-    *   Otherwise, the entire segment is treated as a letter. The letter
-        MUST NOT be in the bag. The letter is added to the bag with count 1 and
-        value 1.
+    *   Otherwise, the entire segment is treated as a letter. If the letter is
+        not already in the bag, it is added with count 1 and value 1.
 
     A segment of this form MUST NOT refer to a letter directly referred to by
     an earlier segment in the same Initial Bag Contents param value. A segment
