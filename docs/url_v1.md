@@ -177,13 +177,57 @@ Contents param is required.
 The Initial Bag Contents param is parsed by first splitting on period (`.`)
 characters. Each segment is applied to an initially empty bag as follows.
 
-1.  If the segment begins with an ASCII lowercase letter, the segment must be
-    a supported language identifier (currently `en` or `es`). The language's
-    settings from `game/bag_defaults.ts` augment or override the current
-    settings.
-2.  ...
+1.  If the segment begins with an ASCII lowercase letter, the segment MUST be
+    a supported language identifier (currently `en` or `es`). The segment is
+    treated as a sequence of segments expressing the language's default
+    settings as follows:
 
-...
+    *   `en` (English) expands to `A-7-1.B-2-4.C-4-4.D-3-2.E-12-1.F-1-4` +
+        `.G-3-3.H-2-4.I-8-1.J-1-9.K-1-5.L-5-2.M-3-3.N-6-1.O-6-1.P-2-3.Q-1-10` +
+        `.R-7-1.S-9-1.T-6-1.U-4-2.V-1-5.W-1-4.X-1-8.Y-1-4.Z-1-8.-2-0`
+
+    *   `es` (Spanish) expands to `A-12-1.B-2-3.C-5-2.D-3-2.E-11-1.F-1-4` +
+        `.G-2-4.H-1-4.I-7-1.J-1-5.K-1-9.L-4-2.M-3-2.N-6-1.Ñ-1-10.O-8-1.P-3-3` +
+        `.Qu-1-6.R-8-1.S-6-1.T-5-1.U-3-2.V-1-4.X-1-8.Y-1-5.Z-1-5.-2-0`
+
+    Other language identifiers are not supported in this version.
+
+    A language specified in this way MUST NOT have been previously specified in
+    the same Initial Bag Contents param value.
+
+2.  Otherwise, the segment defines a letter to be added to the bag, along with
+    the letter's count and point value, or to be removed from the bag. "Letter"
+    in this context means a sequence of zero, one, or multiple characters. An
+    empty "letter" represents a blank tile, which when played may be assigned
+    any non-empty letter in the bag defined by the Initial Bag Contents param.
+
+    *   If the segment ends in hyphen (`-`), followed by a sequence of ASCII
+        digits, followed by another hyphen and more ASCII digits, the part
+        before the first of these hyphens is parsed as the letter. The digit
+        sequences are parsed as the letter's count and value, respectively.
+
+    *   If the segment ends in two hyphens (`--`) followed by a sequence of
+        ASCII digits, the part before the hyphens is parsed as the letter. The
+        digit sequence is parsed as the letter's value. The letter's count
+        remains unchanged if present in the bag. If the letter was not
+        previously in the bag, its count defaults to 1.
+
+    *   Otherwise, if the segment ends in one hyphen (`-`) followed by ASCII
+        digits, the part preceding the hyphen is parsed as the letter. The
+        digit sequence is parsed as the letter's count. The letter's value
+        remains unchanged if present in the bag. If the letter was not
+        previously in the bag, its value defaults to 1.
+
+    *   If the segment ends in a hyphen (`-`), the part preceding the hyphen is
+        parsed as the letter. The letter is removed from the bag.
+
+    *   Otherwise, the entire segment is treated as a letter. The letter
+        MUST NOT be in the bag. The letter is added to the bag with count 1 and
+        value 1.
+
+    A segment of this form MUST NOT refer to a letter directly referred to by
+    an earlier segment in the same Initial Bag Contents param value. A segment
+    MAY refer to a letter that was added through language identifier expansion.
 
 ### Rack Size (`racksize`)
 
