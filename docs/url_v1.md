@@ -1,6 +1,6 @@
 # Turn URL Format V1
 
-STATUS: partially implemented
+STATUS: DRAFT
 
 Players initiate games and communicate moves by exchanging *Turn URLs.* The URI
 standard [defines](https://datatracker.ietf.org/doc/html/rfc3986#section-3.5) an
@@ -197,6 +197,8 @@ Contents param is required.
 
 The Initial Bag Contents param is parsed by first splitting on period (`.`)
 characters. Each segment is applied to an initially empty bag as follows.
+
+... Say how to scale for board size other than 225 squares. ...
 
 1.  If the segment begins with an ASCII lowercase letter, the segment MUST be
     a supported language identifier (currently `en` or `es`). The segment is
