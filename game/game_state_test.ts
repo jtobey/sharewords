@@ -206,7 +206,7 @@ describe('game state', () => {
 
     it('should throw on custom dictionary without URL', async () => {
       const params = new URLSearchParams
-      params.set('dt', 'custom')
+      params.set('dt', 'wordlist')
       params.set('seed', '123')
       params.set('tn', '1')
       await expect(GameState.fromParams(params)).rejects.toThrow('Custom dictionary requires a URL.')

@@ -54,9 +54,9 @@ const bunBuiltHtml = await getText('./index.html')
 let processedHtml = bunBuiltHtml;
 if (customDictOptions.length > 0) {
     const optionsString = '                ' + customDictOptions.join('\n                ');
-    // Insert before the "custom" option.
+    // Insert before the "wordlist" option.
     processedHtml = processedHtml.replace(
-        /(<option value="custom")/,
+        /(<option value="wordlist")/,
         `${optionsString}\n                $1`
     );
 }

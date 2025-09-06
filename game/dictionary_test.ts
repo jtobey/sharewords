@@ -24,7 +24,7 @@ describe('makeDictionary', () => {
     await loadTranslations('en')
   })
 
-  describe('custom dictionary', () => {
+  describe('word list', () => {
     let dictBytes: Uint8Array
     const dictUrl = 'http://localhost/test-dictionary.swdict'
     const originalFetch = globalThis.fetch
@@ -53,24 +53,24 @@ describe('makeDictionary', () => {
     })
 
     test('accepts valid words', async () => {
-      const dictionary = makeDictionary({ dictionaryType: 'custom', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
+      const dictionary = makeDictionary({ dictionaryType: 'wordlist', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
       await expect(dictionary('hello')).resolves.toBeUndefined()
       await expect(dictionary('world')).resolves.toBeUndefined()
       await expect(dictionary('HELLO')).resolves.toBeUndefined() // testing case-insensitivity
     })
 
     test('rejects invalid words', async () => {
-      const dictionary = makeDictionary({ dictionaryType: 'custom', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
+      const dictionary = makeDictionary({ dictionaryType: 'wordlist', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
       await expect(dictionary('goodbye')).rejects.toThrow(PlayRejectedError)
     })
 
     test('rejects multiple words with one invalid', async () => {
-        const dictionary = makeDictionary({ dictionaryType: 'custom', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
+        const dictionary = makeDictionary({ dictionaryType: 'wordlist', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
         await expect(dictionary('hello', 'goodbye')).rejects.toThrow(PlayRejectedError)
     })
 
     test('reports correct invalid words', async () => {
-        const dictionary = makeDictionary({ dictionaryType: 'custom', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
+        const dictionary = makeDictionary({ dictionaryType: 'wordlist', dictionarySettings: dictUrl, baseUrl: 'http://localhost/' })
         const promise = dictionary('hello', 'goodbye', 'world', 'cruel')
         await expect(promise).rejects.toThrow(PlayRejectedError)
         await expect(promise).rejects.toThrow(`Not words in Test Dictionary: goodbye, cruel. Play rejected.`)

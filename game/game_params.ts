@@ -224,15 +224,15 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   if (!seedParam) throw new UrlError(t('error.url.no_random_seed'))
   settings.tileSystemSettings = {seed: seedParam}
   const dtParam = gameParams.get('dt')
-  if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'custom') {
+  if (dtParam === 'permissive' || dtParam === 'freeapi' || dtParam === 'wordlist') {
     settings.dictionaryType = dtParam
   } else if (dtParam) {
-    // TODO(#95): Support 'consensus' and 'wordlist' types.
+    // TODO(#95): Support 'consensus' type.
     throw new UrlError(t('error.url.unknown_dictionary_type', { type: dtParam }))
   }
   const dsParam = gameParams.get('ds')
   if (dsParam) settings.dictionarySettings = dsParam
-  else if (settings.dictionaryType === 'custom') {
+  else if (settings.dictionaryType === 'wordlist') {
     throw new UrlError(t('error.url.custom_dictionary_requires_url'))
   }
   let playerId = gameParams.get('pid') ?? undefined

@@ -121,7 +121,7 @@ describe('game params', () => {
     })
 
     test('custom dictionary without url', () => {
-      const params = new URLSearchParams('v=0&seed=1&dt=custom')
+      const params = new URLSearchParams('v=0&seed=1&dt=wordlist')
       expect(() => parseGameParams(params)).toThrow('Custom dictionary requires a URL.')
     })
 

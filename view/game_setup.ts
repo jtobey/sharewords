@@ -87,14 +87,13 @@ export class GameSetup {
       if (dictionaryValue === 'permissive') {
         settings.dictionaryType = 'permissive';
         settings.dictionarySettings = null;
-      } else if (dictionaryValue === 'freeapi' || dictionaryValue === 'custom') {
+      } else if (dictionaryValue === 'freeapi' || dictionaryValue === 'wordlist') {
         settings.dictionaryType = dictionaryValue;
         settings.dictionarySettings = this.dictionaryUrl.value || null;
       } else {
         // TODO(#95): Support the 'consensus' type.
         // This is a pre-packaged dictionary
-        // TODO(#95): Use the new 'wordlist' type in Turn URL V1.
-        settings.dictionaryType = 'custom';
+        settings.dictionaryType = 'wordlist';
         settings.dictionarySettings = dictionaryValue;
       }
 
@@ -159,13 +158,13 @@ export class GameSetup {
 
   private _handleDictChange() {
     const selectedValue = this.dictionaryType.value;
-    if (selectedValue === 'freeapi' || selectedValue === 'custom') {
+    if (selectedValue === 'freeapi' || selectedValue === 'wordlist') {
       this.dictionaryUrlContainer.hidden = false;
-      this.dictionaryUrl.required = selectedValue === 'custom';
+      this.dictionaryUrl.required = selectedValue === 'wordlist';
     } else {
       this.dictionaryUrlContainer.hidden = true;
     }
-    if (selectedValue !== 'custom' && selectedValue !== 'freeapi') {
+    if (selectedValue !== 'wordlist' && selectedValue !== 'freeapi') {
       this.dictionaryUrl.value = '';
     }
   }
@@ -186,7 +185,7 @@ export class GameSetup {
 
     // Dictionary
     this.dictionaryType.value = this.gameState.settings.dictionaryType;
-    if (this.gameState.settings.dictionaryType === 'custom' &&
+    if (this.gameState.settings.dictionaryType === 'wordlist' &&
         typeof this.gameState.settings.dictionarySettings === 'string' &&
         this.dictionaryType.querySelector(`option[value="${this.gameState.settings.dictionarySettings}"]`)) {
       this.dictionaryType.value = this.gameState.settings.dictionarySettings;
@@ -225,7 +224,7 @@ export class GameSetup {
       this.tileDistribution.value = langMatch[1]!;
     } else {
       const option = this.doc.createElement('option');
-      option.value = 'custom';
+      option.value = 'wordlist';
       option.textContent = t('ui.settings.tile_distribution_options.custom');
       this.tileDistribution.appendChild(option);
       this.tileDistribution.value = 'custom';

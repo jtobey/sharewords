@@ -118,24 +118,28 @@ export class Settings {
   }
 
   static fromJSON(json: any) {
-    if (!(typeof json === 'object'
-      && arraysEqual([...Object.keys(json)], [
-        'version', 'players', 'letterCounts', 'letterValues', 'boardLayout',
-        'bingoBonus', 'rackCapacity', 'tileSystemType', 'tileSystemSettings',
-        'dictionaryType', 'dictionarySettings',
-      ])
-      && json.version === PROTOCOL_VERSION
-      && Array.isArray(json.players)
-      && Array.isArray(json.boardLayout)
-      && json.boardLayout.every((s: any) => typeof s === 'string')
-      && typeof json.bingoBonus === 'number'
-      && typeof json.rackCapacity === 'number'
-      && json.tileSystemType === 'honor'
-      && typeof json.tileSystemSettings === 'object'
-      && typeof json.tileSystemSettings.seed === 'string'
-      && ['permissive', 'freeapi', 'custom'].includes(json.dictionaryType))) {
-        throw new TypeError(`Invalid Settings serialization: ${JSON.stringify(json)}`)
-      }
+    function fail(msg: string): never {
+      throw new TypeError(`${msg} in Settings serialization: ${JSON.stringify(json)}`);
+    }
+    if (typeof json !== 'object') fail('Not an object');
+    if (!arraysEqual([...Object.keys(json)], [
+      'version', 'players', 'letterCounts', 'letterValues', 'boardLayout',
+      'bingoBonus', 'rackCapacity', 'tileSystemType', 'tileSystemSettings',
+      'dictionaryType', 'dictionarySettings',
+    ])) fail('Wrong keys or key order');
+    if (json.version !== PROTOCOL_VERSION) fail(`Unsupported protocol version "${json.version}"`);
+    if (!Array.isArray(json.players)) fail('`players` is not an array');
+    if (!Array.isArray(json.boardLayout)) fail('`boardLayout` is not an array');
+    if (!json.boardLayout.every((s: any) => typeof s === 'string')) fail('`boardLayout` contains a non-string');
+    if (typeof json.bingoBonus !== 'number') fail('`bingoBonus` is not a number');
+    if (typeof json.rackCapacity !== 'number') fail('`rackCapacity` is not a number');
+    if (json.tileSystemType !== 'honor') fail(`Unsupported tile system type "${json.tileSystemType}"`);
+    if (typeof json.tileSystemSettings !== 'object') fail('`tileSystemSettings` is not an object');
+    if (json.tileSystemSettings === null) fail('`tileSystemSettings` is null');
+    if (typeof json.tileSystemSettings.seed !== 'string') fail('`tileSystemSettings.seed` is not a string');
+    if (!['permissive', 'consensus', 'wordlist', 'freeapi'].includes(json.dictionaryType)) {
+      fail(`Unsupported dictionary type "${json.dictionaryType}"`);
+    }
     const settings = Settings.forLanguage('')
     settings.version = json.version
     settings.players = json.players.map(Player.fromJSON)

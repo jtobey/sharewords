@@ -64,7 +64,7 @@
       "dictionary_options": {
         "permissive": "Cualquier cosa es una palabra",
         "freeapi": "Free Dictionary API",
-        "custom": "personalizado"
+        "wordlist": "Listado de palabras SWDICT"
       },
       "dictionary_url_label": "URL:",
       "tile_distribution": "Distribución de Fichas",

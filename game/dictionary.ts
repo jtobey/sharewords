@@ -17,9 +17,7 @@ import { t } from '../i18n.js'
 import { WordList } from '../dict/word_list.js'
 
 export type Dictionary = ((...possibleWords: Array<string>) => Promise<void>)
-
-// TODO(#95): Support 'consensus' and 'wordlist' types.
-export type DictionaryType = 'permissive' | 'freeapi' | 'custom'
+export type DictionaryType = 'permissive' | 'consensus' | 'wordlist' | 'freeapi'
 
 const SWDICT_SUFFIX = '.swdict'
 
@@ -31,9 +29,9 @@ export class PlayRejectedError extends Error {
 }
 
 export function makeDictionary(settings: { dictionaryType: DictionaryType, dictionarySettings: any, baseUrl: string }) {
-  // TODO(#95): Support 'consensus' and 'wordlist' types.
+  // TODO(#95): Support 'consensus' type.
   if (settings.dictionaryType === 'permissive') return async (...words: string[]) => null
-  if (settings.dictionaryType === 'custom') return makeCustomDictionary(settings)
+  if (settings.dictionaryType === 'wordlist') return makeListDictionary(settings)
   if (settings.dictionaryType === 'freeapi') {
     let urlTemplate!: string, dictionaryName!: string
     if (settings.dictionarySettings) {
@@ -115,10 +113,10 @@ async function checkWordUsingUrl(wordToCheck: string, url: string, dictionaryNam
   }
 }
 
-function makeCustomDictionary(settings: {dictionarySettings: any, baseUrl: string}) {
+function makeListDictionary(settings: {dictionarySettings: any, baseUrl: string}) {
   const dictionarySettings = settings.dictionarySettings
   if (typeof dictionarySettings !== 'string') {
-    throw new TypeError(`Custom dictionary requires a string URL, not ${dictionarySettings}.`)
+    throw new TypeError(`Word list requires a string URL, not ${dictionarySettings}.`)
   }
 
   let wordListPromise: Promise<WordList> | null = null;
@@ -139,7 +137,7 @@ function makeCustomDictionary(settings: {dictionarySettings: any, baseUrl: strin
       wordListPromise = (async () => {
         const response = await fetch(dictionaryUrl);
         if (!response.ok) {
-          throw new Error(`Failed to fetch custom dictionary from ${dictionaryUrl}: ${response.statusText}`);
+          throw new Error(`Failed to fetch word list from ${dictionaryUrl}: ${response.statusText}`);
         }
         const buffer = await response.arrayBuffer();
         return new WordList(new Uint8Array(buffer));

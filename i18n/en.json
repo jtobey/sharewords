@@ -64,7 +64,7 @@
       "dictionary_options": {
         "permissive": "Anything is a word",
         "freeapi": "Free Dictionary API",
-        "custom": "custom"
+        "wordlist": "SWDICT word list"
       },
       "dictionary_url_label": "URL:",
       "tile_distribution": "Tile Distribution",
