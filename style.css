@@ -275,11 +275,11 @@ dialog button {
 }
 
 .replay-link {
-  padding: 1em;
+  margin-left: 1em;
 }
 
 .source-link {
-  padding: 1em;
+  margin-top: 1em;
 }
 
 @media (prefers-color-scheme: dark) {
