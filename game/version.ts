@@ -21,6 +21,12 @@ export type ProtocolVersion = string & { '__brand': 'ProtocolVersion' };
 export const toProtocolVersion = (v: string) => v as ProtocolVersion;
 export const fromProtocolVersion = (v: ProtocolVersion) => v as string;
 
-export const PROTOCOL_VERSION_0 = toProtocolVersion('0');
-export const PROTOCOL_VERSION_1 = toProtocolVersion('1');
+const _PROTOCOL_VERSIONS: {[key: string]: ProtocolVersion} = Object.create(null);
+export const PROTOCOL_VERSIONS: Readonly<typeof _PROTOCOL_VERSIONS> = _PROTOCOL_VERSIONS;
+
+const v = (vStr: string) => _PROTOCOL_VERSIONS[vStr] = toProtocolVersion(vStr);
+
+export const PROTOCOL_VERSION_0 = v('0');
+export const PROTOCOL_VERSION_1 = v('1');
+
 export const PROTOCOL_VERSION = PROTOCOL_VERSION_1;
