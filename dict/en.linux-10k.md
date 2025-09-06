@@ -20,3 +20,9 @@ bun run dict/dictc.ts \
     --name="Cygwin English 10k" \
     --description="$(< dict/en.linux-10k.md)"
 ```
+
+### Copyright status unclear
+
+The word list created as an intermediate file by the above script may be from
+the first edition of the Official Scrabble Players Dictionary. See en.linux.md
+for more information.
