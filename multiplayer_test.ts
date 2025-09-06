@@ -131,7 +131,7 @@ describe('multi-player', () => {
     expect([...gameUrl2.entries()]).toEqual([
       ['pid', '2'],
       ['gid', 'test'],
-      ['v', '0'],
+      ['v', '1'],
       ['p1n', 'P1'],
       ['p2n', 'P2'],
       ['p3n', 'P3'],
@@ -254,7 +254,7 @@ describe('multi-player', () => {
       const player1Hash = browser1.getHash()
       expect(player1Hash).toEqual(`#${new URLSearchParams([
         ['gid', app1.gameState.gameId],
-        ['v', '0'],
+        ['v', '1'],
         ['bag', 'en'],
         ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
         ['tn', '1'],
@@ -289,7 +289,7 @@ describe('multi-player', () => {
       const player1Hash1 = browser1.getHash()
       expect(player1Hash1).toEqual('#' + new URLSearchParams([
         ['gid', app1.gameState.gameId],
-        ['v', '0'],
+        ['v', '1'],
         ['bag', 'en'],
         ['seed', String(app1.gameState.settings.tileSystemSettings.seed)],
         ['tn', '1'],

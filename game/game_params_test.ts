@@ -28,7 +28,7 @@ describe('game params', () => {
     test('default settings', () => {
       const settings = Settings.forLanguage('en')
       const params = gameParamsFromSettings(settings)
-      expect(params.toString()).toBe('v=0&bag=en&seed=1')
+      expect(params.toString()).toBe('v=1&bag=en&seed=1')
     })
 
     test('all settings', () => {
@@ -43,7 +43,7 @@ describe('game params', () => {
       settings.dictionaryType = 'freeapi'
       settings.dictionarySettings = 'bar'
       const params = gameParamsFromSettings(settings)
-      expect(params.toString()).toBe('v=0&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar')
+      expect(params.toString()).toBe('v=1&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar')
     })
 
     test('abbreviated bag param', () => {
@@ -88,7 +88,7 @@ describe('game params', () => {
 
   describe('parseGameParams', () => {
     test('default settings', () => {
-      const params = new URLSearchParams('v=0&seed=1&tn=1')
+      const params = new URLSearchParams('v=1&seed=1&tn=1')
       const { settings, playerId, turnParams } = parseGameParams(params)
       const defaultSettings = Settings.forLanguage('')
       defaultSettings.tileSystemSettings.seed = '1'
@@ -98,7 +98,7 @@ describe('game params', () => {
     })
 
     test('all settings', () => {
-      const params = new URLSearchParams('v=0&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar&pid=2&tn=3&wl=1.2&wh=WORD')
+      const params = new URLSearchParams('v=1&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar&pid=2&tn=3&wl=1.2&wh=WORD')
       const { settings, playerId, turnParams } = parseGameParams(params)
       const expectedSettings = Settings.forLanguage('en')
       expectedSettings.players = [new Player({ id: '1', name: 'p1' }), new Player({ id: '2', name: 'p2' })]
@@ -116,17 +116,17 @@ describe('game params', () => {
     })
 
     test('unknown dictionary type', () => {
-      const params = new URLSearchParams('v=0&seed=1&dt=foo')
+      const params = new URLSearchParams('v=1&seed=1&dt=foo')
       expect(() => parseGameParams(params)).toThrow('Unknown dictionary type: "foo".')
     })
 
     test('custom dictionary without url', () => {
-      const params = new URLSearchParams('v=0&seed=1&dt=wordlist')
+      const params = new URLSearchParams('v=1&seed=1&dt=wordlist')
       expect(() => parseGameParams(params)).toThrow('Custom dictionary requires a URL.')
     })
 
     test('no seed', () => {
-      const params = new URLSearchParams('v=0')
+      const params = new URLSearchParams('v=1')
       expect(() => parseGameParams(params)).toThrow('No random seed in URL.')
     })
   })

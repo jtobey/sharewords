@@ -14,4 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 // Game/turn URL semantics version.
-export const PROTOCOL_VERSION = '0'
+export const PROTOCOL_VERSION = '1'

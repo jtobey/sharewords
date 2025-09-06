@@ -164,7 +164,7 @@ describe('game state', () => {
 
     it('should be parsed for non-default settings', async () => {
       const params = new URLSearchParams
-      params.set('v', '0')
+      params.set('v', '1')
       params.set('p1n', 'player1')
       params.set('p2n', 'player2')
       params.set('board', 'T..-.d.-..T')
@@ -178,7 +178,7 @@ describe('game state', () => {
       const gameState = await GameState.fromParams(params)
       const settings = gameState.settings
 
-      expect(settings.version).toEqual('0')
+      expect(settings.version).toEqual('1')
       expect(settings.players.map(p => p.name)).toEqual(['player1', 'player2'])
       expect(settings.boardLayout).toEqual(['T..', '.d.', '..T'])
       expect(settings.bingoBonus).toEqual(100)
