@@ -1,3 +1,6 @@
+/**
+ * @file Game/turn URL semantics versions.
+ */
 /*
 Copyright 2025 Google LLC
 
@@ -12,6 +15,12 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
-// Game/turn URL semantics version.
-export const PROTOCOL_VERSION = '1'
+ */
+
+export type ProtocolVersion = string & { '__brand': 'ProtocolVersion' };
+export const toProtocolVersion = (v: string) => v as ProtocolVersion;
+export const fromProtocolVersion = (v: ProtocolVersion) => v as string;
+
+export const PROTOCOL_VERSION_0 = toProtocolVersion('0');
+export const PROTOCOL_VERSION_1 = toProtocolVersion('1');
+export const PROTOCOL_VERSION = PROTOCOL_VERSION_1;
