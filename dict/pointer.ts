@@ -41,17 +41,13 @@ export class Pointer {
     this.checkEnd(1)
     return this.uint8Array[this._offset++]!
   }
-  varintNumber() {
-    let ret = 0, shift = 0
+  varintBigInt() {
+    let ret = 0n, shift = 0n
     while (true) {
       const byte = this.byte()
-      const payload = byte & 0x7f
-      if (shift === 49 && (payload > 0xf || (payload && shift > 49))) {
-        throw new RangeError(`Varint too large for number at offset ${this.offset}.`)
-      }
-      ret += ((byte & 0x7f) << shift)
+      ret += (BigInt(byte & 0x7f) << shift)
       if (!(byte & 0x80)) return ret
-      shift += 7
+      shift += 7n
     }
   }
   skipToVarint() {
@@ -60,14 +56,15 @@ export class Pointer {
       ++this._offset
     }
   }
-  skip(numberOfBytes: number) {
-    const offset = this._offset + numberOfBytes
-    this.checkOffset(offset)
-    this._offset = offset
+  skip(numberOfBytes: number | bigint) {
+    const offset = this._offset + Number(numberOfBytes);
+    this.checkOffset(offset);
+    this._offset = offset;
   }
-  view(numberOfBytes: number) {
-    const result = this.uint8Array.subarray(this._offset, this._offset + numberOfBytes)
-    this.skip(numberOfBytes)
-    return result
+  view(numberOfBytes: number | bigint) {
+    numberOfBytes = Number(numberOfBytes);
+    const result = this.uint8Array.subarray(this._offset, this._offset + numberOfBytes);
+    this.skip(numberOfBytes);
+    return result;
   }
 }
