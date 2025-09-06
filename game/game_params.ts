@@ -196,7 +196,6 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const settings = Settings.forLanguage('')
   const vParam = gameParams.get('v')
   if (vParam && vParam !== settings.version) {
-    // TODO(#95): Consider handling v=0 and v=1.
     throw new UrlError(t('error.url.protocol_not_supported', { version: vParam }))
   }
   const gidParam = gameParams.get('gid')
