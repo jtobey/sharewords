@@ -19,7 +19,7 @@ limitations under the License.
  
 
 import { codePointCompare } from './code_point_compare.js'
-import { Metadata } from './swdict.js'
+import { Macro, Metadata } from './swdict.js'
 import { Pointer } from './pointer.js'
 
 const METADATA_FIELD_NUMBER = 1
@@ -32,9 +32,14 @@ export class InvalidLexiconError extends Error {
   }
 }
 
+type SubwordMacro = Macro & { subword: string };
+function isSubwordMacro(macro: Macro): macro is SubwordMacro {
+  return macro.subword !== undefined;
+}
+
 export class WordListEntry extends String {
-  constructor(wordBuffer: string[], readonly metadata?: bigint[]) {
-    super(wordBuffer.join(''));
+  constructor(macros: ReadonlyArray<Readonly<SubwordMacro>>) {
+    super(macros.map(m => m.subword).join(''));
   }
 }
 
@@ -121,7 +126,7 @@ export class WordList {
   }
 
   private *scanFrom(ip: Pointer) {
-    const wordBuffer: string[] = [];
+    const wordBuffer: SubwordMacro[] = [];
     const stack: Iterator<number>[] = [this.readInstructions(ip)]
 
     while (stack.length > 0) {
@@ -140,8 +145,8 @@ export class WordList {
         throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
       }
 
-      if (insn.subword !== undefined) {
-        wordBuffer.push(insn.subword)
+      if (isSubwordMacro(insn)) {
+        wordBuffer.push(insn)
       } else if (insn.subroutine) {
         stack.push(insn.subroutine.instructions[Symbol.iterator]())
       } else {
