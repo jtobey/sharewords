@@ -15,7 +15,7 @@ limitations under the License.
 */
 import type { GameState } from '../game/game_state.js'
 import type { View } from '../view/view.js'
-import { isBoardPlacementRow, type TilePlacementRow } from '../game/tile.js'
+import { isBoardPlacementRow, type TilePlacement, type TilePlacementRow } from '../game/tile.js'
 
 type CommonPointerInfo = {
   downX: number
@@ -28,6 +28,8 @@ type CommonPointerInfo = {
 type DragInfo = CommonPointerInfo & {
   draggingTile: { row: TilePlacementRow, col: number, element: HTMLElement }
   ghostTile: HTMLElement | null
+  initialRack?: readonly TilePlacement[]
+  rackPreview?: readonly TilePlacement[]
 }
 
 type PanInfo = CommonPointerInfo & {
@@ -111,6 +113,13 @@ export class PointerHandler {
   pointerCancel(evt: PointerEvent) {
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (info) console.debug(`Pointer cancel: ${evt.pointerId} (${info.x.toFixed(2)},${info.y.toFixed(2)})`)
+    if (info?.draggingTile && info.ghostTile) {
+      if (info.initialRack) {
+        this.view.renderRack()
+      }
+      this.view.removeGhostTile(info.ghostTile)
+      info.draggingTile.element.classList.remove('dragging')
+    }
     this.pointerInfoMap.delete(evt.pointerId)
     this.view.clearDropTarget(evt.pointerId)
   }
@@ -138,6 +147,9 @@ export class PointerHandler {
         ...tapInfo,
         draggingTile: { row, col, element: tileTarget },
         ghostTile: null,
+      }
+      if (row === 'rack') {
+        dragInfo.initialRack = this.gameState.tilesHeld.filter(p => p.row === 'rack')
       }
       this.pointerInfoMap.set(evt.pointerId, dragInfo)
     } else if (target.closest('#board-container')) {
@@ -254,6 +266,29 @@ export class PointerHandler {
           }
         }
       }
+      if (info.initialRack) {
+        const dropTarget = this.view.getDropTarget(evt.pointerId)
+        const { row: fromRow, col: fromCol } = info.draggingTile
+        const draggedTile = info.initialRack.find(p => p.row === fromRow && p.col === fromCol)!
+        let preview: TilePlacement[]
+        if (dropTarget?.row === 'rack') {
+          const { col: toCol } = dropTarget
+          const otherTiles = info.initialRack.filter(p => p.col !== fromCol)
+          let insertBefore = otherTiles.findIndex(p => p.col >= toCol)
+          if (fromCol < toCol && insertBefore !== -1) {
+            insertBefore++
+          }
+          if (insertBefore === -1) {
+            preview = [...otherTiles, draggedTile]
+          } else {
+            preview = [...otherTiles.slice(0, insertBefore), draggedTile, ...otherTiles.slice(insertBefore)]
+          }
+        } else {
+          preview = info.initialRack.filter(p => p.col !== fromCol)
+        }
+        info.rackPreview = preview.map((p, i) => ({ ...p, row: 'rack', col: i }))
+        this.view.renderRackPreview(info.rackPreview)
+      }
     }
     info.x = evt.clientX
     info.y = evt.clientY
@@ -265,7 +300,9 @@ export class PointerHandler {
     const target = evt.target as HTMLElement
     if (info.draggingTile && info.ghostTile) {
       const dropTarget = this.view.getDropTarget(evt.pointerId)
-      if (dropTarget) {
+      if (info.rackPreview && dropTarget?.row === 'rack') {
+        this.gameState.moveTiles(info.rackPreview)
+      } else if (dropTarget) {
         try {
           const fromRow = info.draggingTile.row
           const fromCol = info.draggingTile.col
@@ -284,8 +321,14 @@ export class PointerHandler {
             this.gameState.moveTile(fromRow, fromCol, toRow, toCol)
           }
         } catch (e) {
+          if (info.initialRack) {
+            this.view.renderRack()
+          }
           alert(e)
         }
+      }
+      if (info.initialRack) {
+        this.view.renderRack()
       }
       this.view.removeGhostTile(info.ghostTile)
       info.draggingTile.element.classList.remove('dragging')

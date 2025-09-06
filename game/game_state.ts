@@ -201,6 +201,24 @@ export class GameState extends EventTarget {
    * @throws {RangeError} if either location is invalid or the destination is full.
    * @fires TileEvent#tilemove
    */
+  moveTiles(placements: readonly TilePlacement[]) {
+    const newTiles = new Map(placements.map(p => [p.tile, p]))
+    const oldTiles = new Map(this.tilesHeld.filter(p => p.row === 'rack').map(p => [p.tile, p]))
+    if (newTiles.size !== oldTiles.size || ![...newTiles.keys()].every(k => oldTiles.has(k))) {
+      throw new Error('Must provide a permutation of the existing tiles on the rack.')
+    }
+    for (const p of this.tilesHeld) {
+      if (p.row === 'rack') {
+        const newP = newTiles.get(p.tile)!
+        if (p.col !== newP.col) {
+          const fromCol = p.col
+          p.col = newP.col
+          this.dispatchEvent(new TileEvent('tilemove', {detail: {fromRow: 'rack', fromCol, placement: p}}))
+        }
+      }
+    }
+  }
+
   moveTile(
     fromRow: TilePlacementRow,
     fromCol: number,
