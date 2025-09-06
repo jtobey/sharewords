@@ -24,6 +24,8 @@ function createMockGameState(): GameState {
   return {
     tilesHeld: [],
     moveTile: mock(),
+    moveTiles: mock(),
+    settings: { rackCapacity: 7 },
   } as unknown as GameState
 }
 
@@ -43,6 +45,8 @@ function createMockView(browser: TestBrowser): View {
     createGhostTile: mock((el: HTMLElement) => el.cloneNode() as HTMLElement),
     removeGhostTile: mock(),
     setDropTarget: mock((id: number, row: TilePlacementRow, col: number) => { dropTargetMap.set(id, { row, col }) }),
+    renderRackPreview: mock(),
+    renderRack: mock(),
   } as unknown as View
 }
 
@@ -159,10 +163,45 @@ describe('tile dragging', () => {
     test('rearranges tiles on the rack', () => {
         const fromTile = createTile('rack', 0)
         const toRackSpot = createRackSpot(1)
+        const tileA = { letter: 'A', value: 1, equals: (t: any) => t.letter === 'A' }
+        const tileB = { letter: 'B', value: 3, equals: (t: any) => t.letter === 'B' }
+        gameState.tilesHeld.push({ row: 'rack', col: 0, tile: tileA } as any)
+        gameState.tilesHeld.push({ row: 'rack', col: 1, tile: tileB } as any)
 
         dragAndDrop(fromTile, toRackSpot)
 
-        expect(gameState.moveTile).toHaveBeenCalledWith('rack', 0, 'rack', 1)
+        expect(gameState.moveTiles).toHaveBeenCalledWith([
+            { row: 'rack', col: 0, tile: tileB },
+            { row: 'rack', col: 1, tile: tileA },
+        ])
+    })
+
+    test('shows rack preview when dragging over rack', () => {
+        const fromTile = createTile('rack', 0)
+        const toRackSpot = createRackSpot(1)
+        const tileA = { letter: 'A', value: 1, equals: (t: any) => t.letter === 'A' }
+        const tileB = { letter: 'B', value: 3, equals: (t: any) => t.letter === 'B' }
+        gameState.tilesHeld.push({ row: 'rack', col: 0, tile: tileA } as any)
+        gameState.tilesHeld.push({ row: 'rack', col: 1, tile: tileB } as any)
+
+        // 1. Press down on the fromElement
+        handler.pointerDown(createMockPointerEvent(fromTile))
+
+        // 2. Move a little to initiate the drag
+        const fromRect = fromTile.getBoundingClientRect()
+        handler.pointerMove(createMockPointerEvent(fromTile, fromRect.x + 10, fromRect.y))
+
+        // 3. Move over the toElement to set the drop target and trigger the preview
+        const originalElementFromPoint = document.elementFromPoint
+        document.elementFromPoint = () => toRackSpot
+        const toRect = toRackSpot.getBoundingClientRect()
+        handler.pointerMove(createMockPointerEvent(toRackSpot, toRect.x, toRect.y))
+        document.elementFromPoint = originalElementFromPoint
+
+        expect(view.renderRackPreview).toHaveBeenCalledWith([
+            { row: 'rack', col: 0, tile: tileB },
+            { row: 'rack', col: 1, tile: tileA },
+        ])
     })
 })
 

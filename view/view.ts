@@ -17,7 +17,7 @@ import { Dialog } from './dialog.js'
 import { t } from '../i18n.js'
 import { GameSetup } from './game_setup.js'
 import type { GameState, TurnPreviewSuccess } from '../game/game_state.js'
-import type { Tile, TilePlacementRow } from '../game/tile.js'
+import type { Tile, TilePlacement, TilePlacementRow } from '../game/tile.js'
 import { isBoardPlacementRow } from '../game/tile.js'
 import type { Square } from '../game/board.ts'
 import type { Browser } from '../browser.js'
@@ -231,6 +231,27 @@ export class View {
   renderRack() {
     this.renderRacklike(this.rackContainer, 'rack')
     this.renderRacklike(this.exchangeContainer, 'exchange')
+  }
+
+  renderRackPreview(placements: readonly TilePlacement[]) {
+    this.rackContainer.innerHTML = ''
+    const capacity = this.gameState.settings.rackCapacity
+    const placedTiles = new Map(placements.map(p => [p.col, p]))
+    for (let i = 0; i < capacity; i++) {
+      const spotDiv = this.doc.createElement('div')
+      spotDiv.dataset.row = 'rack'
+      spotDiv.dataset.col = String(i)
+      this.rackContainer.appendChild(spotDiv)
+
+      const tilePlacement = placedTiles.get(i)
+      if (tilePlacement) {
+        spotDiv.className = 'tile'
+        this.addTileToElement(spotDiv, tilePlacement.tile, tilePlacement.assignedLetter)
+        spotDiv.tabIndex = 0
+      } else {
+        spotDiv.className = 'tile-spot'
+      }
+    }
   }
 
   renderTileSpot(row: TilePlacementRow, col: number) {
