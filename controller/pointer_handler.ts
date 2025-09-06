@@ -57,6 +57,40 @@ export class PointerHandler {
     window.scrollBy(dx, dy)
   }
 
+  private findNearestRackOrExchangeSpot(
+    container: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ): { row: TilePlacementRow; col: number } | null {
+    let bestSpot: { row: TilePlacementRow; col: number } | null = null
+    let minDistance = Infinity
+
+    const spots = Array.from(
+      container.querySelectorAll('.tile-spot, .tile, .placed'),
+    )
+    for (const spot of spots) {
+      if (!(spot instanceof HTMLElement)) continue
+      const rect = spot.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      const distance = Math.hypot(clientX - centerX, clientY - centerY)
+
+      if (distance < minDistance) {
+        minDistance = distance
+        const rowStr = spot.dataset.row!
+        const row: TilePlacementRow =
+          rowStr === 'rack'
+            ? 'rack'
+            : rowStr === 'exchange'
+            ? 'exchange'
+            : parseInt(rowStr, 10)
+        const col = parseInt(spot.dataset.col!, 10)
+        bestSpot = { row, col }
+      }
+    }
+    return bestSpot
+  }
+
   private updateTransform() {
     this.scale = Math.max(1, Math.min(4, this.scale))
     const boardRect = this.view.getBoardContainer().getBoundingClientRect()
@@ -179,14 +213,45 @@ export class PointerHandler {
       info.ghostTile!.style.display = ''
 
       if (targetElement) {
-        const dropTarget = targetElement.closest('.square, .tile-spot, .tile, .placed')
-        if (dropTarget instanceof HTMLElement && dropTarget.dataset.row && dropTarget.dataset.col) {
+        const dropTarget = targetElement.closest(
+          '.square, .tile-spot, .tile, .placed',
+        )
+        if (
+          dropTarget instanceof HTMLElement &&
+          dropTarget.dataset.row &&
+          dropTarget.dataset.col
+        ) {
           const toRowStr = dropTarget.dataset.row
-          const toRow: TilePlacementRow = toRowStr === 'rack' ? 'rack' : (toRowStr === 'exchange' ? 'exchange' : parseInt(toRowStr, 10))
+          const toRow: TilePlacementRow =
+            toRowStr === 'rack'
+              ? 'rack'
+              : toRowStr === 'exchange'
+              ? 'exchange'
+              : parseInt(toRowStr, 10)
           const toCol = parseInt(dropTarget.dataset.col, 10)
           this.view.setDropTarget(evt.pointerId, toRow, toCol)
         } else {
-          this.view.clearDropTarget(evt.pointerId)
+          const rackOrExchange = targetElement.closest(
+            '#rack-container, #exchange-container',
+          )
+          if (rackOrExchange instanceof HTMLElement) {
+            const nearestSpot = this.findNearestRackOrExchangeSpot(
+              rackOrExchange,
+              evt.clientX,
+              evt.clientY,
+            )
+            if (nearestSpot) {
+              this.view.setDropTarget(
+                evt.pointerId,
+                nearestSpot.row,
+                nearestSpot.col,
+              )
+            } else {
+              this.view.clearDropTarget(evt.pointerId)
+            }
+          } else {
+            this.view.clearDropTarget(evt.pointerId)
+          }
         }
       }
     }
