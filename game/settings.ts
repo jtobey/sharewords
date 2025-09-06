@@ -22,7 +22,7 @@ import type { Serializable } from './serializable.js'
 import { arraysEqual } from './validation.js'
 import { getBagDefaults, type BagDefaults } from './bag_defaults.js'
 import { Player } from './player.js'
-import { PROTOCOL_VERSION } from './version.js'
+import { PROTOCOL_VERSION, PROTOCOL_VERSIONS } from './version.js'
 import type { DictionaryType } from './dictionary.js'
 
 export type GameId = string & { '__brand': 'GameId' }
@@ -127,7 +127,8 @@ export class Settings {
       'bingoBonus', 'rackCapacity', 'tileSystemType', 'tileSystemSettings',
       'dictionaryType', 'dictionarySettings',
     ])) fail('Wrong keys or key order');
-    if (json.version !== PROTOCOL_VERSION) fail(`Unsupported protocol version "${json.version}"`);
+    const protocolVersion = PROTOCOL_VERSIONS[json.version];
+    if (!protocolVersion) fail(`Unsupported protocol version "${json.version}"`);
     if (!Array.isArray(json.players)) fail('`players` is not an array');
     if (!Array.isArray(json.boardLayout)) fail('`boardLayout` is not an array');
     if (!json.boardLayout.every((s: any) => typeof s === 'string')) fail('`boardLayout` contains a non-string');
@@ -137,22 +138,23 @@ export class Settings {
     if (typeof json.tileSystemSettings !== 'object') fail('`tileSystemSettings` is not an object');
     if (json.tileSystemSettings === null) fail('`tileSystemSettings` is null');
     if (typeof json.tileSystemSettings.seed !== 'string') fail('`tileSystemSettings.seed` is not a string');
-    if (!['permissive', 'consensus', 'wordlist', 'freeapi'].includes(json.dictionaryType)) {
-      fail(`Unsupported dictionary type "${json.dictionaryType}"`);
+    const dictionaryType = (json.dictionaryType === 'custom' ? 'wordlist' : json.dictionaryType);
+    if (!['permissive', 'consensus', 'wordlist', 'freeapi'].includes(dictionaryType)) {
+      fail(`Unsupported dictionary type "${dictionaryType}"`);
     }
-    const settings = Settings.forLanguage('')
-    settings.version = json.version
-    settings.players = json.players.map(Player.fromJSON)
-    settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts)
-    settings.letterValues = checkLetterToNumberMap('letterValues', json.letterValues)
-    settings.boardLayout = json.boardLayout
-    settings.bingoBonus = json.bingoBonus
-    settings.rackCapacity = json.rackCapacity
-    settings.tileSystemType = json.tileSystemType
-    settings.tileSystemSettings = json.tileSystemSettings
-    settings.dictionaryType = json.dictionaryType
-    settings.dictionarySettings = json.dictionarySettings
-    return settings
+    const settings = Settings.forLanguage('');
+    settings.version = PROTOCOL_VERSION;
+    settings.players = json.players.map(Player.fromJSON);
+    settings.letterCounts = checkLetterToNumberMap('letterCounts', json.letterCounts);
+    settings.letterValues = checkLetterToNumberMap('letterValues', json.letterValues);
+    settings.boardLayout = json.boardLayout;
+    settings.bingoBonus = json.bingoBonus;
+    settings.rackCapacity = json.rackCapacity;
+    settings.tileSystemType = json.tileSystemType;
+    settings.tileSystemSettings = json.tileSystemSettings;
+    settings.dictionaryType = dictionaryType;
+    settings.dictionarySettings = json.dictionarySettings;
+    return settings;
   }
 }
 
