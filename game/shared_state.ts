@@ -54,7 +54,7 @@ import { Turn, toTurnNumber, nextTurnNumber, getPlayerForTurnNumber } from './tu
 import type { TurnNumber, TurnData } from './turn.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { gameParamsFromSettings, UrlError } from './game_params.js'
-import { Board } from './board.ts'
+import { Board } from './board.js'
 import { Tile, type BoardPlacement, makeTiles } from './tile.js'
 import { makeDictionary } from './dictionary.js'
 import { t } from '../i18n.js'

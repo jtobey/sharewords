@@ -19,7 +19,7 @@ import { GameSetup } from './game_setup.js'
 import type { GameState, TurnPreviewSuccess } from '../game/game_state.js'
 import type { Tile, TilePlacementRow } from '../game/tile.js'
 import { isBoardPlacementRow } from '../game/tile.js'
-import type { Square } from '../game/board.ts'
+import type { Square } from '../game/board.js'
 import type { Browser } from '../browser.js'
 
 type DropTargetId = number | 'keyboard'  // A PointerEvent's pointerId or the keyboard.

@@ -25,7 +25,7 @@ limitations under the License.
 
 import { Tile } from './tile.js'
 import { Turn, type TurnNumber } from './turn.js'
-import { checkIndices } from './validation.ts'
+import { checkIndices } from './validation.js'
 
 export interface TilesState extends EventTarget {
   /**

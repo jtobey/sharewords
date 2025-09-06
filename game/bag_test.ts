@@ -16,7 +16,7 @@ limitations under the License.
 import { expect, describe, it } from 'bun:test'
 import { Bag } from './bag.js'
 import type { RandomGenerator } from './random_generator.js'
-import { Tile } from './tile.ts'
+import { Tile } from './tile.js'
 
 function _tiles(...nums: Array<number>) {
   return nums.map(num => new Tile({letter: 'A', value: num}))

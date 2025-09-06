@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from 'bun:test'
-import { Tile, makeTiles } from './tile.ts'
+import { Tile, makeTiles } from './tile.js'
 import { HonorSystemTilesState } from './honor_system_tiles_state.js'
 import { Player } from './player.js'
 import { Turn, toTurnNumber } from './turn.js'

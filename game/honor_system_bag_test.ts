@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from 'bun:test'
-import { HonorSystemBag } from './honor_system_bag.ts'
-import { Tile } from './tile.ts'
+import { HonorSystemBag } from './honor_system_bag.js'
+import { Tile } from './tile.js'
 
 function _tiles(...nums: Array<number>) {
   return nums.map(num => new Tile({letter: 'A', value: num}))
