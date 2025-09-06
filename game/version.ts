@@ -18,7 +18,7 @@ limitations under the License.
  */
 
 export type ProtocolVersion = string & { '__brand': 'ProtocolVersion' };
-export const toProtocolVersion = (v: string) => v as ProtocolVersion;
+const toProtocolVersion = (v: string) => v as ProtocolVersion;
 export const fromProtocolVersion = (v: ProtocolVersion) => v as string;
 
 const _PROTOCOL_VERSIONS: {[key: string]: ProtocolVersion} = Object.create(null);

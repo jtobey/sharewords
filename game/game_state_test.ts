@@ -16,7 +16,7 @@ limitations under the License.
 import { expect, describe, it, beforeAll } from 'bun:test'
 import { GameState } from './game_state.js'
 import { Settings, type GameId } from './settings.js'
-import { toProtocolVersion } from './version.js'
+import { PROTOCOL_VERSION_1 } from './version.js'
 import { loadTranslations } from '../i18n.js'
 import { TestStorage } from '../test_storage.js'
 import { parseBoards, diffBoards } from './test_support.js'
@@ -179,7 +179,7 @@ describe('game state', () => {
       const gameState = await GameState.fromParams(params)
       const settings = gameState.settings
 
-      expect(settings.version).toEqual(toProtocolVersion('1'))
+      expect(settings.version).toEqual(PROTOCOL_VERSION_1)
       expect(settings.players.map(p => p.name)).toEqual(['player1', 'player2'])
       expect(settings.boardLayout).toEqual(['T..', '.d.', '..T'])
       expect(settings.bingoBonus).toEqual(100)
