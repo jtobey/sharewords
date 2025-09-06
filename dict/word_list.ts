@@ -32,13 +32,32 @@ export class InvalidLexiconError extends Error {
   }
 }
 
+/**
+ * Read-only interface to a SWDICT file.
+ *
+ * A SWDICT file's contents are the serialized form of a `Lexicon` protobuf
+ * message. `WordList` provides access to a copy of its metadata and to the
+ * list of words (not copied).
+ */
 export class WordList {
   private _metadata: Metadata
   private instructions: Uint8Array
 
-  constructor(arrayBuffer: ArrayBuffer | Uint8Array) {
-    const lexiconMessage = new Uint8Array(arrayBuffer)
-    const pointer = new Pointer(lexiconMessage)
+  constructor(lexiconMessage: ArrayBuffer | Uint8Array) {
+    const lexiconMessageArray = new Uint8Array(lexiconMessage)
+    // We parse the message's top-level fields by hand to avoid copying a
+    // possibly large word list. In the terminology of
+    // https://protobuf.dev/programming-guides/encoding/, we scan for two
+    // length-delimited fields:
+    //   * `metadata`, a submessage with tag `METADATA_FIELD_NUMBER`
+    //   * `instructions`, a packed, repeated varint with tag
+    //     `INSTRUCTIONS_FIELD_NUMBER`
+    // The constructor decodes, validates, and stores a copy of `metadata`.
+    // For efficiency, we do not immediately copy or decode `instructions`.
+    // Rather, we store a subarray of the original `Lexicon` message, in which
+    // the lookup and iteration methods scan for `clear` instructions and
+    // perform binary searches.
+    const pointer = new Pointer(lexiconMessageArray)
     let insns: Uint8Array | null = null
     let metadata: Metadata | null = null
     while (!pointer.atEnd) {
@@ -131,7 +150,7 @@ export class WordList {
     if (wordBuffer.length) {
         yield wordBuffer.join('')
     }
-}
+  }
 
   private *readInstructions(ip: Pointer): Generator<number> {
     while (!ip.atEnd) {
