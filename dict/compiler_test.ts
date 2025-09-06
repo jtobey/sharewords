@@ -184,7 +184,7 @@ describe('compiler', () => {
     const lexicon = await compile({ words, alphabet, name, description, clearInterval })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
-    expect([...wordList]).toEqual(words)
+    expect([...wordList].map(String)).toEqual(words)
   })
 
   it('should infer alphabet and sort words', async () => {
@@ -194,6 +194,6 @@ describe('compiler', () => {
     const lexicon = await compile({ words, name, description })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
-    expect([...wordList]).toEqual(words.toSorted(codePointCompare))
+    expect([...wordList].map(String)).toEqual(words.toSorted(codePointCompare))
   })
 })

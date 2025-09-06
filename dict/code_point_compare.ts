@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 // https://github.com/tc39/proposal-compare-strings-by-codepoint
-export function codePointCompare(left: string, right: string): -1 | 0 | 1 {
+export function codePointCompare(
+  left: string | String,
+  right: string | String,
+): -1 | 0 | 1 {
   const leftIter = left[Symbol.iterator]();
   const rightIter = right[Symbol.iterator]();
   for (;;) {

@@ -63,7 +63,7 @@ describe('word list', () => {
     })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
-    expect([...wordList]).toEqual(['ABBA'])
+    expect([...wordList].map(String)).toEqual(['ABBA'])
   })
 
   it('should follow a nested subroutine', () => {
@@ -85,7 +85,7 @@ describe('word list', () => {
     })
     const binary = Lexicon.encode(lexicon).finish()
     const wordList = new WordList(binary)
-    expect([...wordList]).toEqual(['ZYYZ'])
+    expect([...wordList].map(String)).toEqual(['ZYYZ'])
   })
 
   it('should reject a recursive subroutine', () => {

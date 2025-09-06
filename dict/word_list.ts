@@ -32,6 +32,12 @@ export class InvalidLexiconError extends Error {
   }
 }
 
+export class WordListEntry extends String {
+  constructor(wordBuffer: string[], readonly metadata?: bigint[]) {
+    super(wordBuffer.join(''));
+  }
+}
+
 /**
  * Read-only interface to a SWDICT file.
  *
@@ -114,41 +120,42 @@ export class WordList {
     visited.add(macroIndex)
   }
 
-  private *scanFrom(ip: Pointer, wordBuffer: string[] = []) {
+  private *scanFrom(ip: Pointer) {
+    const wordBuffer: string[] = [];
     const stack: Iterator<number>[] = [this.readInstructions(ip)]
 
     while (stack.length > 0) {
-        const it = stack[stack.length - 1]!
-        const next = it.next()
+      const it = stack[stack.length - 1]!
+      const next = it.next()
 
-        if (next.done) {
-            stack.pop()
-            continue
+      if (next.done) {
+        stack.pop()
+        continue
+      }
+
+      const macroIndex = next.value
+      const insn = this.macros[macroIndex]
+
+      if (!insn) {
+        throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
+      }
+
+      if (insn.subword !== undefined) {
+        wordBuffer.push(insn.subword)
+      } else if (insn.subroutine) {
+        stack.push(insn.subroutine.instructions[Symbol.iterator]())
+      } else {
+        yield new WordListEntry(wordBuffer)
+        if (insn.clear) {
+          wordBuffer.length = 0
+        } else if (insn.backup !== undefined) {
+          wordBuffer.length -= insn.backup
         }
-
-        const macroIndex = next.value
-        const insn = this.macros[macroIndex]
-
-        if (!insn) {
-            throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
-        }
-
-        if (insn.subword !== undefined) {
-            wordBuffer.push(insn.subword)
-        } else if (insn.subroutine) {
-            stack.push(insn.subroutine.instructions[Symbol.iterator]())
-        } else {
-            yield wordBuffer.join('')
-            if (insn.clear) {
-                wordBuffer.length = 0
-            } else if (insn.backup !== undefined) {
-                wordBuffer.length -= insn.backup
-            }
-        }
+      }
     }
 
     if (wordBuffer.length) {
-        yield wordBuffer.join('')
+      yield new WordListEntry(wordBuffer)
     }
   }
 
