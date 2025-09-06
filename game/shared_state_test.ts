@@ -208,7 +208,9 @@ describe('shared state', () => {
       const sharedState = new SharedState(settings)
       const json = sharedState.toJSON()
       json.settings.tileSystemType = 'invalid' as any
-      expect(() => SharedState.fromJSON(json)).toThrow('Invalid Settings serialization:')
+      expect(() => SharedState.fromJSON(json)).toThrow(
+        'Unsupported tile system type "invalid" in Settings serialization:'
+      )
     })
   })
 })
