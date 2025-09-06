@@ -219,7 +219,7 @@ export class GameSetup {
     }
 
     const bagParam = getBagParam(this.gameState.settings) ?? '';
-    const langMatch = bagParam.match(/^\.(.+)$/);
+    const langMatch = bagParam.match(/^([a-z][^.]+)$/);
     if (langMatch && hasBagDefaults(langMatch[1]!)) {
       this.tileDistribution.value = langMatch[1]!;
     } else {
