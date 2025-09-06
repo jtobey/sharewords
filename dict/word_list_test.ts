@@ -107,4 +107,46 @@ describe('word list', () => {
     const binary = Lexicon.encode(lexicon).finish()
     expect(() => new WordList(binary)).toThrow()
   })
+
+  it('should pass through undefined instructions', () => {
+    const name = 'Test Lexicon';
+    const description = 'Lexicon for testing.';
+    const lexicon = Lexicon.create({
+      metadata: {
+        name,
+        description,
+        macros: [
+          { clear: true },   // 0
+          { subword: 'A' },  // 1 'A'
+          { subword: 'B' },  // 2 'B'
+          { backup: 0 },     // 3 yield
+        ],
+      },
+      instructions: [
+        4,  // <>
+        1,  // <A>
+        3,  // <A>  ; yield A, [[4, 1]]
+        5,  // <A>
+        8,  // <A>
+        2,  // <AB>
+        0,  // <>   ; yield AB, [[4, 1], [5, 8, 2]]
+      ],
+    });
+    const expected = [
+      {
+        word: 'A',
+        instructions: [[4n, 1n]],
+      },
+      {
+        word: 'AB',
+        instructions: [[4n, 1n], [5n, 8n, 2n]],
+      }
+    ];
+    const binary = Lexicon.encode(lexicon).finish();
+    const wordList = new WordList(binary);
+    expect([...wordList].map(entry => ({
+      word: String(entry),
+      instructions: entry.elements,
+    }))).toEqual(expected)
+  })
 })

@@ -22,8 +22,8 @@ import { codePointCompare } from './code_point_compare.js'
 import { Macro, Metadata } from './swdict.js'
 import { Pointer } from './pointer.js'
 
-const METADATA_FIELD_NUMBER = 1
-const INSTRUCTIONS_FIELD_NUMBER = 2
+const METADATA_FIELD_NUMBER = 1n
+const INSTRUCTIONS_FIELD_NUMBER = 2n
 
 export class InvalidLexiconError extends Error {
   constructor(message: string) {
@@ -32,15 +32,17 @@ export class InvalidLexiconError extends Error {
   }
 }
 
-type SubwordMacro = Macro & { subword: string };
-function isSubwordMacro(macro: Macro): macro is SubwordMacro {
-  return macro.subword !== undefined;
+export class WordListEntry extends String {
+  constructor(
+    macros: ReadonlyArray<Readonly<Macro>>,
+    readonly elements: bigint[][],  // Non-empty. The last element must be a subword macro index.
+  ) {
+    super(elements.map(elt => macros[Number(elt[elt.length - 1]!)]!.subword).join(''));
+  }
 }
 
-export class WordListEntry extends String {
-  constructor(macros: ReadonlyArray<Readonly<SubwordMacro>>) {
-    super(macros.map(m => m.subword).join(''));
-  }
+function* toBigInts(numbers: Iterable<number>): Iterator<bigint> {
+  for (const n of numbers) yield BigInt(n);
 }
 
 /**
@@ -51,7 +53,7 @@ export class WordListEntry extends String {
  * list of words (not copied).
  */
 export class WordList {
-  private _metadata: Metadata
+  private _metadata: Readonly<Metadata>
   private instructions: Uint8Array
 
   constructor(lexiconMessage: ArrayBuffer | Uint8Array) {
@@ -72,14 +74,14 @@ export class WordList {
     let insns: Uint8Array | null = null
     let metadata: Metadata | null = null
     while (!pointer.atEnd) {
-      const tag = pointer.varintNumber()
-      const fieldNumber = tag >>> 3
-      const wireType = tag & 7
-      if (wireType === 0) pointer.varintNumber()
-      else if (wireType === 1) pointer.skip(8)
-      else if (wireType === 5) pointer.skip(4)
-      else if (wireType === 2) {
-        const len = pointer.varintNumber()
+      const tag = pointer.varintBigInt()
+      const fieldNumber = tag >> 3n
+      const wireType = tag & 7n
+      if (wireType === 0n) pointer.varintBigInt()
+      else if (wireType === 1n) pointer.skip(8)
+      else if (wireType === 5n) pointer.skip(4)
+      else if (wireType === 2n) {
+        const len = pointer.varintBigInt()
         if (fieldNumber === METADATA_FIELD_NUMBER) {
           metadata = Metadata.decode(pointer.view(len))
         } else if (fieldNumber === INSTRUCTIONS_FIELD_NUMBER) {
@@ -126,8 +128,8 @@ export class WordList {
   }
 
   private *scanFrom(ip: Pointer) {
-    const wordBuffer: SubwordMacro[] = [];
-    const stack: Iterator<number>[] = [this.readInstructions(ip)]
+    const wordBuffer: bigint[][] = [[]];
+    const stack: Iterator<bigint>[] = [this.readInstructions(ip)]
 
     while (stack.length > 0) {
       const it = stack[stack.length - 1]!
@@ -138,35 +140,37 @@ export class WordList {
         continue
       }
 
-      const macroIndex = next.value
-      const insn = this.macros[macroIndex]
+      const instruction = next.value;
+      wordBuffer[wordBuffer.length - 1]!.push(instruction);
+      const macro = this.macros[Number(instruction)];
 
-      if (!insn) {
-        throw new InvalidLexiconError(`Instruction ${macroIndex} out of range [0, ${this.macros.length - 1}).`)
-      }
-
-      if (isSubwordMacro(insn)) {
-        wordBuffer.push(insn)
-      } else if (insn.subroutine) {
-        stack.push(insn.subroutine.instructions[Symbol.iterator]())
-      } else {
-        yield new WordListEntry(wordBuffer)
-        if (insn.clear) {
-          wordBuffer.length = 0
-        } else if (insn.backup !== undefined) {
-          wordBuffer.length -= insn.backup
+      if (macro) {
+        if (macro.subroutine) {
+          stack.push(toBigInts(macro.subroutine.instructions));
+          continue;
         }
+        if (macro.clear || macro.backup !== undefined) {
+          yield new WordListEntry(this.macros, wordBuffer.slice(0, -1))
+          if (macro.clear) {
+            wordBuffer.length = 0;
+          } else {
+            wordBuffer.length -= macro.backup! + 1;
+          }
+        } else if (macro.subword === undefined) {
+          continue;
+        }
+        wordBuffer.push([]);
       }
     }
 
-    if (wordBuffer.length) {
-      yield new WordListEntry(wordBuffer)
+    if (wordBuffer[0]!.length) {
+      yield new WordListEntry(this.macros, wordBuffer.slice(0, -1))
     }
   }
 
-  private *readInstructions(ip: Pointer): Generator<number> {
+  private *readInstructions(ip: Pointer): Generator<bigint> {
     while (!ip.atEnd) {
-      yield ip.varintNumber()
+      yield ip.varintBigInt()
     }
   }
 
@@ -190,7 +194,7 @@ export class WordList {
         const probe = new Pointer(this.instructions, midBlock * blockSize)
         probe.skipToVarint()
         while (!probe.atEnd) {
-          if (this.macros[probe.varintNumber()]!.clear) break
+          if (this.macros[Number(probe.varintBigInt())]?.clear) break
         }
         if (probe.atEnd || probe.offset >= hiBlock * blockSize) break
         const midIterator = this.scanFrom(probe)
