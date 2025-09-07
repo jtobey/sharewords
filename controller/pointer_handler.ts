@@ -49,7 +49,9 @@ export class PointerHandler {
 
   // Long tap state
   private longTapTimeout = 500 // ms
-  private longTapInfo: { timer: number; pointerId: number, didFire: boolean } | null = null
+  private longTapInfo: { timer: number; pointerId: number } | null = null
+  private currentTapTarget: { row: TilePlacementRow, col: number, element: HTMLElement } | null = null
+  private longTapPoppedUp = false
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -62,8 +64,17 @@ export class PointerHandler {
   }
 
   private handleLongTap() {
-    if (!this.longTapInfo) return
-    this.longTapInfo.didFire = true
+    if (!this.longTapInfo || !this.currentTapTarget) return
+
+    const { row, col, element } = this.currentTapTarget
+    if (isBoardPlacementRow(row)) {
+      const words = this.gameState.getWordsAt(row, col)
+      if (words.length > 0) {
+        this.view.showInfoPopup(words, element)
+        this.longTapPoppedUp = true
+      }
+    }
+    this.longTapInfo = null
   }
 
   private findNearestRackOrExchangeSpot(
@@ -122,6 +133,7 @@ export class PointerHandler {
       window.clearTimeout(this.longTapInfo.timer)
       this.longTapInfo = null
     }
+    this.currentTapTarget = null
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (info) console.debug(`Pointer cancel: ${evt.pointerId} (${info.x.toFixed(2)},${info.y.toFixed(2)})`)
     this.pointerInfoMap.delete(evt.pointerId)
@@ -154,6 +166,7 @@ export class PointerHandler {
       const col = parseInt(tileTarget.dataset.col!, 10)
       const rowStr = tileTarget.dataset.row!
       const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
+      this.currentTapTarget = { row, col, element: tileTarget }
       const dragInfo: DragInfo = {
         ...tapInfo,
         draggingTile: { row, col, element: tileTarget },
@@ -169,11 +182,11 @@ export class PointerHandler {
           this.longTapTimeout,
         ),
         pointerId: evt.pointerId,
-        didFire: false,
       }
     } else if (target.closest('#board-container')) {
       evt.preventDefault()
       evt.stopPropagation()
+      this.currentTapTarget = null
       const panInfo: PanInfo = {
         ...tapInfo,
         draggingTile: null,
@@ -295,24 +308,20 @@ export class PointerHandler {
   }
 
   pointerUp(evt: PointerEvent) {
-    const longTapDidFire = !!this.longTapInfo?.didFire
+    if (this.longTapPoppedUp) {
+      this.longTapPoppedUp = false
+      return
+    }
     if (this.longTapInfo?.pointerId === evt.pointerId) {
       window.clearTimeout(this.longTapInfo.timer)
       this.longTapInfo = null
     }
+    this.currentTapTarget = null
 
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (!info) return
 
-    if (longTapDidFire) {
-      const { row, col, element } = info.draggingTile!
-      if (isBoardPlacementRow(row)) {
-        const words = this.gameState.getWordsAt(row, col)
-        if (words.length > 0) {
-          this.view.showInfoPopup(words, element)
-        }
-      }
-    } else if (info.draggingTile && info.ghostTile) {
+    if (info.draggingTile && info.ghostTile) {
       const dropTarget = this.view.getDropTarget(evt.pointerId)
       if (dropTarget) {
         try {

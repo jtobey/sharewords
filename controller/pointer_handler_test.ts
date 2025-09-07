@@ -304,11 +304,6 @@ test('double tap when zoomed in zooms out', () => {
     // Simulate the timeout firing
     timeoutCallback()
 
-    // Popup should not be shown yet
-    expect(view.showInfoPopup).not.toHaveBeenCalled()
-
-    handler.pointerUp(event)
-
     expect(gameState.getWordsAt).toHaveBeenCalledWith(7, 7)
     expect(view.showInfoPopup).toHaveBeenCalledWith(['word1', 'word2'], square)
 

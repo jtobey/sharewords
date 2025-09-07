@@ -395,8 +395,14 @@ export class View {
       if (popup.parentNode) {
         popup.parentNode.removeChild(popup);
       }
-      this.doc.removeEventListener('click', close);
+      this.doc.removeEventListener('pointerdown', pointerdown);
       this.doc.removeEventListener('keydown', keydown);
+    };
+
+    const pointerdown = (e: PointerEvent) => {
+      if (!popup.contains(e.target as Node)) {
+        close();
+      }
     };
 
     const keydown = (e: KeyboardEvent) => {
@@ -410,8 +416,9 @@ export class View {
     popup.style.left = `${rect.left}px`;
     popup.style.top = `${rect.bottom}px`;
 
+    // Use a timeout to avoid capturing the same event that triggered the popup
     setTimeout(() => {
-      this.doc.addEventListener('click', close);
+      this.doc.addEventListener('pointerdown', pointerdown);
       this.doc.addEventListener('keydown', keydown);
     }, 0);
   }
