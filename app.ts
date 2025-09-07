@@ -130,7 +130,7 @@ export class App {
 
   initDebug() {
     const app = this;
-    for (const level of ['log', 'warn', 'error', 'info'] as const) {
+    for (const level of ['debug', 'log', 'warn', 'error', 'info'] as const) {
       const original = console[level];
       console[level] = function(...args: any[]) {
         original.apply(console, args);
