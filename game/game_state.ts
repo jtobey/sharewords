@@ -501,6 +501,22 @@ export class GameState extends EventTarget {
     await this.playTurns(this.shared.turnsFromParams(iterator, turnNumber))
   }
 
+  getWordsAt(row: number, col: number): string[] {
+    const board = this.board
+    const tempBoard = new (board.constructor as any)(...board.toJSON().rows)
+    tempBoard.copyFrom(board)
+    for (const placement of this.tilesHeld) {
+      if (isBoardPlacement(placement)) {
+        const square = tempBoard.squares[placement.row]?.[placement.col]
+        if (square) {
+          square.tile = placement.tile
+          square.assignedLetter = placement.assignedLetter
+        }
+      }
+    }
+    return tempBoard.getWordsAt(row, col)
+  }
+
   static async fromParams(params: Readonly<URLSearchParams>, baseUrl = 'http://localhost/') {
     const { settings, playerId, turnParams } = parseGameParams(params)
     settings.baseUrl = baseUrl

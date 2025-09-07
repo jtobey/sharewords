@@ -70,6 +70,10 @@ describe('tile dragging', () => {
         view = createMockView(browser)
         handler = new PointerHandler(gameState, view)
         global.document = browser.getDocument()
+        global.window = {
+            setTimeout: mock(() => 1),
+            clearTimeout: mock(),
+        } as any
         // happy-dom doesn't implement getBoundingClientRect
         spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
             x: 100, y: 100, top: 100, left: 100, bottom: 120, right: 120, width: 20, height: 20, toJSON: () => {}
@@ -261,5 +265,44 @@ test('double tap when zoomed in zooms out', () => {
     expect(view.setBoardTransform).toHaveBeenLastCalledWith(1.8, expect.closeTo(-55.5555), expect.closeTo(-61.1111))
 
     handler.pointerUp(createMockPointerEvent(boardContainer))
+    setSystemTime()
+  })
+
+  test('long tap on a tile shows info popup', () => {
+    const browser = new TestBrowser()
+    const gameState = createMockGameState()
+    const view = createMockView(browser)
+    const handler = new PointerHandler(gameState, view)
+
+    let timeoutCallback: () => void = () => {}
+    global.window = {
+      setTimeout: mock((fn: () => void) => {
+        timeoutCallback = fn
+        return 1
+      }),
+      clearTimeout: mock(),
+    } as any
+
+    const tile = browser.getDocument().createElement('div')
+    tile.classList.add('tile')
+    tile.dataset.row = '7'
+    tile.dataset.col = '7'
+    browser.getDocument().body.appendChild(tile)
+
+    const event = createMockPointerEvent(tile)
+    let time = new Date('2023-01-01T00:00:00.000Z').getTime()
+    setSystemTime(new Date(time))
+
+    gameState.getWordsAt = mock(() => ['word1', 'word2'])
+    view.showInfoPopup = mock(() => {})
+
+    handler.pointerDown(event)
+
+    // Simulate the timeout firing
+    timeoutCallback()
+
+    expect(gameState.getWordsAt).toHaveBeenCalledWith(7, 7)
+    expect(view.showInfoPopup).toHaveBeenCalledWith(['word1', 'word2'], tile)
+
     setSystemTime()
   })

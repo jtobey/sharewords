@@ -47,6 +47,10 @@ export class PointerHandler {
   private panY = 0
   private lastTap = 0
 
+  // Long tap state
+  private longTapTimeout = 500 // ms
+  private longTapInfo: { timer: number; pointerId: number } | null = null
+
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
     this.view = view
@@ -55,6 +59,23 @@ export class PointerHandler {
   /** @internal For mocking in tests. */
   public scrollWindowBy(dx: number, dy: number) {
     window.scrollBy(dx, dy)
+  }
+
+  private handleLongTap() {
+    if (!this.longTapInfo) return
+    const info = this.pointerInfoMap.get(this.longTapInfo.pointerId)
+    if (!info?.draggingTile) {
+      this.longTapInfo = null
+      return
+    }
+    const { row, col, element } = info.draggingTile
+    if (isBoardPlacementRow(row)) {
+      const words = this.gameState.getWordsAt(row, col)
+      if (words.length > 0) {
+        this.view.showInfoPopup(words, element)
+      }
+    }
+    this.longTapInfo = null
   }
 
   private findNearestRackOrExchangeSpot(
@@ -109,6 +130,10 @@ export class PointerHandler {
   }
 
   pointerCancel(evt: PointerEvent) {
+    if (this.longTapInfo?.pointerId === evt.pointerId) {
+      window.clearTimeout(this.longTapInfo.timer)
+      this.longTapInfo = null
+    }
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (info) console.debug(`Pointer cancel: ${evt.pointerId} (${info.x.toFixed(2)},${info.y.toFixed(2)})`)
     this.pointerInfoMap.delete(evt.pointerId)
@@ -140,6 +165,16 @@ export class PointerHandler {
         ghostTile: null,
       }
       this.pointerInfoMap.set(evt.pointerId, dragInfo)
+      if (this.longTapInfo) {
+        window.clearTimeout(this.longTapInfo.timer)
+      }
+      this.longTapInfo = {
+        timer: window.setTimeout(
+          () => this.handleLongTap(),
+          this.longTapTimeout,
+        ),
+        pointerId: evt.pointerId,
+      }
     } else if (target.closest('#board-container')) {
       evt.preventDefault()
       evt.stopPropagation()
@@ -158,6 +193,10 @@ export class PointerHandler {
 
     if (!info.pointerMoved && Math.hypot(evt.clientX - info.downX, evt.clientY - info.downY) > 5) {
       info.pointerMoved = true
+      if (this.longTapInfo?.pointerId === evt.pointerId) {
+        window.clearTimeout(this.longTapInfo.timer)
+        this.longTapInfo = null
+      }
     }
 
     if (!info.draggingTile) {
@@ -260,6 +299,10 @@ export class PointerHandler {
   }
 
   pointerUp(evt: PointerEvent) {
+    if (this.longTapInfo?.pointerId === evt.pointerId) {
+      window.clearTimeout(this.longTapInfo.timer)
+      this.longTapInfo = null
+    }
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (!info) return
     const target = evt.target as HTMLElement

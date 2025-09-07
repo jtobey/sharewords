@@ -370,4 +370,49 @@ export class View {
   getBoardContainer(): HTMLElement {
     return this.boardContainer;
   }
+
+  showInfoPopup(words: string[], targetElement: HTMLElement) {
+    const popup = this.doc.createElement('div');
+    popup.className = 'info-popup';
+
+    const title = this.doc.createElement('h3');
+    title.textContent = 'Word Definitions';
+    popup.appendChild(title);
+
+    const list = this.doc.createElement('ul');
+    words.forEach(word => {
+      const item = this.doc.createElement('li');
+      const link = this.doc.createElement('a');
+      link.href = `https://en.wiktionary.org/wiki/${word.toLowerCase()}`;
+      link.textContent = word;
+      link.target = '_blank';
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+    popup.appendChild(list);
+
+    const close = () => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup);
+      }
+      this.doc.removeEventListener('click', close);
+      this.doc.removeEventListener('keydown', keydown);
+    };
+
+    const keydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close();
+      }
+    };
+
+    this.doc.body.appendChild(popup);
+    const rect = targetElement.getBoundingClientRect();
+    popup.style.left = `${rect.left}px`;
+    popup.style.top = `${rect.bottom}px`;
+
+    setTimeout(() => {
+      this.doc.addEventListener('click', close);
+      this.doc.addEventListener('keydown', keydown);
+    }, 0);
+  }
 }

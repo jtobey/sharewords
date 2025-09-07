@@ -286,6 +286,50 @@ export class Board extends EventTarget {
     }
   }
 
+  getWordsAt(row: number, col: number): string[] {
+    const words: string[] = [];
+    const square = this.squares[row]?.[col];
+    if (!square?.tile) {
+      return [];
+    }
+
+    // Horizontal word
+    let startCol = col;
+    while (this.squares[row]?.[startCol - 1]?.tile) {
+      startCol--;
+    }
+    let endCol = col;
+    while (this.squares[row]?.[endCol + 1]?.tile) {
+      endCol++;
+    }
+    if (startCol !== endCol) {
+      let word = '';
+      for (let c = startCol; c <= endCol; c++) {
+        word += this.squares[row]![c]!.letter;
+      }
+      words.push(word);
+    }
+
+    // Vertical word
+    let startRow = row;
+    while (this.squares[startRow - 1]?.[col]?.tile) {
+      startRow--;
+    }
+    let endRow = row;
+    while (this.squares[endRow + 1]?.[col]?.tile) {
+      endRow++;
+    }
+    if (startRow !== endRow) {
+      let word = '';
+      for (let r = startRow; r <= endRow; r++) {
+        word += this.squares[r]![col]!.letter;
+      }
+      words.push(word);
+    }
+
+    return words;
+  }
+
   placeTiles(...placements: Array<BoardPlacement>): void {
     for (const placement of placements) {
       const square = this.squares[placement.row]?.[placement.col]
