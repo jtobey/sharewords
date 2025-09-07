@@ -283,13 +283,16 @@ test('double tap when zoomed in zooms out', () => {
       clearTimeout: mock(),
     } as any
 
-    const tile = browser.getDocument().createElement('div')
-    tile.classList.add('tile')
-    tile.dataset.row = '7'
-    tile.dataset.col = '7'
-    browser.getDocument().body.appendChild(tile)
+    const square = browser.getDocument().createElement('div')
+    square.classList.add('square')
+    square.dataset.row = '7'
+    square.dataset.col = '7'
+    const letter = browser.getDocument().createElement('div')
+    letter.classList.add('letter')
+    square.appendChild(letter)
+    browser.getDocument().body.appendChild(square)
 
-    const event = createMockPointerEvent(tile)
+    const event = createMockPointerEvent(letter)
     let time = new Date('2023-01-01T00:00:00.000Z').getTime()
     setSystemTime(new Date(time))
 
@@ -302,7 +305,7 @@ test('double tap when zoomed in zooms out', () => {
     timeoutCallback()
 
     expect(gameState.getWordsAt).toHaveBeenCalledWith(7, 7)
-    expect(view.showInfoPopup).toHaveBeenCalledWith(['word1', 'word2'], tile)
+    expect(view.showInfoPopup).toHaveBeenCalledWith(['word1', 'word2'], square)
 
     setSystemTime()
   })

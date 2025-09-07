@@ -152,7 +152,14 @@ export class PointerHandler {
       pointerMoved: false,
     }
 
-    const tileTarget = target.closest('.tile, .placed')
+    let tileTarget: HTMLElement | null = target.closest('.tile, .placed')
+    if (!tileTarget) {
+      const square = target.closest('.square')
+      if (square?.querySelector('.letter')) {
+        tileTarget = square as HTMLElement
+      }
+    }
+
     if (tileTarget instanceof HTMLElement) {
       evt.preventDefault()
       evt.stopPropagation()
