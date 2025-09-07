@@ -396,6 +396,7 @@ export class View {
         popup.parentNode.removeChild(popup);
       }
       this.doc.removeEventListener('pointerdown', pointerdown);
+      this.boardContainer.removeEventListener('pointerdown', pointerdown);
       this.doc.removeEventListener('keydown', keydown);
     };
 
@@ -417,6 +418,7 @@ export class View {
     popup.style.top = `${rect.bottom}px`;
 
     this.doc.addEventListener('pointerdown', pointerdown);
+    this.boardContainer.addEventListener('pointerdown', pointerdown);
     this.doc.addEventListener('keydown', keydown);
   }
 }
