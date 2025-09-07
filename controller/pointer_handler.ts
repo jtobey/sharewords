@@ -67,13 +67,21 @@ export class PointerHandler {
     if (!this.longTapInfo || !this.currentTapTarget) return
 
     const { row, col, element } = this.currentTapTarget
+    let popupShown = false
     if (isBoardPlacementRow(row)) {
       const words = this.gameState.getWordsAt(row, col)
       if (words.length > 0) {
         this.view.showInfoPopup(words, element)
-        this.longTapPoppedUp = true
+        popupShown = true
       }
     }
+
+    // A long tap happened. We should prevent any further action with this pointer.
+    this.pointerInfoMap.delete(this.longTapInfo.pointerId)
+    if (popupShown) {
+      this.longTapPoppedUp = true
+    }
+
     this.longTapInfo = null
   }
 

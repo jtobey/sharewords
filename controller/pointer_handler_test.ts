@@ -309,3 +309,41 @@ test('double tap when zoomed in zooms out', () => {
 
     setSystemTime()
   })
+
+  test('long tap on a tile prevents dragging', () => {
+    const browser = new TestBrowser()
+    const gameState = createMockGameState()
+    const view = createMockView(browser)
+    const handler = new PointerHandler(gameState, view)
+
+    let timeoutCallback: () => void = () => {}
+    global.window = {
+      setTimeout: mock((fn: () => void) => {
+        timeoutCallback = fn
+        return 1
+      }),
+      clearTimeout: mock(),
+    } as any
+
+    const tile = browser.getDocument().createElement('div')
+    tile.classList.add('tile')
+    tile.dataset.row = 'rack'
+    tile.dataset.col = '0'
+    browser.getDocument().body.appendChild(tile)
+
+    const event = createMockPointerEvent(tile)
+
+    gameState.getWordsAt = mock(() => [])
+    view.showInfoPopup = mock(() => {})
+    view.createGhostTile = mock(() => ({} as HTMLElement))
+
+    handler.pointerDown(event)
+
+    // Simulate the timeout firing
+    timeoutCallback()
+
+    // Try to drag
+    handler.pointerMove(createMockPointerEvent(tile, 110, 110))
+
+    expect(view.createGhostTile).not.toHaveBeenCalled()
+  })

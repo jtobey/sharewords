@@ -416,10 +416,7 @@ export class View {
     popup.style.left = `${rect.left}px`;
     popup.style.top = `${rect.bottom}px`;
 
-    // Use a timeout to avoid capturing the same event that triggered the popup
-    setTimeout(() => {
-      this.doc.addEventListener('pointerdown', pointerdown);
-      this.doc.addEventListener('keydown', keydown);
-    }, 0);
+    this.doc.addEventListener('pointerdown', pointerdown);
+    this.doc.addEventListener('keydown', keydown);
   }
 }
