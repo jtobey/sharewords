@@ -52,6 +52,10 @@ export class View {
     this.gameSetup = new GameSetup(gameState, browser)
 
     this.gameState.addEventListener('turnchange', () => this.renderScores())
+
+    if (browser.getWindow().location.hash === '#info-popup') {
+      browser.getWindow().history.replaceState(null, '', ' ');
+    }
   }
 
   private addTileToElement(element: HTMLElement, tile: Tile, assignedLetter?: string) {
@@ -391,24 +395,32 @@ export class View {
     });
     popup.appendChild(list);
 
-    const close = () => {
+    const close = (isPopState: boolean) => {
       if (popup.parentNode) {
         popup.parentNode.removeChild(popup);
       }
       this.doc.removeEventListener('pointerdown', pointerdown);
       this.boardContainer.removeEventListener('pointerdown', pointerdown);
       this.doc.removeEventListener('keydown', keydown);
+      window.removeEventListener('popstate', onPopState);
+      if (!isPopState && window.location.hash === '#info-popup') {
+        window.history.back();
+      }
+    };
+
+    const onPopState = () => {
+      close(true);
     };
 
     const pointerdown = (e: PointerEvent) => {
       if (!popup.contains(e.target as Node)) {
-        close();
+        close(false);
       }
     };
 
     const keydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        close();
+        close(false);
       }
     };
 
@@ -417,6 +429,8 @@ export class View {
     popup.style.left = `${rect.left}px`;
     popup.style.top = `${rect.bottom}px`;
 
+    window.history.pushState(null, '', '#info-popup');
+    window.addEventListener('popstate', onPopState);
     this.doc.addEventListener('pointerdown', pointerdown);
     this.boardContainer.addEventListener('pointerdown', pointerdown);
     this.doc.addEventListener('keydown', keydown);

@@ -16,7 +16,7 @@ limitations under the License.
 import { test, expect, mock, setSystemTime, spyOn, describe, beforeEach, afterEach } from 'bun:test'
 import { PointerHandler } from './pointer_handler'
 import type { GameState } from '../game/game_state'
-import type { View } from '../view/view'
+import { View } from '../view/view'
 import { TestBrowser } from '../test_browser'
 import type { TilePlacementRow } from '../game/tile'
 
@@ -24,6 +24,7 @@ function createMockGameState(): GameState {
   return {
     tilesHeld: [],
     moveTile: mock(),
+    addEventListener: mock(),
   } as unknown as GameState
 }
 
@@ -346,4 +347,61 @@ test('double tap when zoomed in zooms out', () => {
     handler.pointerMove(createMockPointerEvent(tile, 110, 110))
 
     expect(view.createGhostTile).not.toHaveBeenCalled()
+  })
+
+  test('system back button dismisses popup', () => {
+    const browser = new TestBrowser()
+    const gameState = createMockGameState()
+    const view = new View(gameState, browser)
+    const handler = new PointerHandler(gameState, view)
+
+    let timeoutCallback: () => void = () => {}
+    let popstateCallback: () => void = () => {}
+    global.window = {
+      setTimeout: mock((fn: () => void) => {
+        timeoutCallback = fn
+        return 1
+      }),
+      clearTimeout: mock(),
+      history: {
+        pushState: mock(),
+        back: mock(),
+      },
+      addEventListener: mock((event, cb) => {
+        if (event === 'popstate') {
+          popstateCallback = cb as () => void
+        }
+      }),
+      removeEventListener: mock(),
+      location: {
+        hash: ''
+      }
+    } as any
+
+    const square = browser.getDocument().createElement('div')
+    square.classList.add('square')
+    square.dataset.row = '7'
+    square.dataset.col = '7'
+    const letter = browser.getDocument().createElement('div')
+    letter.classList.add('letter')
+    square.appendChild(letter)
+    browser.getDocument().body.appendChild(square)
+
+    const event = createMockPointerEvent(letter)
+
+    gameState.getWordsAt = mock(() => ['word1', 'word2'])
+
+    handler.pointerDown(event)
+
+    // Simulate the timeout firing
+    timeoutCallback()
+
+    expect((global.window.history.pushState as any)).toHaveBeenCalled()
+
+    // Simulate back button press
+    popstateCallback()
+
+    const calls = (global.window.removeEventListener as any).mock.calls
+    const popstateCall = calls.find((call: any) => call[0] === 'popstate')
+    expect(popstateCall).toBeDefined()
   })

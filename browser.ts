@@ -32,6 +32,9 @@ export interface Browser {
   // Returns the document object.
   getDocument(): Document;
 
+  // Returns the window object.
+  getWindow(): globalThis.Window;
+
   // Returns the URLSearchParams object for the given query string.
   getURLSearchParams(query: string): URLSearchParams;
 
@@ -89,6 +92,10 @@ export class DomBrowser implements Browser {
 
   getDocument(): Document {
     return document;
+  }
+
+  getWindow(): globalThis.Window {
+    return window;
   }
 
   getURLSearchParams(query: string): URLSearchParams {
