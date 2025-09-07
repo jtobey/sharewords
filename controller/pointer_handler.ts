@@ -49,7 +49,7 @@ export class PointerHandler {
 
   // Long tap state
   private longTapTimeout = 500 // ms
-  private longTapInfo: { timer: number; pointerId: number } | null = null
+  private longTapInfo: { timer: number; pointerId: number, didFire: boolean } | null = null
 
   constructor(gameState: GameState, view: View) {
     this.gameState = gameState
@@ -63,19 +63,7 @@ export class PointerHandler {
 
   private handleLongTap() {
     if (!this.longTapInfo) return
-    const info = this.pointerInfoMap.get(this.longTapInfo.pointerId)
-    if (!info?.draggingTile) {
-      this.longTapInfo = null
-      return
-    }
-    const { row, col, element } = info.draggingTile
-    if (isBoardPlacementRow(row)) {
-      const words = this.gameState.getWordsAt(row, col)
-      if (words.length > 0) {
-        this.view.showInfoPopup(words, element)
-      }
-    }
-    this.longTapInfo = null
+    this.longTapInfo.didFire = true
   }
 
   private findNearestRackOrExchangeSpot(
@@ -181,6 +169,7 @@ export class PointerHandler {
           this.longTapTimeout,
         ),
         pointerId: evt.pointerId,
+        didFire: false,
       }
     } else if (target.closest('#board-container')) {
       evt.preventDefault()
@@ -306,14 +295,24 @@ export class PointerHandler {
   }
 
   pointerUp(evt: PointerEvent) {
+    const longTapDidFire = !!this.longTapInfo?.didFire
     if (this.longTapInfo?.pointerId === evt.pointerId) {
       window.clearTimeout(this.longTapInfo.timer)
       this.longTapInfo = null
     }
+
     const info = this.pointerInfoMap.get(evt.pointerId)
     if (!info) return
-    const target = evt.target as HTMLElement
-    if (info.draggingTile && info.ghostTile) {
+
+    if (longTapDidFire) {
+      const { row, col, element } = info.draggingTile!
+      if (isBoardPlacementRow(row)) {
+        const words = this.gameState.getWordsAt(row, col)
+        if (words.length > 0) {
+          this.view.showInfoPopup(words, element)
+        }
+      }
+    } else if (info.draggingTile && info.ghostTile) {
       const dropTarget = this.view.getDropTarget(evt.pointerId)
       if (dropTarget) {
         try {
@@ -339,7 +338,7 @@ export class PointerHandler {
       }
       this.view.removeGhostTile(info.ghostTile)
       info.draggingTile.element.classList.remove('dragging')
-    } else if (target.closest('#board-container') && !info.pointerMoved) {
+    } else if ((evt.target as HTMLElement).closest('#board-container') && !info.pointerMoved) {
       const now = Date.now()
       if (now - this.lastTap < 300) { // Double tap
         if (this.scale > 1) {
@@ -349,7 +348,7 @@ export class PointerHandler {
         } else {
           this.scale = 1.8
           const boardRect = this.view.getBoardContainer().getBoundingClientRect()
-          const square = target.closest('.square')?.getBoundingClientRect()
+          const square = (evt.target as HTMLElement).closest('.square')?.getBoundingClientRect()
 
           function toBoardCoordinate(evtCoordinate: number, boardLo: number, boardHi: number, squareLength: number) {
             const boardCoordinate = evtCoordinate - boardLo
