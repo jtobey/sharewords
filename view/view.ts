@@ -387,7 +387,6 @@ export class View {
       const link = this.doc.createElement('a');
       link.href = `https://en.wiktionary.org/wiki/${word}`;
       link.textContent = word;
-      link.target = '_blank';
       item.appendChild(link);
       list.appendChild(item);
     });
