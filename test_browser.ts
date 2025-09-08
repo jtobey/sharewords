@@ -96,6 +96,10 @@ export class TestBrowser implements Browser {
     return this.window.document as any;
   }
 
+  getWindow(): globalThis.Window {
+    return this.window as any;
+  }
+
   getURLSearchParams(query: string): URLSearchParams {
     return new this.window.URLSearchParams(query);
   }

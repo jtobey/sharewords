@@ -393,7 +393,7 @@ export class View {
     });
     popup.appendChild(list);
 
-    const close = () => {
+    const close = (isPopState: boolean) => {
       if (popup.parentNode) {
         popup.parentNode.removeChild(popup);
       }
@@ -413,13 +413,13 @@ export class View {
 
     const pointerdown = (e: PointerEvent) => {
       if (!popup.contains(e.target as Node)) {
-        close();
+        close(false);
       }
     };
 
     const keydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        close();
+        close(false);
       }
     };
 

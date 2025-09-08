@@ -16,7 +16,7 @@ limitations under the License.
 import { test, expect, mock, setSystemTime, spyOn, describe, beforeEach, afterEach } from 'bun:test'
 import { PointerHandler } from './pointer_handler'
 import type { GameState } from '../game/game_state'
-import type { View } from '../view/view'
+import { View } from '../view/view'
 import { TestBrowser } from '../test_browser'
 import type { TilePlacementRow } from '../game/tile'
 
