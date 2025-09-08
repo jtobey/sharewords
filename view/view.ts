@@ -36,9 +36,11 @@ export class View {
   public gameSetup: GameSetup
   private dropTargetMap = new Map<DropTargetId, { row: TilePlacementRow, col: number }>
   private doc: Document
+  private window: Window
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState
+    this.window = browser.getWindow()
     this.doc = browser.getDocument()
     this.gameContainer = this.doc.getElementById('game-container')!
     this.boardContainer = this.gameContainer.querySelector<HTMLElement>('#board-container')!
@@ -398,6 +400,15 @@ export class View {
       this.doc.removeEventListener('pointerdown', pointerdown);
       this.boardContainer.removeEventListener('pointerdown', pointerdown);
       this.doc.removeEventListener('keydown', keydown);
+      this.window.removeEventListener('popstate', onPopState);
+      if (!isPopState) {
+        this.window.history.back();
+        this.window.location.hash = this.window.history.state;
+      }
+    };
+
+    const onPopState = () => {
+      close(true);
     };
 
     const pointerdown = (e: PointerEvent) => {
@@ -417,6 +428,13 @@ export class View {
     popup.style.left = `${rect.left}px`;
     popup.style.top = `${rect.bottom}px`;
 
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash?.substring(1) || '');
+    if (params.get('view') !== 'info-popup') {
+      params.set('view', 'info-popup');
+      window.history.pushState(hash, '', '#' + params);
+    }
+    window.addEventListener('popstate', onPopState);
     this.doc.addEventListener('pointerdown', pointerdown);
     this.boardContainer.addEventListener('pointerdown', pointerdown);
     this.doc.addEventListener('keydown', keydown);

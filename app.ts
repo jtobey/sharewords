@@ -48,12 +48,12 @@ export class App {
     initI18n(this.browser.getDocument());
 
     const handleGameChange = async () => {
-      const params = this.browser.getURLSearchParams(this.browser.getHash()?.substring(1) || '');
+      const hash = this.browser.getHash()?.substring(1) || '';
+      const params = new URLSearchParams(hash);
+      params.delete('view');
       const gidParam = params.get('gid');
-      const gameId = gidParam ? toGameId(gidParam) : makeGameId();
 
-      if (this.gameState?.gameId === gameId) {
-        const hash = this.browser.getHash()?.substring(1)
+      if (gidParam && this.gameState?.gameId === toGameId(gidParam)) {
         const paramsStr = this.gameState.turnUrlParams.toString()
         if (hash !== paramsStr) {
           await this.gameState.applyTurnParams(params);
@@ -61,6 +61,7 @@ export class App {
         return;
       }
 
+      const gameId = gidParam ? toGameId(gidParam) : makeGameId();
       const savedGame = gidParam && this.browser.localStorage.getItem(makeStorageKey(gidParam));
       if (savedGame) {
         console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
