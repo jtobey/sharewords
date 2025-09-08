@@ -35,6 +35,7 @@ import { Turn, toTurnNumber, updateTurnHistory } from './turn.js'
 import type { TurnNumber, TurnData } from './turn.js'
 import { indicesOk } from './validation.js'
 import { TileEvent, GameEvent, BoardEvent } from './events.js'
+import { Board } from './board.js'
 
 export function makeStorageKey(gameId: string) {
   return 'sharewords_' + gameId
@@ -503,7 +504,7 @@ export class GameState extends EventTarget {
 
   getWordsAt(row: number, col: number): string[] {
     const board = this.board
-    const tempBoard = new (board.constructor as any)(...board.toJSON().rows)
+    const tempBoard = new Board(...board.toJSON().rows)
     tempBoard.copyFrom(board)
     for (const placement of this.tilesHeld) {
       if (isBoardPlacement(placement)) {
@@ -514,7 +515,7 @@ export class GameState extends EventTarget {
         }
       }
     }
-    return tempBoard.getWordsAt(row, col)
+    return tempBoard.getWordsAt(row, col).map(s => s.toLowerCase())
   }
 
   static async fromParams(params: Readonly<URLSearchParams>, baseUrl = 'http://localhost/') {

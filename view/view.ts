@@ -385,7 +385,7 @@ export class View {
     words.forEach(word => {
       const item = this.doc.createElement('li');
       const link = this.doc.createElement('a');
-      link.href = `https://en.wiktionary.org/wiki/${word.toLowerCase()}`;
+      link.href = `https://en.wiktionary.org/wiki/${word}`;
       link.textContent = word;
       link.target = '_blank';
       item.appendChild(link);
