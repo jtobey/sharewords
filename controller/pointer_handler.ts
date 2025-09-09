@@ -163,7 +163,6 @@ export class PointerHandler {
       ...tapInfo,
       draggingTile: null,
     }
-    this.pointerInfoMap.set(evt.pointerId, panInfo)
 
     let tileTarget: HTMLElement | null = target.closest('.tile, .placed')
     const tileTargetIsMovable = Boolean(tileTarget)
@@ -187,6 +186,8 @@ export class PointerHandler {
           ghostTile: null,
         }
         this.pointerInfoMap.set(evt.pointerId, dragInfo)
+      } else {
+        this.pointerInfoMap.set(evt.pointerId, panInfo)
       }
       this.currentTapTarget = { row, col, element: tileTarget }
       if (this.longTapInfo) {
@@ -203,6 +204,7 @@ export class PointerHandler {
       evt.preventDefault()
       evt.stopPropagation()
       this.currentTapTarget = null
+      this.pointerInfoMap.set(evt.pointerId, panInfo)
     }
   }
 
