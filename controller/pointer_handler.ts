@@ -159,8 +159,14 @@ export class PointerHandler {
       y: evt.clientY,
       pointerMoved: false,
     }
+    const panInfo: PanInfo = {
+      ...tapInfo,
+      draggingTile: null,
+    }
+    this.pointerInfoMap.set(evt.pointerId, panInfo)
 
     let tileTarget: HTMLElement | null = target.closest('.tile, .placed')
+    const tileTargetIsMovable = Boolean(tileTarget)
     if (!tileTarget) {
       const square = target.closest('.square')
       if (square?.querySelector('.letter')) {
@@ -174,13 +180,15 @@ export class PointerHandler {
       const col = parseInt(tileTarget.dataset.col!, 10)
       const rowStr = tileTarget.dataset.row!
       const row: TilePlacementRow = rowStr === 'rack' ? 'rack' : (rowStr === 'exchange' ? 'exchange' : parseInt(rowStr, 10))
-      this.currentTapTarget = { row, col, element: tileTarget }
-      const dragInfo: DragInfo = {
-        ...tapInfo,
-        draggingTile: { row, col, element: tileTarget },
-        ghostTile: null,
+      if (tileTargetIsMovable) {
+        const dragInfo: DragInfo = {
+          ...tapInfo,
+          draggingTile: { row, col, element: tileTarget },
+          ghostTile: null,
+        }
+        this.pointerInfoMap.set(evt.pointerId, dragInfo)
       }
-      this.pointerInfoMap.set(evt.pointerId, dragInfo)
+      this.currentTapTarget = { row, col, element: tileTarget }
       if (this.longTapInfo) {
         window.clearTimeout(this.longTapInfo.timer)
       }
@@ -195,11 +203,6 @@ export class PointerHandler {
       evt.preventDefault()
       evt.stopPropagation()
       this.currentTapTarget = null
-      const panInfo: PanInfo = {
-        ...tapInfo,
-        draggingTile: null,
-      }
-      this.pointerInfoMap.set(evt.pointerId, panInfo)
     }
   }
 
