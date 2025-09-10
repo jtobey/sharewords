@@ -23,10 +23,10 @@ export class Dialog {
     doc: Document,
     private title: string,
     private content: HTMLElement,
-    private buttons: string[]
+    private buttons: string[],
   ) {
     this.doc = doc;
-    this.dialogElement = this.doc.createElement('dialog');
+    this.dialogElement = this.doc.createElement("dialog");
     this.dialogElement.innerHTML = `
       <form method="dialog">
         <h2>${this.title}</h2>
@@ -34,12 +34,12 @@ export class Dialog {
         <div class="buttons"></div>
       </form>
     `;
-    this.contentElement = this.dialogElement.querySelector('.content')!;
+    this.contentElement = this.dialogElement.querySelector(".content")!;
     this.contentElement.appendChild(this.content);
 
-    const buttonsContainer = this.dialogElement.querySelector('.buttons')!;
+    const buttonsContainer = this.dialogElement.querySelector(".buttons")!;
     for (const label of this.buttons) {
-      const button = this.doc.createElement('button');
+      const button = this.doc.createElement("button");
       button.textContent = label;
       button.value = label;
       buttonsContainer.appendChild(button);
@@ -47,7 +47,7 @@ export class Dialog {
 
     this.doc.body.appendChild(this.dialogElement);
 
-    this.dialogElement.addEventListener('close', () => {
+    this.dialogElement.addEventListener("close", () => {
       this.promiseResolve(this.dialogElement.returnValue);
       this.dialogElement.remove();
     });

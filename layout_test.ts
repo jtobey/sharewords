@@ -29,7 +29,7 @@ describe("layout", () => {
     document = window.document;
 
     document.write(indexHtml);
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = styleCss;
     document.head.appendChild(style);
   });
@@ -45,7 +45,9 @@ describe("layout", () => {
 
     const centerPanelRect = centerPanel.getBoundingClientRect();
     const controlsContainerRect = controlsContainer.getBoundingClientRect();
-    expect(controlsContainerRect.top).toBeGreaterThanOrEqual(centerPanelRect.bottom);
+    expect(controlsContainerRect.top).toBeGreaterThanOrEqual(
+      centerPanelRect.bottom,
+    );
   });
 
   it("should have a row layout on wide screens", () => {

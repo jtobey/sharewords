@@ -13,21 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type { Tile, TilePlacement, TilePlacementRow, BoardPlacement } from './tile.js'
+import type {
+  Tile,
+  TilePlacement,
+  TilePlacementRow,
+  BoardPlacement,
+} from "./tile.js";
 
 export interface BagEventDetail {
-  playerId: string
-  tile: Tile
+  playerId: string;
+  tile: Tile;
 }
 
 export class BagEvent extends CustomEvent<BagEventDetail> {}
 
 export interface TileEventDetail {
   // Tile identity and new location.
-  placement: TilePlacement
+  placement: TilePlacement;
   // Old location.
-  fromRow?: TilePlacementRow
-  fromCol?: number
+  fromRow?: TilePlacementRow;
+  fromCol?: number;
 }
 
 export class TileEvent extends CustomEvent<TileEventDetail> {}
@@ -35,7 +40,7 @@ export class TileEvent extends CustomEvent<TileEventDetail> {}
 export class GameEvent extends CustomEvent<{}> {}
 
 export interface BoardEventDetail {
-  placement: BoardPlacement
+  placement: BoardPlacement;
 }
 
 export class BoardEvent extends CustomEvent<BoardEventDetail> {}

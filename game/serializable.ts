@@ -13,16 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-export type Serializable = (
-  { toJSON(): any } |
-  { [key: string]: Serializable } |
-  ReadonlyArray<Serializable> |
-  string |
-  number |
-  boolean |
-  null)
+export type Serializable =
+  | { toJSON(): any }
+  | { [key: string]: Serializable }
+  | ReadonlyArray<Serializable>
+  | string
+  | number
+  | boolean
+  | null;
 
 export function toJSON(s: Serializable): any {
-  if (s && typeof s === 'object' && 'toJSON' in s) return (s as {toJSON(): any}).toJSON()
-  return s
+  if (s && typeof s === "object" && "toJSON" in s)
+    return (s as { toJSON(): any }).toJSON();
+  return s;
 }

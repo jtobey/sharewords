@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { Window } from 'happy-dom'
+import { Window } from "happy-dom";
 
-const window = new Window()
-global.HTMLElement = window.HTMLElement as any
+const window = new Window();
+global.HTMLElement = window.HTMLElement as any;

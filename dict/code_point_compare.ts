@@ -37,4 +37,4 @@ export function codePointCompare(
     if (leftCodepoint < rightCodepoint) return -1;
     if (leftCodepoint > rightCodepoint) return 1;
   }
-};
+}

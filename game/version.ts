@@ -17,15 +17,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-export type ProtocolVersion = string & { '__brand': 'ProtocolVersion' };
+export type ProtocolVersion = string & { __brand: "ProtocolVersion" };
 const toProtocolVersion = (v: string) => v as ProtocolVersion;
 export const fromProtocolVersion = (v: ProtocolVersion) => v as string;
 
-const _PROTOCOL_VERSIONS: {[key: string]: ProtocolVersion} = Object.create(null);
-const v = (vStr: string) => _PROTOCOL_VERSIONS[vStr] = toProtocolVersion(vStr);
+const _PROTOCOL_VERSIONS: { [key: string]: ProtocolVersion } =
+  Object.create(null);
+const v = (vStr: string) =>
+  (_PROTOCOL_VERSIONS[vStr] = toProtocolVersion(vStr));
 
-export const PROTOCOL_VERSIONS: Readonly<typeof _PROTOCOL_VERSIONS> = _PROTOCOL_VERSIONS;
-export const PROTOCOL_VERSION_0 = v('0');
-export const PROTOCOL_VERSION_1 = v('1');
+export const PROTOCOL_VERSIONS: Readonly<typeof _PROTOCOL_VERSIONS> =
+  _PROTOCOL_VERSIONS;
+export const PROTOCOL_VERSION_0 = v("0");
+export const PROTOCOL_VERSION_1 = v("1");
 
 export const PROTOCOL_VERSION = PROTOCOL_VERSION_1;

@@ -21,36 +21,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
- 
 
-import { Tile } from './tile.js'
-import { Turn, type TurnNumber } from './turn.js'
-import { checkIndices } from './validation.js'
+import { Tile } from "./tile.js";
+import { Turn, type TurnNumber } from "./turn.js";
+import { checkIndices } from "./validation.js";
 
 export interface TilesState extends EventTarget {
   /**
    * A rack's capacity, for example 7 tiles.
    * Within a game, all racks have the same capacity.
    */
-  readonly rackCapacity: number
+  readonly rackCapacity: number;
   /** The last value returned by `playTurns`. May be an opaque identifier. */
-  readonly stateId: any
+  readonly stateId: any;
   /** The number of unheld tiles remaining in the bag, for example 86. */
-  readonly numberOfTilesInBag: number
+  readonly numberOfTilesInBag: number;
   /** True whenever the bag and any rack are empty. */
-  readonly isGameOver: boolean
+  readonly isGameOver: boolean;
 
-  copyFrom(other: TilesState): void
+  copyFrom(other: TilesState): void;
 
   /**
    * @returns The number of tiles currently in the given player's rack.
    */
-  countTiles(playerId: string): number
+  countTiles(playerId: string): number;
   /**
    * @returns The given player's tiles.
    * @throws Will throw if not permitted.
    */
-  getTiles(playerId: string): Promise<Array<Tile>>
+  getTiles(playerId: string): Promise<Array<Tile>>;
   /**
    * Records turns played in the order given.
    *
@@ -74,8 +73,8 @@ export interface TilesState extends EventTarget {
    * @throws Will throw if the exchange tile indices contain duplicates.
    * @throws Will throw if the bag holds fewer tiles than specified for exchange.
    */
-  playTurns(...turnsToPlay: Array<Turn>): Promise<TurnNumber | null>
-  toJSON(): any
+  playTurns(...turnsToPlay: Array<Turn>): Promise<TurnNumber | null>;
+  toJSON(): any;
 }
 
 /**
@@ -83,10 +82,13 @@ export interface TilesState extends EventTarget {
  * @throws Will throw if `indices` contains duplicates.
  * @throws {RangeError} Will throw if any index is a non-integer or out of range for an array of the given length.
  */
-export function checkIndicesForExchange(length: number, ...indices: ReadonlyArray<number>) {
+export function checkIndicesForExchange(
+  length: number,
+  ...indices: ReadonlyArray<number>
+) {
   if ([...new Set(indices)].length !== indices.length) {
-    throw new Error(`exchangeTileIndices contains duplicates: ${indices}`)
+    throw new Error(`exchangeTileIndices contains duplicates: ${indices}`);
   }
-  checkIndices(length, ...indices)
-  return [...indices]
+  checkIndices(length, ...indices);
+  return [...indices];
 }

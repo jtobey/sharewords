@@ -13,20 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { toGameId, makeGameId } from './game/settings.js'
-import { hasBagDefaults } from './game/bag_defaults.js'
-import { GameState, makeStorageKey } from './game/game_state.js'
-import { View } from './view/view.js'
-import { Controller } from './controller/controller.js'
-import { loadTranslations } from './i18n.js'
-import { initI18n } from './view/i18n.js'
-import { type Browser, DomBrowser } from './browser.js'
+import { toGameId, makeGameId } from "./game/settings.js";
+import { hasBagDefaults } from "./game/bag_defaults.js";
+import { GameState, makeStorageKey } from "./game/game_state.js";
+import { View } from "./view/view.js";
+import { Controller } from "./controller/controller.js";
+import { loadTranslations } from "./i18n.js";
+import { initI18n } from "./view/i18n.js";
+import { type Browser, DomBrowser } from "./browser.js";
 
 export class App {
-  browser: Browser
-  gameState!: GameState
-  view!: View
-  controller!: Controller
+  browser: Browser;
+  gameState!: GameState;
+  view!: View;
+  controller!: Controller;
   bufferedLogs: string[] = [];
 
   constructor(browser: Browser) {
@@ -34,27 +34,29 @@ export class App {
   }
 
   updateUrl() {
-    const paramsStr = this.gameState.turnUrlParams.toString()
+    const paramsStr = this.gameState.turnUrlParams.toString();
     if (this.browser.getHash().substr(1) !== paramsStr) {
-      this.browser.setHash(paramsStr)
+      this.browser.setHash(paramsStr);
     }
   }
 
   async init() {
-    if (this.browser.getURLSearchParams(this.browser.getSearch()).has('debug')) {
+    if (
+      this.browser.getURLSearchParams(this.browser.getSearch()).has("debug")
+    ) {
       this.initDebug();
     }
     await loadTranslations(...this.browser.languages);
     initI18n(this.browser.getDocument());
 
     const handleGameChange = async () => {
-      const hash = this.browser.getHash()?.substring(1) || '';
+      const hash = this.browser.getHash()?.substring(1) || "";
       const params = new URLSearchParams(hash);
-      params.delete('view');
-      const gidParam = params.get('gid');
+      params.delete("view");
+      const gidParam = params.get("gid");
 
       if (gidParam && this.gameState?.gameId === toGameId(gidParam)) {
-        const paramsStr = this.gameState.turnUrlParams.toString()
+        const paramsStr = this.gameState.turnUrlParams.toString();
         if (hash !== paramsStr) {
           await this.gameState.applyTurnParams(params);
         }
@@ -62,23 +64,38 @@ export class App {
       }
 
       const gameId = gidParam ? toGameId(gidParam) : makeGameId();
-      const savedGame = gidParam && this.browser.localStorage.getItem(makeStorageKey(gidParam));
+      const savedGame =
+        gidParam && this.browser.localStorage.getItem(makeStorageKey(gidParam));
       if (savedGame) {
-        console.log(`Loaded ${gameId} from local storage${this.gameState ? '; switching from ' + this.gameState.gameId + ' to it' : ''}.`)
+        console.log(
+          `Loaded ${gameId} from local storage${this.gameState ? "; switching from " + this.gameState.gameId + " to it" : ""}.`,
+        );
         this.gameState = GameState.fromJSON(JSON.parse(savedGame).game);
-        this.gameState.settings.baseUrl = this.browser.getHref()
-        this.gameState.storage = this.browser.localStorage
-        await this.gameState.applyTurnParams(params)
+        this.gameState.settings.baseUrl = this.browser.getHref();
+        this.gameState.storage = this.browser.localStorage;
+        await this.gameState.applyTurnParams(params);
       } else if (this.gameState) {
-        this.browser.reload()
-        console.log('Switched to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
-        return
+        this.browser.reload();
+        console.log(
+          "Switched to new game" + (gidParam ? ` "${gidParam}"` : "") + ".",
+        );
+        return;
       } else {
-        console.log('Switching to new game' + (gidParam ? ` "${gidParam}"` : '') + '.')
-        if (!params.get('seed')) params.set('seed', String(Math.floor(1000000 * this.browser.getRandom())));
-        if (!params.get('bag')) params.set('bag', '.' + this.chooseBagLanguage())
-        this.gameState = await GameState.fromParams(params, this.browser.getHref())
-        this.gameState.storage = this.browser.localStorage
+        console.log(
+          "Switching to new game" + (gidParam ? ` "${gidParam}"` : "") + ".",
+        );
+        if (!params.get("seed"))
+          params.set(
+            "seed",
+            String(Math.floor(1000000 * this.browser.getRandom())),
+          );
+        if (!params.get("bag"))
+          params.set("bag", "." + this.chooseBagLanguage());
+        this.gameState = await GameState.fromParams(
+          params,
+          this.browser.getHref(),
+        );
+        this.gameState.storage = this.browser.localStorage;
       }
 
       this.updateUrl();
@@ -86,7 +103,9 @@ export class App {
       this.view = new View(this.gameState, this.browser);
       this.controller = new Controller(this.gameState, this.view, this.browser);
 
-      if (this.browser.getURLSearchParams(this.browser.getSearch()).has('debug')) {
+      if (
+        this.browser.getURLSearchParams(this.browser.getSearch()).has("debug")
+      ) {
         this.view.gameSetup.initDebugDisplay(this.bufferedLogs);
         this.bufferedLogs = [];
       }
@@ -97,18 +116,27 @@ export class App {
       this.view.renderBagTileCount();
       this.view.renderActionButtons();
 
-      this.gameState.addEventListener('tilemove', (evt: any) => {
-        if (evt.detail.fromRow !== undefined && evt.detail.fromCol !== undefined) {
-          this.view.renderTileSpot(evt.detail.fromRow, evt.detail.fromCol)
+      this.gameState.addEventListener("tilemove", (evt: any) => {
+        if (
+          evt.detail.fromRow !== undefined &&
+          evt.detail.fromCol !== undefined
+        ) {
+          this.view.renderTileSpot(evt.detail.fromRow, evt.detail.fromCol);
         }
-        this.view.renderTileSpot(evt.detail.placement.row, evt.detail.placement.col)
-        if ((evt.detail.fromRow === 'exchange') !== (evt.detail.placement.row === 'exchange')) {
+        this.view.renderTileSpot(
+          evt.detail.placement.row,
+          evt.detail.placement.col,
+        );
+        if (
+          (evt.detail.fromRow === "exchange") !==
+          (evt.detail.placement.row === "exchange")
+        ) {
           this.view.renderActionButtons();
         }
-        this.gameState.save()
+        this.gameState.save();
       });
 
-      this.gameState.addEventListener('turnchange', () => {
+      this.gameState.addEventListener("turnchange", () => {
         this.view.renderBoard();
         this.view.renderRack();
         this.view.renderScores();
@@ -124,18 +152,18 @@ export class App {
 
   chooseBagLanguage() {
     for (const bagLanguage of this.browser.languages) {
-      if (hasBagDefaults(bagLanguage)) return bagLanguage
+      if (hasBagDefaults(bagLanguage)) return bagLanguage;
     }
-    return 'en'
+    return "en";
   }
 
   initDebug() {
     const app = this;
-    for (const level of ['debug', 'log', 'warn', 'error', 'info'] as const) {
+    for (const level of ["debug", "log", "warn", "error", "info"] as const) {
       const original = console[level];
-      console[level] = function(...args: any[]) {
+      console[level] = function (...args: any[]) {
         original.apply(console, args);
-        const message = args.map(String).join(' ');
+        const message = args.map(String).join(" ");
         if (app.view?.gameSetup) {
           (app.view.gameSetup as any).addDebugMessage(message);
         } else {
@@ -146,7 +174,7 @@ export class App {
   }
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   const app = new App(new DomBrowser());
   try {
     await app.init();

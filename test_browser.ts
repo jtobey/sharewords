@@ -13,63 +13,65 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type { Browser } from './browser.js';
-import { TestStorage } from './test_storage.js';
-import { App } from './app.js';
-import { Window } from 'happy-dom';
-import * as fs from 'fs';
+import type { Browser } from "./browser.js";
+import { TestStorage } from "./test_storage.js";
+import { App } from "./app.js";
+import { Window } from "happy-dom";
+import * as fs from "fs";
 
 export class TestBrowser implements Browser {
-  private search = '';
-  private hash = '';
+  private search = "";
+  private hash = "";
   private window: Window;
-  public localStorage = new TestStorage;
-  public languages = []
+  public localStorage = new TestStorage();
+  public languages = [];
   private hashChangeListeners: (() => Promise<any>)[] = [];
-  public clipboard = '';
-  public location = '';
+  public clipboard = "";
+  public location = "";
   app: App;
 
-  constructor(href: string = '') {
-    this.initHref(href)
-    const indexHtml = fs.readFileSync('index.html', 'utf-8');
-    const styleCss = fs.readFileSync('style.css', 'utf-8');
+  constructor(href: string = "") {
+    this.initHref(href);
+    const indexHtml = fs.readFileSync("index.html", "utf-8");
+    const styleCss = fs.readFileSync("style.css", "utf-8");
 
     this.window = new Window();
     const document = this.window.document;
 
     document.write(indexHtml);
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = styleCss;
     document.head.appendChild(style);
     this.app = new App(this);
   }
 
   private initHref(href: string) {
-    const hrefGroups = href.match(/(?:\?(?<search>.*?))?(?<hash>#.*|)$/)!.groups!
-    this.search = hrefGroups.search ?? ''
-    this.hash = hrefGroups.hash!
+    const hrefGroups = href.match(
+      /(?:\?(?<search>.*?))?(?<hash>#.*|)$/,
+    )!.groups!;
+    this.search = hrefGroups.search ?? "";
+    this.hash = hrefGroups.hash!;
   }
 
   private uninitHref() {
-    return (this.search ? `?${this.search}` : '') + this.hash
+    return (this.search ? `?${this.search}` : "") + this.hash;
   }
 
   async init() {
-    return this.app.init()
+    return this.app.init();
   }
 
-  async load(href: string = '') {
-    this.hashChangeListeners.length = 0
-    this.initHref(href)
-    this.app = new App(this)
-    await this.app.init()
-    await new Promise(resolve => setTimeout(resolve, 0))
-    return this.app
+  async load(href: string = "") {
+    this.hashChangeListeners.length = 0;
+    this.initHref(href);
+    this.app = new App(this);
+    await this.app.init();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return this.app;
   }
 
   async reload() {
-    await this.load(this.uninitHref())
+    await this.load(this.uninitHref());
   }
 
   getHash(): string {
@@ -77,11 +79,11 @@ export class TestBrowser implements Browser {
   }
 
   async setHash(hash: string) {
-    const newHash = hash && '#' + hash.replace(/^#/, '')
-    if (this.hash === newHash) return
-    this.hash = newHash
-    await Promise.all(this.hashChangeListeners.map(l => l()))
-    await new Promise(resolve => setTimeout(resolve, 0))
+    const newHash = hash && "#" + hash.replace(/^#/, "");
+    if (this.hash === newHash) return;
+    this.hash = newHash;
+    await Promise.all(this.hashChangeListeners.map((l) => l()));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   getSearch(): string {
