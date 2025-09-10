@@ -36,7 +36,7 @@ describe("game state", () => {
     const player1GameState = new GameState("1", settings);
     await player1GameState.init();
     const initialRack = player1GameState.tilesHeld.map((t) => t.tile.letter);
-    expect(initialRack.join("")).toEqual("VTKTTNC");
+    expect(initialRack.join("")).toEqual("DCCLNYE");
 
     // Exchange the first, third, and last tiles.
     player1GameState.moveTile("rack", 0, "exchange", 0);
@@ -46,7 +46,7 @@ describe("game state", () => {
 
     // The rack should have new tiles.
     const newRack = player1GameState.tilesHeld.map((t) => t.tile.letter);
-    expect(newRack.join("")).toEqual("TTTNLEE");
+    expect(newRack.join("")).toEqual("CLNYSHS");
 
     // The turnUrlParams should contain the exchange.
     const params = player1GameState.turnUrlParams;
@@ -55,7 +55,7 @@ describe("game state", () => {
     // A new game state created from the params should have the same rack.
     const player2GameState = await GameState.fromParams(params);
     const player2Rack = await player2GameState.getTiles("1");
-    expect(player2Rack.map((t) => t.letter).join("")).toEqual("TTTNLEE");
+    expect(player2Rack.map((t) => t.letter).join("")).toEqual("CLNYSHS");
   });
 
   it("should apply the bingo bonus", async () => {
@@ -117,9 +117,9 @@ describe("game state", () => {
 
     await gameState.playWord();
 
-    expect(gameState.board.squares[7]?.[7]?.tile?.letter).toBe("B");
+    expect(gameState.board.squares[7]?.[7]?.tile?.letter).toBe("E");
     expect(gameState.board.squares[7]?.[8]?.tile?.letter).toBe("A");
-    expect(gameState.board.scores.get("1")).toEqual(4);
+    expect(gameState.board.scores.get("1")).toEqual(2);
   });
 
   it("should pass turn", async () => {
@@ -130,14 +130,14 @@ describe("game state", () => {
     const initialRack = player1GameState.tilesHeld
       .map((t) => t.tile.letter)
       .join("");
-    expect(initialRack).toBe("ESPRTSJ");
+    expect(initialRack).toBe("TRACWSR");
 
     // Pass (exchange no tiles)
     await player1GameState.passOrExchange();
     const rackAfterPass = player1GameState.tilesHeld
       .map((t) => t.tile.letter)
       .join("");
-    expect(rackAfterPass).toBe("ESPRTSJ");
+    expect(rackAfterPass).toBe("TRACWSR");
   });
 
   it("should exchange tiles 2", async () => {
@@ -146,7 +146,7 @@ describe("game state", () => {
     const gameState = new GameState("1", settings);
     await gameState.init();
     const initialRack = gameState.tilesHeld.map((t) => t.tile.letter).join("");
-    expect(initialRack).toBe("MLRUTSE");
+    expect(initialRack).toBe("IOAHFRG");
 
     // Move tiles to the exchange area.
     gameState.moveTile("rack", 0, "exchange", 0);
@@ -157,7 +157,7 @@ describe("game state", () => {
     const rackAfterPass = gameState.tilesHeld
       .map((t) => t.tile.letter)
       .join("");
-    expect(rackAfterPass).toBe("RUTSEIS");
+    expect(rackAfterPass).toBe("AHFRGIW");
   });
 
   describe("params", () => {
@@ -287,7 +287,7 @@ describe("game state", () => {
     await gameState.init();
 
     const tileToPlace = gameState.tilesHeld[0]!;
-    expect(tileToPlace.tile.letter).toBe("B");
+    expect(tileToPlace.tile.letter).toBe("E");
 
     // Move a tile to the board
     gameState.moveTile("rack", 0, 7, 7);

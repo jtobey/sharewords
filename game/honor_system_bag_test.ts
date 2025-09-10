@@ -35,22 +35,22 @@ describe("honor system bag", () => {
       tiles: _tiles(1, 2, 3, 5, 8),
       randomSeed: "0x456789ab",
     });
-    expect(bag.draw(bag.size)).toEqual(_tiles(5, 8, 1, 3, 2));
+    expect(bag.draw(bag.size)).toEqual(_tiles(3, 5, 8, 1, 2));
   });
   it("should draw 1", () => {
     const bag = createHonorSystemBag({
       tiles: _tiles(1, 2, 3, 5, 8),
       randomSeed: "1",
     });
-    expect(bag.draw(1)).toEqual(_tiles(8));
-    expect(bag.draw(bag.size)).toEqual(_tiles(2, 3, 1, 5));
+    expect(bag.draw(1)).toEqual(_tiles(3));
+    expect(bag.draw(bag.size)).toEqual(_tiles(8, 2, 1, 5));
   });
   it("should draw all", () => {
     const bag = createHonorSystemBag({
       tiles: _tiles(1, 2, 3, 5, 8),
       randomSeed: "1",
     });
-    expect(bag.draw(5)).toEqual(_tiles(2, 3, 1, 5, 8));
+    expect(bag.draw(5)).toEqual(_tiles(8, 2, 1, 5, 3));
     expect(bag.draw(bag.size)).toEqual(_tiles());
   });
   it("should not underflow in draw", () => {
@@ -59,23 +59,23 @@ describe("honor system bag", () => {
       randomSeed: "1",
     });
     expect(() => bag.draw(6)).toThrow(RangeError);
-    expect(bag.draw(bag.size)).toEqual(_tiles(2, 3, 1, 5, 8));
+    expect(bag.draw(bag.size)).toEqual(_tiles(8, 2, 1, 5, 3));
   });
   it("should exchange 2", () => {
     const bag = createHonorSystemBag({
       tiles: _tiles(1, 2, 3, 5, 8),
       randomSeed: "1",
     });
-    expect(bag.exchange(_tiles(6, 7))).toEqual(_tiles(5, 8));
-    expect(bag.draw(bag.size)).toEqual(_tiles(1, 3, 6, 7, 2));
+    expect(bag.exchange(_tiles(6, 7))).toEqual(_tiles(5, 3));
+    expect(bag.draw(bag.size)).toEqual(_tiles(8, 7, 2, 1, 6));
   });
   it("should exchange all", () => {
     const bag = createHonorSystemBag({
       tiles: _tiles(1, 2, 3, 5, 8),
       randomSeed: "222222222",
     });
-    expect(bag.exchange(_tiles(0, 4, 6, 7, 9))).toEqual(_tiles(2, 1, 5, 8, 3));
-    expect(bag.draw(bag.size)).toEqual(_tiles(9, 4, 7, 6, 0));
+    expect(bag.exchange(_tiles(0, 4, 6, 7, 9))).toEqual(_tiles(1, 3, 8, 5, 2));
+    expect(bag.draw(bag.size)).toEqual(_tiles(4, 0, 6, 7, 9));
   });
   it("should not underflow in exchange", () => {
     const bag = createHonorSystemBag({
@@ -83,7 +83,7 @@ describe("honor system bag", () => {
       randomSeed: "1",
     });
     expect(() => bag.exchange(_tiles(1, 2, 3, 4, 5, 6))).toThrow(RangeError);
-    expect(bag.draw(bag.size)).toEqual(_tiles(2, 3, 1, 5, 8));
+    expect(bag.draw(bag.size)).toEqual(_tiles(8, 2, 1, 5, 3));
   });
   it("should support duplicates", () => {
     const bag = createHonorSystemBag({
@@ -91,7 +91,7 @@ describe("honor system bag", () => {
       randomSeed: "99",
     });
     expect(bag.exchange(_tiles(4, 4))).toEqual(_tiles(3, 3));
-    expect(bag.draw(bag.size)).toEqual(_tiles(4, 3, 4, 3));
+    expect(bag.draw(bag.size)).toEqual(_tiles(4, 3, 3, 4));
   });
   describe("json", () => {
     it("should roundtrip to and from JSON", () => {

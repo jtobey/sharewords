@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 import { Bag } from "./bag.js";
+import { djb2Hash } from "./hash.js";
 import { Mulberry32Prng } from "./mulberry32_prng.js";
 import { Tile } from "./tile.js";
 import { arraysEqual } from "./validation.js";
@@ -30,10 +31,7 @@ export class HonorSystemBag extends Bag {
     tiles: Iterable<Tile>,
     // Args for fromJSON.
     shuffle = true,
-    randomGenerator = new Mulberry32Prng(
-      // TODO(#95): Accept any string. (Hash it.)
-      BigInt(randomSeed),
-    ),
+    randomGenerator = new Mulberry32Prng(djb2Hash(randomSeed)),
   ) {
     super(tiles, randomGenerator, shuffle);
   }

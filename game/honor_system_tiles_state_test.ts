@@ -68,7 +68,7 @@ describe("honor system tiles state", () => {
       tiles,
       4,
     );
-    const daveWord = makeTestTiles({ A: 3, B: 1 }).map((tile, col) => ({
+    const daveWord = makeTestTiles({ A: 4 }).map((tile, col) => ({
       row: 1,
       col,
       tile,
@@ -82,7 +82,7 @@ describe("honor system tiles state", () => {
     expect(state.stateId).toEqual(2);
     expect(state.countTiles("John")).toEqual(4);
     expect(state.countTiles("Dave")).toEqual(3);
-    expect([...getAllTiles(state), ...daveWord]).toEqual(
+    expect([...getAllTiles(state), ...daveWord.map((p) => p.tile)]).toEqual(
       expect.arrayContaining(tiles),
     );
   });
