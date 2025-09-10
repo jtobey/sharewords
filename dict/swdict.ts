@@ -14,17 +14,11 @@ export interface Macro {
    * Clears the word buffer. Placing this every so often in sorted
    * dictionaries can enable binary searches.
    */
-  clear?:
-    | Macro_Clear
-    | undefined;
+  clear?: Macro_Clear | undefined;
   /** Appends `subword` (typically a single UTF-8 letter) to the word buffer. */
-  subword?:
-    | string
-    | undefined;
+  subword?: string | undefined;
   /** Emits a copy of the word buffer, then deletes its last `backup` chars. */
-  backup?:
-    | number
-    | undefined;
+  backup?: number | undefined;
   /**
    * A list of macros with which to replace this macro.
    * Recursion is not allowed.
@@ -32,8 +26,7 @@ export interface Macro {
   subroutine?: Macro_Subroutine | undefined;
 }
 
-export interface Macro_Clear {
-}
+export interface Macro_Clear {}
 
 export interface Macro_Subroutine {
   /** Index into `metadata.macros`. */
@@ -57,9 +50,7 @@ export interface Metadata_SubwordFrequenciesEntry {
 
 /** A word list, compressed and optimized for zero-copy searching. */
 export interface Lexicon {
-  metadata:
-    | Metadata
-    | undefined;
+  metadata: Metadata | undefined;
   /**
    * A sequence of indices into `metadata.macros` for generating a word list.
    * A "word buffer" is initialized as an empty string. Each instruction is
@@ -70,11 +61,19 @@ export interface Lexicon {
 }
 
 function createBaseMacro(): Macro {
-  return { clear: undefined, subword: undefined, backup: undefined, subroutine: undefined };
+  return {
+    clear: undefined,
+    subword: undefined,
+    backup: undefined,
+    subroutine: undefined,
+  };
 }
 
 export const Macro: MessageFns<Macro> = {
-  encode(message: Macro, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: Macro,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
     if (message.clear !== undefined) {
       Macro_Clear.encode(message.clear, writer.uint32(10).fork()).join();
     }
@@ -85,13 +84,17 @@ export const Macro: MessageFns<Macro> = {
       writer.uint32(24).uint64(message.backup);
     }
     if (message.subroutine !== undefined) {
-      Macro_Subroutine.encode(message.subroutine, writer.uint32(34).fork()).join();
+      Macro_Subroutine.encode(
+        message.subroutine,
+        writer.uint32(34).fork(),
+      ).join();
     }
     return writer;
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Macro {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMacro();
     while (reader.pos < end) {
@@ -140,10 +143,18 @@ export const Macro: MessageFns<Macro> = {
 
   fromJSON(object: any): Macro {
     return {
-      clear: isSet(object.clear) ? Macro_Clear.fromJSON(object.clear) : undefined,
-      subword: isSet(object.subword) ? globalThis.String(object.subword) : undefined,
-      backup: isSet(object.backup) ? globalThis.Number(object.backup) : undefined,
-      subroutine: isSet(object.subroutine) ? Macro_Subroutine.fromJSON(object.subroutine) : undefined,
+      clear: isSet(object.clear)
+        ? Macro_Clear.fromJSON(object.clear)
+        : undefined,
+      subword: isSet(object.subword)
+        ? globalThis.String(object.subword)
+        : undefined,
+      backup: isSet(object.backup)
+        ? globalThis.Number(object.backup)
+        : undefined,
+      subroutine: isSet(object.subroutine)
+        ? Macro_Subroutine.fromJSON(object.subroutine)
+        : undefined,
     };
   },
 
@@ -169,14 +180,16 @@ export const Macro: MessageFns<Macro> = {
   },
   fromPartial<I extends Exact<DeepPartial<Macro>, I>>(object: I): Macro {
     const message = createBaseMacro();
-    message.clear = (object.clear !== undefined && object.clear !== null)
-      ? Macro_Clear.fromPartial(object.clear)
-      : undefined;
+    message.clear =
+      object.clear !== undefined && object.clear !== null
+        ? Macro_Clear.fromPartial(object.clear)
+        : undefined;
     message.subword = object.subword ?? undefined;
     message.backup = object.backup ?? undefined;
-    message.subroutine = (object.subroutine !== undefined && object.subroutine !== null)
-      ? Macro_Subroutine.fromPartial(object.subroutine)
-      : undefined;
+    message.subroutine =
+      object.subroutine !== undefined && object.subroutine !== null
+        ? Macro_Subroutine.fromPartial(object.subroutine)
+        : undefined;
     return message;
   },
 };
@@ -186,12 +199,16 @@ function createBaseMacro_Clear(): Macro_Clear {
 }
 
 export const Macro_Clear: MessageFns<Macro_Clear> = {
-  encode(_: Macro_Clear, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    _: Macro_Clear,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
     return writer;
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Macro_Clear {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMacro_Clear();
     while (reader.pos < end) {
@@ -229,7 +246,10 @@ function createBaseMacro_Subroutine(): Macro_Subroutine {
 }
 
 export const Macro_Subroutine: MessageFns<Macro_Subroutine> = {
-  encode(message: Macro_Subroutine, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: Macro_Subroutine,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
     writer.uint32(10).fork();
     for (const v of message.instructions) {
       writer.uint64(v);
@@ -239,7 +259,8 @@ export const Macro_Subroutine: MessageFns<Macro_Subroutine> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Macro_Subroutine {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMacro_Subroutine();
     while (reader.pos < end) {
@@ -288,10 +309,14 @@ export const Macro_Subroutine: MessageFns<Macro_Subroutine> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(base?: I): Macro_Subroutine {
+  create<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(
+    base?: I,
+  ): Macro_Subroutine {
     return Macro_Subroutine.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(object: I): Macro_Subroutine {
+  fromPartial<I extends Exact<DeepPartial<Macro_Subroutine>, I>>(
+    object: I,
+  ): Macro_Subroutine {
     const message = createBaseMacro_Subroutine();
     message.instructions = object.instructions?.map((e) => e) || [];
     return message;
@@ -311,7 +336,10 @@ function createBaseMetadata(): Metadata {
 }
 
 export const Metadata: MessageFns<Metadata> = {
-  encode(message: Metadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: Metadata,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
@@ -325,7 +353,10 @@ export const Metadata: MessageFns<Metadata> = {
       Macro.encode(v!, writer.uint32(34).fork()).join();
     }
     message.subwordFrequencies.forEach((value, key) => {
-      Metadata_SubwordFrequenciesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).join();
+      Metadata_SubwordFrequenciesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(42).fork(),
+      ).join();
     });
     for (const v of message.languageCodes) {
       writer.uint32(50).string(v!);
@@ -337,7 +368,8 @@ export const Metadata: MessageFns<Metadata> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Metadata {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMetadata();
     while (reader.pos < end) {
@@ -380,7 +412,10 @@ export const Metadata: MessageFns<Metadata> = {
             break;
           }
 
-          const entry5 = Metadata_SubwordFrequenciesEntry.decode(reader, reader.uint32());
+          const entry5 = Metadata_SubwordFrequenciesEntry.decode(
+            reader,
+            reader.uint32(),
+          );
           if (entry5.value !== undefined) {
             message.subwordFrequencies.set(entry5.key, entry5.value);
           }
@@ -414,19 +449,30 @@ export const Metadata: MessageFns<Metadata> = {
   fromJSON(object: any): Metadata {
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : "",
-      clearInterval: isSet(object.clearInterval) ? globalThis.Number(object.clearInterval) : 0,
-      macros: globalThis.Array.isArray(object?.macros) ? object.macros.map((e: any) => Macro.fromJSON(e)) : [],
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : "",
+      clearInterval: isSet(object.clearInterval)
+        ? globalThis.Number(object.clearInterval)
+        : 0,
+      macros: globalThis.Array.isArray(object?.macros)
+        ? object.macros.map((e: any) => Macro.fromJSON(e))
+        : [],
       subwordFrequencies: isObject(object.subwordFrequencies)
-        ? Object.entries(object.subwordFrequencies).reduce<Map<string, number>>((acc, [key, value]) => {
-          acc.set(key, Number(value));
-          return acc;
-        }, new Map())
+        ? Object.entries(object.subwordFrequencies).reduce<Map<string, number>>(
+            (acc, [key, value]) => {
+              acc.set(key, Number(value));
+              return acc;
+            },
+            new Map(),
+          )
         : new Map(),
       languageCodes: globalThis.Array.isArray(object?.languageCodes)
         ? object.languageCodes.map((e: any) => globalThis.String(e))
         : [],
-      wordCount: isSet(object.wordCount) ? globalThis.Number(object.wordCount) : 0,
+      wordCount: isSet(object.wordCount)
+        ? globalThis.Number(object.wordCount)
+        : 0,
     };
   },
 
@@ -470,11 +516,13 @@ export const Metadata: MessageFns<Metadata> = {
     message.macros = object.macros?.map((e) => Macro.fromPartial(e)) || [];
     message.subwordFrequencies = (() => {
       const m = new Map();
-      (object.subwordFrequencies as Map<string, number> ?? new Map()).forEach((value, key) => {
-        if (value !== undefined) {
-          m.set(key, globalThis.Number(value));
-        }
-      });
+      ((object.subwordFrequencies as Map<string, number>) ?? new Map()).forEach(
+        (value, key) => {
+          if (value !== undefined) {
+            m.set(key, globalThis.Number(value));
+          }
+        },
+      );
       return m;
     })();
     message.languageCodes = object.languageCodes?.map((e) => e) || [];
@@ -487,88 +535,99 @@ function createBaseMetadata_SubwordFrequenciesEntry(): Metadata_SubwordFrequenci
   return { key: "", value: 0 };
 }
 
-export const Metadata_SubwordFrequenciesEntry: MessageFns<Metadata_SubwordFrequenciesEntry> = {
-  encode(message: Metadata_SubwordFrequenciesEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== 0) {
-      writer.uint32(16).uint64(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): Metadata_SubwordFrequenciesEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMetadata_SubwordFrequenciesEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.value = longToNumber(reader.uint64());
-          continue;
-        }
+export const Metadata_SubwordFrequenciesEntry: MessageFns<Metadata_SubwordFrequenciesEntry> =
+  {
+    encode(
+      message: Metadata_SubwordFrequenciesEntry,
+      writer: BinaryWriter = new BinaryWriter(),
+    ): BinaryWriter {
+      if (message.key !== "") {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== 0) {
+        writer.uint32(16).uint64(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): Metadata_SubwordFrequenciesEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.Number(object.value) : 0,
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number,
+    ): Metadata_SubwordFrequenciesEntry {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseMetadata_SubwordFrequenciesEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: Metadata_SubwordFrequenciesEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== 0) {
-      obj.value = Math.round(message.value);
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 16) {
+              break;
+            }
 
-  create<I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>>(
-    base?: I,
-  ): Metadata_SubwordFrequenciesEntry {
-    return Metadata_SubwordFrequenciesEntry.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>>(
-    object: I,
-  ): Metadata_SubwordFrequenciesEntry {
-    const message = createBaseMetadata_SubwordFrequenciesEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? 0;
-    return message;
-  },
-};
+            message.value = longToNumber(reader.uint64());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): Metadata_SubwordFrequenciesEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : "",
+        value: isSet(object.value) ? globalThis.Number(object.value) : 0,
+      };
+    },
+
+    toJSON(message: Metadata_SubwordFrequenciesEntry): unknown {
+      const obj: any = {};
+      if (message.key !== "") {
+        obj.key = message.key;
+      }
+      if (message.value !== 0) {
+        obj.value = Math.round(message.value);
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>>(
+      base?: I,
+    ): Metadata_SubwordFrequenciesEntry {
+      return Metadata_SubwordFrequenciesEntry.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<Metadata_SubwordFrequenciesEntry>, I>,
+    >(object: I): Metadata_SubwordFrequenciesEntry {
+      const message = createBaseMetadata_SubwordFrequenciesEntry();
+      message.key = object.key ?? "";
+      message.value = object.value ?? 0;
+      return message;
+    },
+  };
 
 function createBaseLexicon(): Lexicon {
   return { metadata: undefined, instructions: [] };
 }
 
 export const Lexicon: MessageFns<Lexicon> = {
-  encode(message: Lexicon, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: Lexicon,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
     if (message.metadata !== undefined) {
       Metadata.encode(message.metadata, writer.uint32(10).fork()).join();
     }
@@ -581,7 +640,8 @@ export const Lexicon: MessageFns<Lexicon> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Lexicon {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLexicon();
     while (reader.pos < end) {
@@ -624,7 +684,9 @@ export const Lexicon: MessageFns<Lexicon> = {
 
   fromJSON(object: any): Lexicon {
     return {
-      metadata: isSet(object.metadata) ? Metadata.fromJSON(object.metadata) : undefined,
+      metadata: isSet(object.metadata)
+        ? Metadata.fromJSON(object.metadata)
+        : undefined,
       instructions: globalThis.Array.isArray(object?.instructions)
         ? object.instructions.map((e: any) => globalThis.Number(e))
         : [],
@@ -647,25 +709,40 @@ export const Lexicon: MessageFns<Lexicon> = {
   },
   fromPartial<I extends Exact<DeepPartial<Lexicon>, I>>(object: I): Lexicon {
     const message = createBaseLexicon();
-    message.metadata = (object.metadata !== undefined && object.metadata !== null)
-      ? Metadata.fromPartial(object.metadata)
-      : undefined;
+    message.metadata =
+      object.metadata !== undefined && object.metadata !== null
+        ? Metadata.fromPartial(object.metadata)
+        : undefined;
     message.instructions = object.instructions?.map((e) => e) || [];
     return message;
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+    ? globalThis.Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never;
+    };
 
 function longToNumber(int64: { toString(): string }): number {
   const num = globalThis.Number(int64.toString());

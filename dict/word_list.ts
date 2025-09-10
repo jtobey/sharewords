@@ -16,28 +16,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
- 
 
-import { codePointCompare } from './code_point_compare.js'
-import { Macro, Metadata } from './swdict.js'
-import { Pointer } from './pointer.js'
+import { codePointCompare } from "./code_point_compare.js";
+import { Macro, Metadata } from "./swdict.js";
+import { Pointer } from "./pointer.js";
 
-const METADATA_FIELD_NUMBER = 1n
-const INSTRUCTIONS_FIELD_NUMBER = 2n
+const METADATA_FIELD_NUMBER = 1n;
+const INSTRUCTIONS_FIELD_NUMBER = 2n;
 
 export class InvalidLexiconError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = 'InvalidLexiconError'
+    super(message);
+    this.name = "InvalidLexiconError";
   }
 }
 
 export class WordListEntry extends String {
   constructor(
     macros: ReadonlyArray<Readonly<Macro>>,
-    readonly elements: bigint[][],  // Non-empty. The last element must be a subword macro index.
+    readonly elements: bigint[][], // Non-empty. The last element must be a subword macro index.
   ) {
-    super(elements.map(elt => macros[Number(elt[elt.length - 1]!)]!.subword).join(''));
+    super(
+      elements
+        .map((elt) => macros[Number(elt[elt.length - 1]!)]!.subword)
+        .join(""),
+    );
   }
 }
 
@@ -53,11 +56,11 @@ function* toBigInts(numbers: Iterable<number>): Iterator<bigint> {
  * list of words (not copied).
  */
 export class WordList {
-  private _metadata: Readonly<Metadata>
-  private instructions: Uint8Array
+  private _metadata: Readonly<Metadata>;
+  private instructions: Uint8Array;
 
   constructor(lexiconMessage: ArrayBuffer | Uint8Array) {
-    const lexiconMessageArray = new Uint8Array(lexiconMessage)
+    const lexiconMessageArray = new Uint8Array(lexiconMessage);
     // We parse the message's top-level fields by hand to avoid copying a
     // possibly large word list. In the terminology of
     // https://protobuf.dev/programming-guides/encoding/, we scan for two
@@ -70,74 +73,82 @@ export class WordList {
     // Rather, we store a subarray of the original `Lexicon` message, in which
     // the lookup and iteration methods scan for `clear` instructions and
     // perform binary searches.
-    const pointer = new Pointer(lexiconMessageArray)
-    let insns: Uint8Array | null = null
-    let metadata: Metadata | null = null
+    const pointer = new Pointer(lexiconMessageArray);
+    let insns: Uint8Array | null = null;
+    let metadata: Metadata | null = null;
     while (!pointer.atEnd) {
-      const tag = pointer.varintBigInt()
-      const fieldNumber = tag >> 3n
-      const wireType = tag & 7n
-      if (wireType === 0n) pointer.varintBigInt()
-      else if (wireType === 1n) pointer.skip(8)
-      else if (wireType === 5n) pointer.skip(4)
+      const tag = pointer.varintBigInt();
+      const fieldNumber = tag >> 3n;
+      const wireType = tag & 7n;
+      if (wireType === 0n) pointer.varintBigInt();
+      else if (wireType === 1n) pointer.skip(8);
+      else if (wireType === 5n) pointer.skip(4);
       else if (wireType === 2n) {
-        const len = pointer.varintBigInt()
+        const len = pointer.varintBigInt();
         if (fieldNumber === METADATA_FIELD_NUMBER) {
-          metadata = Metadata.decode(pointer.view(len))
+          metadata = Metadata.decode(pointer.view(len));
         } else if (fieldNumber === INSTRUCTIONS_FIELD_NUMBER) {
-          insns = pointer.view(len)
+          insns = pointer.view(len);
         }
       } else {
-        throw new InvalidLexiconError(`Unsupported wireType ${wireType}.`)
+        throw new InvalidLexiconError(`Unsupported wireType ${wireType}.`);
       }
     }
-    if (!insns) throw new InvalidLexiconError('No `instructions` field.')
-    if (!metadata) throw new InvalidLexiconError('No `metadata` field.')
-    this._metadata = metadata
-    this.instructions = insns
-    this._checkForRecursion()
+    if (!insns) throw new InvalidLexiconError("No `instructions` field.");
+    if (!metadata) throw new InvalidLexiconError("No `metadata` field.");
+    this._metadata = metadata;
+    this.instructions = insns;
+    this._checkForRecursion();
   }
 
-  get metadata() { return this._metadata }
-  private get macros() { return this._metadata.macros }
+  get metadata() {
+    return this._metadata;
+  }
+  private get macros() {
+    return this._metadata.macros;
+  }
 
   private _checkForRecursion() {
-    const visiting = new Set<number>()
-    const visited = new Set<number>()
+    const visiting = new Set<number>();
+    const visited = new Set<number>();
     for (let i = 0; i < this.macros.length; ++i) {
-      if (visited.has(i)) continue
-      this._dfs(i, visiting, visited)
+      if (visited.has(i)) continue;
+      this._dfs(i, visiting, visited);
     }
   }
 
-  private _dfs(macroIndex: number, visiting: Set<number>, visited: Set<number>) {
-    visiting.add(macroIndex)
-    const macro = this.macros[macroIndex]
+  private _dfs(
+    macroIndex: number,
+    visiting: Set<number>,
+    visited: Set<number>,
+  ) {
+    visiting.add(macroIndex);
+    const macro = this.macros[macroIndex];
     if (macro?.subroutine) {
       for (const subMacroIndex of macro.subroutine.instructions) {
         if (visiting.has(subMacroIndex)) {
-          throw new InvalidLexiconError('Recursive subroutine detected.')
+          throw new InvalidLexiconError("Recursive subroutine detected.");
         }
         if (!visited.has(subMacroIndex)) {
-          this._dfs(subMacroIndex, visiting, visited)
+          this._dfs(subMacroIndex, visiting, visited);
         }
       }
     }
-    visiting.delete(macroIndex)
-    visited.add(macroIndex)
+    visiting.delete(macroIndex);
+    visited.add(macroIndex);
   }
 
   private *scanFrom(ip: Pointer) {
     const wordBuffer: bigint[][] = [[]];
-    const stack: Iterator<bigint>[] = [this.readInstructions(ip)]
+    const stack: Iterator<bigint>[] = [this.readInstructions(ip)];
 
     while (stack.length > 0) {
-      const it = stack[stack.length - 1]!
-      const next = it.next()
+      const it = stack[stack.length - 1]!;
+      const next = it.next();
 
       if (next.done) {
-        stack.pop()
-        continue
+        stack.pop();
+        continue;
       }
 
       const instruction = next.value;
@@ -150,7 +161,7 @@ export class WordList {
           continue;
         }
         if (macro.clear || macro.backup !== undefined) {
-          yield new WordListEntry(this.macros, wordBuffer.slice(0, -1))
+          yield new WordListEntry(this.macros, wordBuffer.slice(0, -1));
           if (macro.clear) {
             wordBuffer.length = 0;
           } else {
@@ -164,18 +175,18 @@ export class WordList {
     }
 
     if (wordBuffer[0]!.length) {
-      yield new WordListEntry(this.macros, wordBuffer.slice(0, -1))
+      yield new WordListEntry(this.macros, wordBuffer.slice(0, -1));
     }
   }
 
   private *readInstructions(ip: Pointer): Generator<bigint> {
     while (!ip.atEnd) {
-      yield ip.varintBigInt()
+      yield ip.varintBigInt();
     }
   }
 
   [Symbol.iterator]() {
-    return this.scanFrom(new Pointer(this.instructions))
+    return this.scanFrom(new Pointer(this.instructions));
   }
 
   /**
@@ -184,46 +195,47 @@ export class WordList {
   has(possibleWord: string): boolean {
     // This performs a binary search through blocks delimited by "clear" instructions,
     // followed by a scan within a block.
-    let iterator = this[Symbol.iterator]()
-    const blockSize = this._metadata.clearInterval
+    let iterator = this[Symbol.iterator]();
+    const blockSize = this._metadata.clearInterval;
     if (blockSize > 0) {
-      let loBlock = 0, hiBlock = Math.ceil(this.instructions.length / blockSize)
+      let loBlock = 0,
+        hiBlock = Math.ceil(this.instructions.length / blockSize);
       while (true) {
-        const midBlock = Math.floor((loBlock + hiBlock) / 2)
-        if (midBlock === loBlock) break
-        const probe = new Pointer(this.instructions, midBlock * blockSize)
-        probe.skipToVarint()
+        const midBlock = Math.floor((loBlock + hiBlock) / 2);
+        if (midBlock === loBlock) break;
+        const probe = new Pointer(this.instructions, midBlock * blockSize);
+        probe.skipToVarint();
         while (!probe.atEnd) {
-          if (this.macros[Number(probe.varintBigInt())]?.clear) break
+          if (this.macros[Number(probe.varintBigInt())]?.clear) break;
         }
-        if (probe.atEnd || probe.offset >= hiBlock * blockSize) break
-        const midIterator = this.scanFrom(probe)
-        const midWord = midIterator.next().value!
+        if (probe.atEnd || probe.offset >= hiBlock * blockSize) break;
+        const midIterator = this.scanFrom(probe);
+        const midWord = midIterator.next().value!;
         switch (codePointCompare(possibleWord, midWord)) {
           case 0:
-            return true
+            return true;
           case -1:
-            hiBlock = midBlock
-            continue
+            hiBlock = midBlock;
+            continue;
           case 1:
-            loBlock = midBlock
-            iterator = midIterator
-            continue
+            loBlock = midBlock;
+            iterator = midIterator;
+            continue;
         }
       }
     }
     for (const word of iterator) {
       switch (codePointCompare(possibleWord, word)) {
         case 0:
-          return true
+          return true;
         case 1:
           // `possibleWord` sorts after `word`. Keep scanning.
-          continue
+          continue;
         case -1:
           // `possibleWord` sorts before `word`. Not found.
-          return false
+          return false;
       }
     }
-    return false
+    return false;
   }
 }

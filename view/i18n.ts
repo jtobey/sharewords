@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { t } from '../i18n.js';
+import { t } from "../i18n.js";
 
 export function initI18n(doc: Document) {
-  doc.querySelectorAll<HTMLElement>('[data-i18n]').forEach(element => {
+  doc.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
     const key = element.dataset.i18n;
     if (key) {
       const translation = t(key);
@@ -26,7 +26,7 @@ export function initI18n(doc: Document) {
     }
   });
 
-  doc.querySelectorAll<HTMLElement>('[data-i18n-title]').forEach(element => {
+  doc.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((element) => {
     const key = element.dataset.i18nTitle;
     if (key) {
       const translation = t(key);

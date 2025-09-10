@@ -62,8 +62,8 @@ export interface Browser {
 
 export class DomBrowser implements Browser {
   reload(): void {
-    console.log(`Reloading: ${window.location}`)
-    window.location.reload()
+    console.log(`Reloading: ${window.location}`);
+    window.location.reload();
   }
 
   getHash(): string {
@@ -79,7 +79,7 @@ export class DomBrowser implements Browser {
   }
 
   addHashChangeListener(listener: () => void): void {
-    window.addEventListener('hashchange', listener);
+    window.addEventListener("hashchange", listener);
   }
 
   get localStorage() {
@@ -87,7 +87,7 @@ export class DomBrowser implements Browser {
   }
 
   get languages() {
-    return navigator.languages
+    return navigator.languages;
   }
 
   getDocument(): Document {
@@ -115,12 +115,12 @@ export class DomBrowser implements Browser {
   }
 
   hasClipboard(): boolean {
-    return 'clipboard' in navigator;
+    return "clipboard" in navigator;
   }
 
   addPasteListener(listener: (text: string) => void): void {
-    window.addEventListener('paste', (event: ClipboardEvent) => {
-      const text = event.clipboardData?.getData('text/plain');
+    window.addEventListener("paste", (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData("text/plain");
       if (text) {
         listener(text);
       }

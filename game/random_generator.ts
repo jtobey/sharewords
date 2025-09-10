@@ -14,6 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 export interface RandomGenerator {
-  random(): number
-  toJSON(): any
+  random(): number;
+  toJSON(): any;
 }
