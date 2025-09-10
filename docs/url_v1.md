@@ -8,9 +8,9 @@ optional "fragment identifier" following a hash (`#`) character. A Turn URL
 contains game or turn data in the fragment. The data has the form of name-value
 pairs such as typically seen in `?`-query strings. Example:
 
-    https://jtobey.github.io/sw/#gid=123&v=1&bag=en&seed=12345&tn=1
+    https://jtobey.github.io/sw/#gid=123&v=1&bag=en&tn=1
 
-In this example, the fragment identifier is `gid=123&v=1&bag=en&seed=12345#tn=1`.
+In this example, the fragment identifier is `gid=123&v=1&bag=en&tn=1`.
 
 [`URLSearchParams`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams)
 and its `toString()` method define a serialization of an ordered sequence of
@@ -21,8 +21,8 @@ string pairs (called *params*). The serialization involves:
 *   `=` to separate the elements (*key* and *value*) within a pair
 
 The ordered sequence corresponding to the above example
-is `[["gid", "123"], ["v", "1"], ["bag", "en"], ["seed", "12345"]]`. This
-document defines the allowed params and their meanings in a game context.
+is `[["gid", "123"], ["v", "1"], ["bag", "en"]]`. This document defines the
+allowed params and their meanings in a game context.
 
 ## Game histories and deltas
 
@@ -99,12 +99,13 @@ a game with three or more players.
 ### Random Seed (`seed`)
 
 When using Honor System tile management (the only supported kind as of this
-writing), the Game URL MUST contain a Random Seed param to control how tiles
-are shuffled. Honor System works without a game server and relies on players'
+writing), the Game URL MAY contain a Random Seed param to control how tiles are
+shuffled. Honor System works without a game server and relies on players'
 browsers to remember who holds which tiles. (It is therefore not hard to
 discover your opponents' tiles, hence the name *Honor System.*) The seed lets
 the players' browsers agree on the tiles' state. The seed MAY be any string and
-SHOULD be unlikely to have been used previously.
+SHOULD be unlikely to have been used previously. By default, the random seed is
+the Game ID.
 
 ### Dictionary Type (`dt`)
 
