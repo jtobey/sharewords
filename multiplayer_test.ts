@@ -170,7 +170,7 @@ describe("multi-player", () => {
 
   it("should handle collisions in pending placements", async () => {
     // Player 1's environment
-    const browser1 = new TestBrowser();
+    const browser1 = new TestBrowser('#gid=test');
     await browser1.init();
     let app1 = browser1.app;
 
@@ -304,7 +304,6 @@ describe("multi-player", () => {
           ["gid", app1.gameState.gameId],
           ["v", "1"],
           ["bag", "en"],
-          ["seed", String(app1.gameState.settings.tileSystemSettings.seed)],
           ["tn", "1"],
           ["ex", ""],
           ["p1n", "Sir Reginald"],
@@ -344,7 +343,6 @@ describe("multi-player", () => {
             ["gid", app1.gameState.gameId],
             ["v", "1"],
             ["bag", "en"],
-            ["seed", String(app1.gameState.settings.tileSystemSettings.seed)],
             ["tn", "1"],
             ["ex", ""],
           ]),

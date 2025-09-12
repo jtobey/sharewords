@@ -15,7 +15,7 @@ limitations under the License.
 */
 import { expect, describe, it, beforeAll } from "bun:test";
 import { GameState } from "./game_state.js";
-import { Settings, type GameId } from "./settings.js";
+import { Settings, toGameId, type GameId } from "./settings.js";
 import { PROTOCOL_VERSION_1 } from "./version.js";
 import { loadTranslations } from "../i18n.js";
 import { TestStorage } from "../test_storage.js";
@@ -53,7 +53,7 @@ describe("game state", () => {
     expect(params.get("ex")).toEqual("0.2.6");
 
     // A new game state created from the params should have the same rack.
-    const player2GameState = await GameState.fromParams(params);
+    const player2GameState = await GameState.fromParams(params, toGameId("123"));
     const player2Rack = await player2GameState.getTiles("1");
     expect(player2Rack.map((t) => t.letter).join("")).toEqual("CLNYSHS");
   });
@@ -201,12 +201,11 @@ describe("game state", () => {
       params.set("board", "T..-.d.-..T");
       params.set("bingo", "100");
       params.set("bag", "A-10-1.B-10-2");
-      params.set("seed", "123");
       params.set("dt", "permissive");
       params.set("ds", "http://example.com");
       params.set("tn", "1");
 
-      const gameState = await GameState.fromParams(params);
+      const gameState = await GameState.fromParams(params, toGameId("123"));
       const settings = gameState.settings;
 
       expect(settings.version).toEqual(PROTOCOL_VERSION_1);
@@ -237,27 +236,17 @@ describe("game state", () => {
     it("should throw on invalid bag param", async () => {
       const params = new URLSearchParams();
       params.set("bag", "xx");
-      params.set("seed", "123");
       params.set("tn", "1");
-      await expect(GameState.fromParams(params)).rejects.toThrow(
+      await expect(GameState.fromParams(params, toGameId("123"))).rejects.toThrow(
         "Invalid tile distribution specifier: xx",
-      );
-    });
-
-    it("should throw on missing seed param", async () => {
-      const params = new URLSearchParams();
-      params.set("tn", "1");
-      await expect(GameState.fromParams(params)).rejects.toThrow(
-        "No random seed in URL.",
       );
     });
 
     it("should throw on custom dictionary without URL", async () => {
       const params = new URLSearchParams();
       params.set("dt", "wordlist");
-      params.set("seed", "123");
       params.set("tn", "1");
-      await expect(GameState.fromParams(params)).rejects.toThrow(
+      await expect(GameState.fromParams(params, toGameId("123"))).rejects.toThrow(
         "Custom dictionary requires a URL.",
       );
     });

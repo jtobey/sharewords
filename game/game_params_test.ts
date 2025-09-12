@@ -19,7 +19,7 @@ import {
   parseGameParams,
   parseBagParam,
 } from "./game_params.js";
-import { Settings } from "./settings.js";
+import { Settings, toGameId } from "./settings.js";
 import { loadTranslations } from "../i18n.js";
 import { Player } from "./player.js";
 
@@ -97,9 +97,10 @@ describe("game params", () => {
 
   describe("parseGameParams", () => {
     test("default settings", () => {
-      const params = new URLSearchParams("v=1&seed=1&tn=1");
-      const { settings, playerId, turnParams } = parseGameParams(params);
+      const params = new URLSearchParams("v=1&tn=1");
+      const { settings, playerId, turnParams } = parseGameParams(params, toGameId("1"));
       const defaultSettings = Settings.forLanguage("");
+      defaultSettings.gameId = toGameId("1");
       defaultSettings.tileSystemSettings.seed = "1";
       expect(settings).toEqual(defaultSettings);
       expect(playerId).toBe("1");
@@ -110,8 +111,9 @@ describe("game params", () => {
       const params = new URLSearchParams(
         "v=1&p1n=p1&p2n=p2&board=_&bingo=100&bag=A-1-2&racksize=8&seed=foo&dt=freeapi&ds=bar&pid=2&tn=3&wl=1.2&wh=WORD",
       );
-      const { settings, playerId, turnParams } = parseGameParams(params);
+      const { settings, playerId, turnParams } = parseGameParams(params, toGameId("1"));
       const expectedSettings = Settings.forLanguage("en");
+      expectedSettings.gameId = toGameId("1");
       expectedSettings.players = [
         new Player({ id: "1", name: "p1" }),
         new Player({ id: "2", name: "p2" }),
@@ -131,21 +133,22 @@ describe("game params", () => {
 
     test("unknown dictionary type", () => {
       const params = new URLSearchParams("v=1&seed=1&dt=foo");
-      expect(() => parseGameParams(params)).toThrow(
+      expect(() => parseGameParams(params, toGameId("1"))).toThrow(
         'Unknown dictionary type: "foo".',
       );
     });
 
     test("custom dictionary without url", () => {
       const params = new URLSearchParams("v=1&seed=1&dt=wordlist");
-      expect(() => parseGameParams(params)).toThrow(
+      expect(() => parseGameParams(params, toGameId("1"))).toThrow(
         "Custom dictionary requires a URL.",
       );
     });
 
-    test("no seed", () => {
+    test("seed from gid", () => {
       const params = new URLSearchParams("v=1");
-      expect(() => parseGameParams(params)).toThrow("No random seed in URL.");
+      const { settings } = parseGameParams(params, toGameId("abc"));
+      expect(settings.tileSystemSettings.seed).toEqual("abc");
     });
   });
 

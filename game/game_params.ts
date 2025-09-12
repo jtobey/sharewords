@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Settings, toGameId } from "./settings.js";
+import { Settings, toGameId, type GameId } from "./settings.js";
 import { getBagDefaults, getBagLanguages } from "./bag_defaults.js";
 import { Player } from "./player.js";
 import { arraysEqual } from "./validation.js";
@@ -131,7 +131,10 @@ export function gameParamsFromSettings(settings: Settings): URLSearchParams {
     params.set("racksize", String(settings.rackCapacity));
   }
   if (settings.tileSystemType === "honor") {
-    params.set("seed", settings.tileSystemSettings.seed);
+    const seed = settings.tileSystemSettings.seed;
+    if (seed !== settings.gameId) {
+      params.set("seed", seed);
+    }
   }
   if (settings.dictionaryType !== defaults.dictionaryType) {
     params.set("dt", settings.dictionaryType);
@@ -202,7 +205,10 @@ export function parseBagParam(bagParam: string, boardLayout: string[]) {
 /**
  * @throws UrlError
  */
-export function parseGameParams(allParams: Readonly<URLSearchParams>) {
+export function parseGameParams(
+  allParams: Readonly<URLSearchParams>,
+  gameId: GameId,
+) {
   // Everything up to `tn` is a game param. Everything after `tn` is a turn param.
   const gameParams = new URLSearchParams();
   const turnParams = new URLSearchParams();
@@ -214,6 +220,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
     }
   }
   const settings = Settings.forLanguage("");
+  settings.gameId = gameId;
   const vParam = gameParams.get("v");
   if (vParam && vParam !== settings.version) {
     throw new UrlError(
@@ -247,8 +254,7 @@ export function parseGameParams(allParams: Readonly<URLSearchParams>) {
   const racksizeParam = gameParams.get("racksize");
   if (racksizeParam) settings.rackCapacity = parseInt(racksizeParam, 10);
   const seedParam = gameParams.get("seed");
-  if (!seedParam) throw new UrlError(t("error.url.no_random_seed"));
-  settings.tileSystemSettings = { seed: seedParam };
+  settings.tileSystemSettings = { seed: seedParam || gameId };
   const dtParam = gameParams.get("dt");
   if (
     dtParam === "permissive" ||

@@ -84,15 +84,13 @@ export class App {
         console.log(
           "Switching to new game" + (gidParam ? ` "${gidParam}"` : "") + ".",
         );
-        if (!params.get("seed"))
-          params.set(
-            "seed",
-            String(Math.floor(1000000 * this.browser.getRandom())),
-          );
         if (!params.get("bag"))
-          params.set("bag", "." + this.chooseBagLanguage());
+          // TODO - Derive bag from dictionary if possible, and never append
+          // a param after "tn" unless `turnsFromParams` supports it.
+          params.set("bag", this.chooseBagLanguage());
         this.gameState = await GameState.fromParams(
           params,
+          gameId,
           this.browser.getHref(),
         );
         this.gameState.storage = this.browser.localStorage;

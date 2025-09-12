@@ -21,7 +21,6 @@
     },
     "url": {
       "protocol_not_supported": "Protocol version not supported: ${version}",
-      "no_random_seed": "No random seed in URL.",
       "unknown_dictionary_type": "Unknown dictionary type: \"${type}\".",
       "custom_dictionary_requires_url": "Custom dictionary requires a URL.",
       "invalid_tile_distribution": "Invalid tile distribution specifier: ${specifier}",

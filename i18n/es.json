@@ -21,7 +21,6 @@
     },
     "url": {
       "protocol_not_supported": "Versión de protocolo no compatible: ${version}",
-      "no_random_seed": "No hay semilla aleatoria en la URL.",
       "unknown_dictionary_type": "Tipo de diccionario desconocido: \"${type}\".",
       "custom_dictionary_requires_url": "El diccionario personalizado requiere una URL.",
       "invalid_tile_distribution": "Especificador de distribución de fichas no válido: ${specifier}",

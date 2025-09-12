@@ -23,7 +23,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Settings } from "./settings.js";
+import { Settings, type GameId } from "./settings.js";
 import { arraysEqual } from "./validation.js";
 import { SharedState } from "./shared_state.js";
 import { t } from "../i18n.js";
@@ -640,9 +640,10 @@ export class GameState extends EventTarget {
 
   static async fromParams(
     params: Readonly<URLSearchParams>,
+    gameId: GameId,
     baseUrl = "http://localhost/",
   ) {
-    const { settings, playerId, turnParams } = parseGameParams(params);
+    const { settings, playerId, turnParams } = parseGameParams(params, gameId);
     settings.baseUrl = baseUrl;
     const gameState = new GameState(playerId, settings);
     await gameState.init();
