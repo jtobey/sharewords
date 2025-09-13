@@ -18,9 +18,10 @@ import { hasBagDefaults } from "./game/bag_defaults.js";
 import { GameState, makeStorageKey } from "./game/game_state.js";
 import { View } from "./view/view.js";
 import { Controller } from "./controller/controller.js";
-import { loadTranslations } from "./i18n.js";
+import { loadTranslations, t } from "./i18n.js";
 import { initI18n } from "./view/i18n.js";
 import { type Browser, DomBrowser } from "./browser.js";
+import { ListDictionary } from "./game/dictionary.js";
 
 export class App {
   browser: Browser;
@@ -113,6 +114,21 @@ export class App {
       this.view.renderScores();
       this.view.renderBagTileCount();
       this.view.renderActionButtons();
+
+      if (this.gameState.shared.dictionary instanceof ListDictionary) {
+        this.gameState.shared.dictionary.addEventListener(
+          "loadingstarted",
+          () => {
+            this.view.showThrobber(true, t("ui.throbber.checking_words"));
+          },
+        );
+        this.gameState.shared.dictionary.addEventListener(
+          "loadingended",
+          () => {
+            this.view.showThrobber(false, "");
+          },
+        );
+      }
 
       this.gameState.addEventListener("tilemove", (evt: any) => {
         if (

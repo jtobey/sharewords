@@ -40,12 +40,17 @@ export class View {
   >();
   private doc: Document;
   private window: Window;
+  private throbber: HTMLElement;
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState;
     this.window = browser.getWindow();
     this.doc = browser.getDocument();
     this.gameContainer = this.doc.getElementById("game-container")!;
+    this.throbber = this.doc.createElement("div");
+    this.throbber.className = "throbber";
+    this.throbber.style.display = "none";
+    this.gameContainer.appendChild(this.throbber);
     this.boardContainer =
       this.gameContainer.querySelector<HTMLElement>("#board-container")!;
     this.boardTransformer = this.doc.createElement("div");
@@ -493,5 +498,14 @@ export class View {
     this.doc.addEventListener("pointerdown", pointerdown);
     this.boardContainer.addEventListener("pointerdown", pointerdown);
     this.doc.addEventListener("keydown", keydown);
+  }
+
+  showThrobber(show: boolean, message: string) {
+    if (show) {
+      this.throbber.textContent = message;
+      this.throbber.style.display = "block";
+    } else {
+      this.throbber.style.display = "none";
+    }
   }
 }

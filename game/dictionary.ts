@@ -178,11 +178,12 @@ async function checkWordUsingUrl(
   }
 }
 
-class ListDictionary extends Dictionary {
+export class ListDictionary extends Dictionary {
   private readonly settings: string;
   private readonly baseUrl: string;
   private wordListPromise: Promise<WordList> | null = null;
   private wordList: WordList | null = null;
+  private eventTarget = new EventTarget();
 
   constructor(settings: {
     dictionarySettings: any;
@@ -197,6 +198,14 @@ class ListDictionary extends Dictionary {
     }
     this.settings = dictionarySettings;
     this.baseUrl = settings.baseUrl;
+  }
+
+  addEventListener(...args: Parameters<EventTarget['addEventListener']>) {
+    this.eventTarget.addEventListener(...args);
+  }
+
+  dispatchEvent(...args: Parameters<EventTarget['dispatchEvent']>) {
+    return this.eventTarget.dispatchEvent(...args);
   }
 
   private getWordList() {
@@ -217,14 +226,19 @@ class ListDictionary extends Dictionary {
           .href;
       }
       this.wordListPromise = (async () => {
-        const response = await fetch(dictionaryUrl);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch word list from ${dictionaryUrl}: ${response.statusText}`,
-          );
+        this.dispatchEvent(new CustomEvent("loadingstarted"));
+        try {
+          const response = await fetch(dictionaryUrl);
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch word list from ${dictionaryUrl}: ${response.statusText}`,
+            );
+          }
+          const buffer = await response.arrayBuffer();
+          return new WordList(new Uint8Array(buffer));
+        } finally {
+          this.dispatchEvent(new CustomEvent("loadingended"));
         }
-        const buffer = await response.arrayBuffer();
-        return new WordList(new Uint8Array(buffer));
       })();
     }
     return this.wordListPromise;
@@ -235,7 +249,7 @@ class ListDictionary extends Dictionary {
     return this.checkWords(...words);
   }
 
-  override checkWords(...words: Array<string>) {
+  checkWords(...words: Array<string>) {
     if (!this.wordList) {
       return this.checkWordsAsync(...words);
     }

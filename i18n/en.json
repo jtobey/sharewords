@@ -82,6 +82,9 @@
       "play_word_title": "Play word?",
       "play_word_details": "${word} for ${score} points"
     },
+    "throbber": {
+      "checking_words": "Checking words..."
+    },
     "game": {
       "join_link": "join"
     }

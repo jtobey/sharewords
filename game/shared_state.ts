@@ -70,7 +70,7 @@ export class SharedState {
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
-    private dictionary = makeDictionary(settings),
+    public dictionary = makeDictionary(settings),
     readonly gameParams = gameParamsFromSettings(settings),
   ) {
     this.settings.players.forEach((player, index) => {
