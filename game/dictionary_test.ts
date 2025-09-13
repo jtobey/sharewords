@@ -19,7 +19,7 @@ import { loadTranslations } from "../i18n.js";
 import { compile } from "../dict/compiler.js";
 import { Lexicon } from "../dict/swdict.js";
 
-describe("makeDictionary", () => {
+describe("dictionary", () => {
   beforeAll(async () => {
     await loadTranslations("en");
   });
@@ -61,9 +61,9 @@ describe("makeDictionary", () => {
         dictionarySettings: dictUrl,
         baseUrl: "http://localhost/",
       });
-      await expect(dictionary("hello")).resolves.toBeUndefined();
-      await expect(dictionary("world")).resolves.toBeUndefined();
-      await expect(dictionary("HELLO")).resolves.toBeUndefined(); // testing case-insensitivity
+      expect(await dictionary.checkWords("hello")).toBeUndefined();
+      expect(await dictionary.checkWords("world")).toBeUndefined();
+      expect(await dictionary.checkWords("HELLO")).toBeUndefined(); // testing case-insensitivity
     });
 
     test("rejects invalid words", async () => {
@@ -72,7 +72,7 @@ describe("makeDictionary", () => {
         dictionarySettings: dictUrl,
         baseUrl: "http://localhost/",
       });
-      await expect(dictionary("goodbye")).rejects.toThrow(PlayRejectedError);
+      await expect(async () => await dictionary.checkWords("goodbye")).toThrow(PlayRejectedError);
     });
 
     test("rejects multiple words with one invalid", async () => {
@@ -81,7 +81,7 @@ describe("makeDictionary", () => {
         dictionarySettings: dictUrl,
         baseUrl: "http://localhost/",
       });
-      await expect(dictionary("hello", "goodbye")).rejects.toThrow(
+      await expect(async () => await dictionary.checkWords("hello", "goodbye")).toThrow(
         PlayRejectedError,
       );
     });
@@ -92,9 +92,9 @@ describe("makeDictionary", () => {
         dictionarySettings: dictUrl,
         baseUrl: "http://localhost/",
       });
-      const promise = dictionary("hello", "goodbye", "world", "cruel");
-      await expect(promise).rejects.toThrow(PlayRejectedError);
-      await expect(promise).rejects.toThrow(
+      const expected = expect(async () => await dictionary.checkWords("hello", "goodbye", "world", "cruel"));
+      await expected.toThrow(PlayRejectedError);
+      await expected.toThrow(
         `Not words in Test Dictionary: goodbye, cruel. Play rejected.`,
       );
     });

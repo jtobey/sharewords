@@ -90,12 +90,14 @@ describe("shared state", () => {
     const settings = Settings.forLanguage("en");
     settings.letterCounts = new Map([["A", 100]]);
     const sharedState = new SharedState(settings);
-    sharedState["checkWords"] = async (...words: Array<string>) => {
-      for (const word of words) {
-        if (word !== "AA")
-          throw new PlayRejectedError(
-            `${word} is not a word in test dictionary.`,
-          );
+    sharedState["dictionary"] = {
+      async checkWords(...words: Array<string>) {
+        for (const word of words) {
+          if (word !== "AA")
+            throw new PlayRejectedError(
+              `${word} is not a word in test dictionary.`,
+            );
+        }
       }
     };
     const player1Id = settings.players[0]!.id;

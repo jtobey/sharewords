@@ -70,7 +70,7 @@ export class SharedState {
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
-    private checkWords = makeDictionary(settings),
+    private dictionary = makeDictionary(settings),
     readonly gameParams = gameParamsFromSettings(settings),
   ) {
     this.settings.players.forEach((player, index) => {
@@ -211,7 +211,7 @@ export class SharedState {
       turnsToPlayNow.push(turn);
       turnNumber = nextTurnNumber(turnNumber);
     }
-    if (wordsToCheck.size) await this.checkWords(...wordsToCheck);
+    if (wordsToCheck.size) await this.dictionary.checkWords(...wordsToCheck);
     if (turnsToPlayNow.length === 0) return turnsToPlayNow;
     console.debug(`Turn validation success.`);
     for (const { playerId, score, placements } of boardChanges) {

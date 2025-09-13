@@ -16,7 +16,9 @@ limitations under the License.
 import { t } from "../i18n.js";
 import { WordList } from "../dict/word_list.js";
 
-export type Dictionary = (...possibleWords: Array<string>) => Promise<void>;
+export abstract class Dictionary {
+  abstract checkWords(...possibleWords: Array<string>): void | Promise<void>;
+};
 export type DictionaryType =
   | "permissive"
   | "consensus"
@@ -39,9 +41,9 @@ export function makeDictionary(settings: {
 }) {
   // TODO(#95): Support 'consensus' type.
   if (settings.dictionaryType === "permissive")
-    return async (...words: string[]) => null;
+    return new PermissiveDictionary;
   if (settings.dictionaryType === "wordlist")
-    return makeListDictionary(settings);
+    return new ListDictionary(settings);
   if (settings.dictionaryType === "freeapi") {
     let urlTemplate!: string, dictionaryName!: string;
     if (settings.dictionarySettings) {
@@ -56,7 +58,7 @@ export function makeDictionary(settings: {
       urlTemplate = "https://api.dictionaryapi.dev/api/v2/entries/en/{lower}";
       dictionaryName = "Free Dictionary API";
     }
-    return makeUrlTemplateDictionary(urlTemplate, dictionaryName);
+    return new UrlTemplateDictionary(urlTemplate, dictionaryName);
   }
   throw new Error(
     `dictionaryType ${settings.dictionaryType} is not supported.`,
@@ -98,15 +100,23 @@ class NoDefinitionError extends WordNotInDictionaryError {
   }
 }
 
-function makeUrlTemplateDictionary(
-  urlTemplate: string,
-  dictionaryName: string,
-) {
-  return async (...words: Array<string>) => {
+class PermissiveDictionary extends Dictionary {
+  override checkWords(...possibleWords: Array<string>) {}
+};
+
+class UrlTemplateDictionary extends Dictionary {
+  constructor(
+    private readonly urlTemplate: string,
+    private readonly dictionaryName: string,
+  ) {
+    super();
+  }
+
+  override async checkWords(...words: Array<string>) {
     const promises: Array<Promise<WordNotInDictionaryError | null>> = words.map(
       (word) => {
-        const url = urlTemplate.replace("{lower}", word.toLowerCase());
-        return checkWordUsingUrl(word, url, dictionaryName);
+        const url = this.urlTemplate.replace("{lower}", word.toLowerCase());
+        return checkWordUsingUrl(word, url, this.dictionaryName);
       },
     );
     const results = await Promise.all(promises);
@@ -120,7 +130,7 @@ function makeUrlTemplateDictionary(
         invalidWords: invalidWords.join(", "),
       }),
     );
-  };
+  }
 }
 
 /**
@@ -168,37 +178,45 @@ async function checkWordUsingUrl(
   }
 }
 
-function makeListDictionary(settings: {
-  dictionarySettings: any;
-  baseUrl: string;
-}) {
-  const dictionarySettings = settings.dictionarySettings;
-  if (typeof dictionarySettings !== "string") {
-    throw new TypeError(
-      `Word list requires a string URL, not ${dictionarySettings}.`,
-    );
+class ListDictionary extends Dictionary {
+  private readonly settings: string;
+  private readonly baseUrl: string;
+  private wordListPromise: Promise<WordList> | null = null;
+  private wordList: WordList | null = null;
+
+  constructor(settings: {
+    dictionarySettings: any;
+    baseUrl: string;
+  }) {
+    super();
+    const dictionarySettings = settings.dictionarySettings;
+    if (typeof dictionarySettings !== "string") {
+      throw new TypeError(
+        `Word list requires a string URL, not ${dictionarySettings}.`,
+      );
+    }
+    this.settings = dictionarySettings;
+    this.baseUrl = settings.baseUrl;
   }
 
-  let wordListPromise: Promise<WordList> | null = null;
-
-  const getWordList = () => {
-    if (!wordListPromise) {
+  private getWordList() {
+    if (!this.wordListPromise) {
       let dictionaryUrl: string;
       try {
-        dictionaryUrl = new URL(dictionarySettings).href;
-        // `dictionarySettings` is an absolute URL.
+        dictionaryUrl = new URL(this.settings).href;
+        // `this.settings` is an absolute URL.
       } catch (e: any) {
         if (!(e instanceof TypeError)) throw e;
-        // `dictionarySettings` is a relative URL or simple identifier.
+        // `this.settings` is a relative URL or simple identifier.
         const maybeSuffix =
-          dictionarySettings.slice(-SWDICT_SUFFIX.length) === SWDICT_SUFFIX
+          this.settings.slice(-SWDICT_SUFFIX.length) === SWDICT_SUFFIX
             ? ""
             : SWDICT_SUFFIX;
-        const relativeUrl = dictionarySettings + maybeSuffix;
-        dictionaryUrl = new URL(relativeUrl, new URL("dict/", settings.baseUrl))
+        const relativeUrl = this.settings + maybeSuffix;
+        dictionaryUrl = new URL(relativeUrl, new URL("dict/", this.baseUrl))
           .href;
       }
-      wordListPromise = (async () => {
+      this.wordListPromise = (async () => {
         const response = await fetch(dictionaryUrl);
         if (!response.ok) {
           throw new Error(
@@ -209,13 +227,21 @@ function makeListDictionary(settings: {
         return new WordList(new Uint8Array(buffer));
       })();
     }
-    return wordListPromise;
-  };
+    return this.wordListPromise;
+  }
 
-  return async (...words: Array<string>) => {
-    const wordList = await getWordList();
+  private async checkWordsAsync(...words: Array<string>): Promise<void> {
+    this.wordList = await this.getWordList();
+    return this.checkWords(...words);
+  }
 
-    const dictionaryName = wordList.metadata?.name || dictionarySettings;
+  override checkWords(...words: Array<string>) {
+    if (!this.wordList) {
+      return this.checkWordsAsync(...words);
+    }
+
+    const wordList = this.wordList;
+    const dictionaryName = wordList.metadata?.name || this.settings;
     const errors = words
       .map((word) => {
         if (!wordList.has(word.toLowerCase())) {
@@ -235,5 +261,5 @@ function makeListDictionary(settings: {
         invalidWords: invalidWords.join(", "),
       }),
     );
-  };
+  }
 }
