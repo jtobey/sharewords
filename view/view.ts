@@ -447,6 +447,28 @@ export class View {
     return this.boardContainer;
   }
 
+  showToast(message: string) {
+    const toast = this.doc.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    this.doc.body.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+      toast.classList.add("show");
+    }, 100);
+
+    // Animate out and remove
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 500);
+    }, 3000);
+  }
+
   showInfoPopup(words: string[], targetElement: HTMLElement) {
     const popup = this.doc.createElement("div");
     popup.className = "info-popup";

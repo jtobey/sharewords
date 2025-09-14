@@ -79,6 +79,7 @@
     "bag_tile_count": "Tiles in bag: ${count}",
     "dialog": {
       "copy_turn_url": "Copy turn URL to clipboard",
+      "turn_url_copied": "Turn URL copied to clipboard",
       "confirm_title": "Confirm",
       "play_word_title": "Play word?",
       "play_word_details": "${word} for ${score} points"
