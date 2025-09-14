@@ -40,11 +40,13 @@ export class View {
   >();
   private doc: Document;
   private window: Window;
+  private browser: Browser;
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState;
     this.window = browser.getWindow();
     this.doc = browser.getDocument();
+    this.browser = browser;
     this.gameContainer = this.doc.getElementById("game-container")!;
     this.boardContainer =
       this.gameContainer.querySelector<HTMLElement>("#board-container")!;
@@ -292,7 +294,23 @@ export class View {
     const isLocalPlayerTurn =
       this.gameState.playerWhoseTurnItIs?.id === this.gameState.playerId;
     passExchangeButton.disabled = !isLocalPlayerTurn;
-    playWordButton.disabled = !isLocalPlayerTurn;
+
+    playWordButton.textContent = "✅"; // Default
+
+    if (isLocalPlayerTurn) {
+      playWordButton.disabled = false;
+      playWordButton.title = t("ui.buttons.play_word");
+    } else {
+      // Not local player's turn.
+      if (this.browser.hasClipboard()) {
+        playWordButton.disabled = false;
+        playWordButton.title = t("ui.buttons.copy_turn_url");
+        playWordButton.textContent = "📋";
+      } else {
+        playWordButton.disabled = true;
+        playWordButton.title = t("ui.buttons.play_word");
+      }
+    }
 
     const count = this.gameState.exchangeTilesCount;
     if (count === 0) {

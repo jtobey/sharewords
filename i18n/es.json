@@ -47,6 +47,7 @@
     "title": "Enlacegrama",
     "buttons": {
       "play_word": "Jugar Palabra",
+      "copy_turn_url": "Copiar URL del Turno",
       "pass_turn": "Pasar Turno",
       "exchange_count": "Intercambiar ${count}",
       "recall_tiles": "Retirar Fichas",

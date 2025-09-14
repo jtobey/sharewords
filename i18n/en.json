@@ -47,6 +47,7 @@
     "title": "Sharewords",
     "buttons": {
       "play_word": "Play Word",
+      "copy_turn_url": "Copy turn URL",
       "pass_turn": "Pass Turn",
       "exchange_count": "Exchange ${count}",
       "recall_tiles": "Recall Tiles",
