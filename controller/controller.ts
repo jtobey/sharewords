@@ -46,7 +46,7 @@ export class Controller {
         const url = new URL(this.browser.getHref());
         url.hash = this.gameState.turnUrlParams.toString();
         await this.browser.writeToClipboard(url.toString());
-        // TODO - Indicate success.
+        this.view.showToast(t("ui.dialog.turn_url_copied"));
       }
       return;
     }

@@ -34,11 +34,13 @@ export class PlayRejectedError extends Error {
   }
 }
 
-export function makeDictionary(settings: {
+type DictionarySettings = {
   dictionaryType: DictionaryType;
   dictionarySettings: any;
   baseUrl: string;
-}) {
+}
+
+export function makeDictionary(settings: DictionarySettings) {
   // TODO(#95): Support 'consensus' type.
   if (settings.dictionaryType === "permissive")
     return new PermissiveDictionary;
@@ -179,15 +181,11 @@ async function checkWordUsingUrl(
 }
 
 class ListDictionary extends Dictionary {
-  private readonly settings: string;
-  private readonly baseUrl: string;
+  private readonly dictionaryId: string;
   private wordListPromise: Promise<WordList> | null = null;
   private wordList: WordList | null = null;
 
-  constructor(settings: {
-    dictionarySettings: any;
-    baseUrl: string;
-  }) {
+  constructor(private readonly settings: DictionarySettings) {
     super();
     const dictionarySettings = settings.dictionarySettings;
     if (typeof dictionarySettings !== "string") {
@@ -195,25 +193,24 @@ class ListDictionary extends Dictionary {
         `Word list requires a string URL, not ${dictionarySettings}.`,
       );
     }
-    this.settings = dictionarySettings;
-    this.baseUrl = settings.baseUrl;
+    this.dictionaryId = dictionarySettings;
   }
 
   private getWordList() {
     if (!this.wordListPromise) {
       let dictionaryUrl: string;
       try {
-        dictionaryUrl = new URL(this.settings).href;
-        // `this.settings` is an absolute URL.
+        dictionaryUrl = new URL(this.dictionaryId).href;
+        // `this.dictionaryId` is an absolute URL.
       } catch (e: any) {
         if (!(e instanceof TypeError)) throw e;
-        // `this.settings` is a relative URL or simple identifier.
+        // `this.dictionaryId` is a relative URL or simple identifier.
         const maybeSuffix =
-          this.settings.slice(-SWDICT_SUFFIX.length) === SWDICT_SUFFIX
+          this.dictionaryId.slice(-SWDICT_SUFFIX.length) === SWDICT_SUFFIX
             ? ""
             : SWDICT_SUFFIX;
-        const relativeUrl = this.settings + maybeSuffix;
-        dictionaryUrl = new URL(relativeUrl, new URL("dict/", this.baseUrl))
+        const relativeUrl = this.dictionaryId + maybeSuffix;
+        dictionaryUrl = new URL(relativeUrl, new URL("dict/", this.settings.baseUrl))
           .href;
       }
       this.wordListPromise = (async () => {
@@ -241,7 +238,7 @@ class ListDictionary extends Dictionary {
     }
 
     const wordList = this.wordList;
-    const dictionaryName = wordList.metadata?.name || this.settings;
+    const dictionaryName = wordList.metadata?.name || this.dictionaryId;
     const errors = words
       .map((word) => {
         if (!wordList.has(word.toLowerCase())) {
