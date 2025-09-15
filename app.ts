@@ -119,7 +119,7 @@ export class App {
         this.gameState.shared.dictionary.addEventListener(
           "loadingstarted",
           () => {
-            this.view.showThrobber(true, t("ui.throbber.checking_words"));
+            this.view.showThrobber(true, t("ui.throbber.downloading_dictionary"));
           },
         );
         this.gameState.shared.dictionary.addEventListener(

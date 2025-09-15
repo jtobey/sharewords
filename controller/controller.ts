@@ -69,6 +69,7 @@ export class Controller {
           await this.browser.writeToClipboard(url.toString());
         }
       } catch (e: any) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
         alert(e instanceof PlayRejectedError ? e.message : e);
       }
     } else {

@@ -85,7 +85,7 @@
       "play_word_details": "${word} for ${score} points"
     },
     "throbber": {
-      "checking_words": "Checking words..."
+      "downloading_dictionary": "Downloading dictionary..."
     },
     "game": {
       "join_link": "join"
