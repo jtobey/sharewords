@@ -226,6 +226,24 @@ limitations under the License.
   font-size: 1.2em;
 }
 
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1002;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
 @media (min-width: 1024px) {
   #game-container {
     flex-direction: row;

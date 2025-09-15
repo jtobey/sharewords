@@ -41,11 +41,13 @@ export class View {
   private doc: Document;
   private window: Window;
   private throbber: HTMLElement;
+  private browser: Browser;
 
   constructor(gameState: GameState, browser: Browser) {
     this.gameState = gameState;
     this.window = browser.getWindow();
     this.doc = browser.getDocument();
+    this.browser = browser;
     this.gameContainer = this.doc.getElementById("game-container")!;
     this.throbber = this.doc.createElement("div");
     this.throbber.className = "throbber";
@@ -297,7 +299,23 @@ export class View {
     const isLocalPlayerTurn =
       this.gameState.playerWhoseTurnItIs?.id === this.gameState.playerId;
     passExchangeButton.disabled = !isLocalPlayerTurn;
-    playWordButton.disabled = !isLocalPlayerTurn;
+
+    playWordButton.textContent = "✅"; // Default
+
+    if (isLocalPlayerTurn) {
+      playWordButton.disabled = false;
+      playWordButton.title = t("ui.buttons.play_word");
+    } else {
+      // Not local player's turn.
+      if (this.browser.hasClipboard()) {
+        playWordButton.disabled = false;
+        playWordButton.title = t("ui.buttons.copy_turn_url");
+        playWordButton.textContent = "📋";
+      } else {
+        playWordButton.disabled = true;
+        playWordButton.title = t("ui.buttons.play_word");
+      }
+    }
 
     const count = this.gameState.exchangeTilesCount;
     if (count === 0) {
@@ -432,6 +450,28 @@ export class View {
 
   getBoardContainer(): HTMLElement {
     return this.boardContainer;
+  }
+
+  showToast(message: string) {
+    const toast = this.doc.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    this.doc.body.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+      toast.classList.add("show");
+    }, 100);
+
+    // Animate out and remove
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 500);
+    }, 3000);
   }
 
   showInfoPopup(words: string[], targetElement: HTMLElement) {

@@ -47,6 +47,7 @@
     "title": "Enlacegrama",
     "buttons": {
       "play_word": "Jugar Palabra",
+      "copy_turn_url": "Copiar URL del Turno",
       "pass_turn": "Pasar Turno",
       "exchange_count": "Intercambiar ${count}",
       "recall_tiles": "Retirar Fichas",
@@ -78,6 +79,7 @@
     "bag_tile_count": "Fichas en la bolsa: ${count}",
     "dialog": {
       "copy_turn_url": "¿Copiar URL del turno?",
+      "turn_url_copied": "URL del turno copiada al portapapeles",
       "confirm_title": "Confirmar",
       "play_word_title": "¿Jugar palabra?",
       "play_word_details": "${word} por ${score} puntos"

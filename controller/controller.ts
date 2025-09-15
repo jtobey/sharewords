@@ -38,6 +38,19 @@ export class Controller {
   }
 
   private async playWordClick() {
+    const isLocalPlayerTurn =
+      this.gameState.playerWhoseTurnItIs?.id === this.gameState.playerId;
+
+    if (!isLocalPlayerTurn) {
+      if (this.browser.hasClipboard()) {
+        const url = new URL(this.browser.getHref());
+        url.hash = this.gameState.turnUrlParams.toString();
+        await this.browser.writeToClipboard(url.toString());
+        this.view.showToast(t("ui.dialog.turn_url_copied"));
+      }
+      return;
+    }
+
     const preview = this.gameState.getTurnPreview();
     if (isTurnPreviewSuccess(preview)) {
       const { confirmed, copyUrl } = await this.view.showConfirmationDialog(
