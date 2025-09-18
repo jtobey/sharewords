@@ -84,6 +84,8 @@ export class WordList {
           metadata = Metadata.decode(pointer.view(len));
         } else if (fieldNumber === DATA_FIELD_NUMBER) {
           data = pointer.view(len);
+        } else {
+          pointer.skip(len);
         }
       } else {
         throw new InvalidLexiconError(`Unsupported wireType ${wireType}.`);
