@@ -31,16 +31,45 @@ export class InvalidLexiconError extends Error {
   }
 }
 
+export class Subword {
+  constructor(
+    private macros: ReadonlyArray<Readonly<Macro>>,
+    // Non-empty. The last element must be a subword macro index.
+    private elements: ReadonlyArray<bigint>,
+  ) {}
+
+  get metadata() {
+    const metadataZero = BigInt(this.macros.length);
+    return this.elements.slice(0, -1).map(n => n - metadataZero);
+  }
+
+  toString() {
+    return this.macros[Number(this.elements[this.elements.length - 1]!)]!.subword;
+  }
+}
+
 export class WordListEntry extends String {
   constructor(
-    macros: ReadonlyArray<Readonly<Macro>>,
-    readonly elements: bigint[][], // Non-empty. The last element must be a subword macro index.
+    private macros: ReadonlyArray<Readonly<Macro>>,
+    // Non-empty. Each element's last element must be a subword macro index.
+    elementsArg: ReadonlyArray<ReadonlyArray<bigint>>,
+    private elements = elementsArg.slice(),
   ) {
     super(
-      elements
+      elementsArg
+        .slice(0, -1)
         .map((elt) => macros[Number(elt[elt.length - 1]!)]!.subword)
         .join(""),
     );
+  }
+
+  get metadata() {
+    const metadataZero = BigInt(this.macros.length);
+    return this.elements[this.elements.length - 1]!.map(n => n - metadataZero);
+  }
+
+  get subwords() {
+    return this.elements.slice(0, -1).map(elt => new Subword(this.macros, elt));
   }
 }
 
@@ -162,7 +191,7 @@ export class WordList {
           continue;
         }
         if (macro.clear || macro.backup !== undefined) {
-          yield new WordListEntry(this.macros, wordBuffer.slice(0, -1));
+          yield new WordListEntry(this.macros, wordBuffer);
           if (macro.clear) {
             wordBuffer.length = 0;
           } else {
@@ -176,7 +205,7 @@ export class WordList {
     }
 
     if (wordBuffer[0]!.length) {
-      yield new WordListEntry(this.macros, wordBuffer.slice(0, -1));
+      yield new WordListEntry(this.macros, wordBuffer);
     }
   }
 
