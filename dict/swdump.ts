@@ -95,7 +95,7 @@ for (const filePath of dictFiles) {
   if (showWords) {
     const wordList = new WordList(buffer);
     for (const word of wordList) {
-      console.log(word);
+      console.log(String(word));
     }
   }
 }
