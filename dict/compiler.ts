@@ -57,7 +57,16 @@ export async function compile({
       clearInterval,
       macros: [{ clear: {} }],
     },
+    data: new Uint8Array(),
   });
+  const data: number[] = [];
+  function writeVarint(n: number) {
+    while (n >= 0x80) {
+      data.push((n & 0x7f) | 0x80);
+      n >>>= 7;
+    }
+    data.push(n);
+  }
   const metadata = lexicon.metadata!;
   const macroIndexForSubword = new Map<string, number>();
   for (const subword of alphabet) {
@@ -91,10 +100,10 @@ export async function compile({
     });
     let commonPrefixLength = 0;
     if (wordBuffer.length) {
-      if (lexicon.instructions.length >= nextClear) {
-        lexicon.instructions.push(0);
+      if (data.length >= nextClear) {
+        writeVarint(0);
         wordBuffer.length = 0;
-        while (lexicon.instructions.length >= nextClear) {
+        while (data.length >= nextClear) {
           nextClear += clearInterval;
         }
       } else {
@@ -116,7 +125,7 @@ export async function compile({
         }
         const indexForDeletion =
           macroIndexForDeleteZero + numberOfCharsToDelete;
-        lexicon.instructions.push(indexForDeletion);
+        writeVarint(indexForDeletion);
         wordBuffer.length = commonPrefixLength;
       }
     }
@@ -128,9 +137,10 @@ export async function compile({
       );
     }
     for (const subword of subwordsToAdd) {
-      lexicon.instructions.push(macroIndexForSubword.get(subword)!);
+      writeVarint(macroIndexForSubword.get(subword)!);
       wordBuffer.push(subword);
     }
   }
+  lexicon.data = new Uint8Array(data);
   return lexicon;
 }

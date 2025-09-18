@@ -22,7 +22,7 @@ import { Macro, Metadata } from "./swdict.js";
 import { Pointer } from "./pointer.js";
 
 const METADATA_FIELD_NUMBER = 1n;
-const INSTRUCTIONS_FIELD_NUMBER = 2n;
+const DATA_FIELD_NUMBER = 2n;
 
 export class InvalidLexiconError extends Error {
   constructor(message: string) {
@@ -44,10 +44,6 @@ export class WordListEntry extends String {
   }
 }
 
-function* toBigInts(numbers: Iterable<number>): Iterator<bigint> {
-  for (const n of numbers) yield BigInt(n);
-}
-
 /**
  * Read-only interface to a SWDICT file.
  *
@@ -57,7 +53,7 @@ function* toBigInts(numbers: Iterable<number>): Iterator<bigint> {
  */
 export class WordList {
   private _metadata: Readonly<Metadata>;
-  private instructions: Uint8Array;
+  private data: Uint8Array;
 
   constructor(lexiconMessage: ArrayBuffer | Uint8Array) {
     const lexiconMessageArray = new Uint8Array(lexiconMessage);
@@ -66,15 +62,14 @@ export class WordList {
     // https://protobuf.dev/programming-guides/encoding/, we scan for two
     // length-delimited fields:
     //   * `metadata`, a submessage with tag `METADATA_FIELD_NUMBER`
-    //   * `instructions`, a packed, repeated varint with tag
-    //     `INSTRUCTIONS_FIELD_NUMBER`
+    //   * `data`, a packed, repeated varint with tag `DATA_FIELD_NUMBER`
     // The constructor decodes, validates, and stores a copy of `metadata`.
-    // For efficiency, we do not immediately copy or decode `instructions`.
+    // For efficiency, we do not immediately copy or decode `data`.
     // Rather, we store a subarray of the original `Lexicon` message, in which
     // the lookup and iteration methods scan for `clear` instructions and
     // perform binary searches.
     const pointer = new Pointer(lexiconMessageArray);
-    let insns: Uint8Array | null = null;
+    let data: Uint8Array | null = null;
     let metadata: Metadata | null = null;
     while (!pointer.atEnd) {
       const tag = pointer.varintBigInt();
@@ -87,17 +82,17 @@ export class WordList {
         const len = pointer.varintBigInt();
         if (fieldNumber === METADATA_FIELD_NUMBER) {
           metadata = Metadata.decode(pointer.view(len));
-        } else if (fieldNumber === INSTRUCTIONS_FIELD_NUMBER) {
-          insns = pointer.view(len);
+        } else if (fieldNumber === DATA_FIELD_NUMBER) {
+          data = pointer.view(len);
         }
       } else {
         throw new InvalidLexiconError(`Unsupported wireType ${wireType}.`);
       }
     }
-    if (!insns) throw new InvalidLexiconError("No `instructions` field.");
+    if (!data) throw new InvalidLexiconError("No `data` field.");
     if (!metadata) throw new InvalidLexiconError("No `metadata` field.");
     this._metadata = metadata;
-    this.instructions = insns;
+    this.data = data;
     this._checkForRecursion();
   }
 
@@ -125,7 +120,9 @@ export class WordList {
     visiting.add(macroIndex);
     const macro = this.macros[macroIndex];
     if (macro?.subroutine) {
-      for (const subMacroIndex of macro.subroutine.instructions) {
+      const ip = new Pointer(macro.subroutine.data);
+      while (!ip.atEnd) {
+        const subMacroIndex = Number(ip.varintBigInt());
         if (visiting.has(subMacroIndex)) {
           throw new InvalidLexiconError("Recursive subroutine detected.");
         }
@@ -157,7 +154,9 @@ export class WordList {
 
       if (macro) {
         if (macro.subroutine) {
-          stack.push(toBigInts(macro.subroutine.instructions));
+          stack.push(
+            this.readInstructions(new Pointer(macro.subroutine.data)),
+          );
           continue;
         }
         if (macro.clear || macro.backup !== undefined) {
@@ -186,7 +185,7 @@ export class WordList {
   }
 
   [Symbol.iterator]() {
-    return this.scanFrom(new Pointer(this.instructions));
+    return this.scanFrom(new Pointer(this.data));
   }
 
   /**
@@ -199,11 +198,11 @@ export class WordList {
     const blockSize = this._metadata.clearInterval;
     if (blockSize > 0) {
       let loBlock = 0,
-        hiBlock = Math.ceil(this.instructions.length / blockSize);
+        hiBlock = Math.ceil(this.data.length / blockSize);
       while (true) {
         const midBlock = Math.floor((loBlock + hiBlock) / 2);
         if (midBlock === loBlock) break;
-        const probe = new Pointer(this.instructions, midBlock * blockSize);
+        const probe = new Pointer(this.data, midBlock * blockSize);
         probe.skipToVarint();
         while (!probe.atEnd) {
           if (this.macros[Number(probe.varintBigInt())]?.clear) break;

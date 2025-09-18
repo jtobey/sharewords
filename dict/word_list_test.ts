@@ -18,6 +18,18 @@ import { compile } from "./compiler.js";
 import { Lexicon } from "./swdict.js";
 import { WordList } from "./word_list.js";
 
+function writeVarints(ns: number[]): Uint8Array {
+  const data: number[] = [];
+  for (let n of ns) {
+    while (n >= 0x80) {
+      data.push((n & 0x7f) | 0x80);
+      n >>>= 7;
+    }
+    data.push(n);
+  }
+  return new Uint8Array(data);
+}
+
 describe("word list", () => {
   it("should know what is a word", async () => {
     const words = [
@@ -70,10 +82,10 @@ describe("word list", () => {
           { clear: true }, // 0
           { subword: "A" }, // 1 'A'
           { subword: "B" }, // 2 'B'
-          { subroutine: { instructions: [1, 2, 2, 1] } }, // 3 'ABBA'
+          { subroutine: { data: writeVarints([1, 2, 2, 1]) } }, // 3 'ABBA'
         ],
       },
-      instructions: [3],
+      data: writeVarints([3]),
     });
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);
@@ -91,11 +103,11 @@ describe("word list", () => {
           { clear: true }, // 0
           { subword: "Z" }, // 1 'Z'
           { subword: "Y" }, // 2 'Y'
-          { subroutine: { instructions: [2, 2] } }, // 3 'YY'
-          { subroutine: { instructions: [1, 3, 1] } }, // 4 'ZYYZ'
+          { subroutine: { data: writeVarints([2, 2]) } }, // 3 'YY'
+          { subroutine: { data: writeVarints([1, 3, 1]) } }, // 4 'ZYYZ'
         ],
       },
-      instructions: [4],
+      data: writeVarints([4]),
     });
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);
@@ -112,11 +124,11 @@ describe("word list", () => {
         macros: [
           { clear: true }, // 0
           { subword: "a" }, // 1
-          { subroutine: { instructions: [1, 3] } }, // 2
-          { subroutine: { instructions: [2, 1] } }, // 3
+          { subroutine: { data: writeVarints([1, 3]) } }, // 2
+          { subroutine: { data: writeVarints([2, 1]) } }, // 3
         ],
       },
-      instructions: [3],
+      data: writeVarints([3]),
     });
     const binary = Lexicon.encode(lexicon).finish();
     expect(() => new WordList(binary)).toThrow();
@@ -136,7 +148,7 @@ describe("word list", () => {
           { backup: 0 }, // 3 yield
         ],
       },
-      instructions: [
+      data: writeVarints([
         4, // <>
         1, // <A>
         3, // <A>  ; yield A, [[4, 1]]
@@ -144,7 +156,7 @@ describe("word list", () => {
         8, // <A>
         2, // <AB>
         0, // <>   ; yield AB, [[4, 1], [5, 8, 2]]
-      ],
+      ]),
     });
     const expected = [
       {
