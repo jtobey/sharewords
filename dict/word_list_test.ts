@@ -18,14 +18,15 @@ import { compile } from "./compiler.js";
 import { Lexicon } from "./swdict.js";
 import { WordList } from "./word_list.js";
 
-function writeVarints(ns: number[]): Uint8Array {
+function writeVarints(ns: Array<number | bigint>): Uint8Array {
   const data: number[] = [];
   for (let n of ns) {
-    while (n >= 0x80) {
-      data.push((n & 0x7f) | 0x80);
-      n >>>= 7;
+    n = BigInt(n);
+    while (n >= 0x80n) {
+      data.push(Number((n & 0x7fn) | 0x80n));
+      n >>= 7n;
     }
-    data.push(n);
+    data.push(Number(n));
   }
   return new Uint8Array(data);
 }
@@ -171,6 +172,24 @@ describe("word list", () => {
         ],
       },
     ];
+    const binary = Lexicon.encode(lexicon).finish();
+    const wordList = new WordList(binary);
+    expect(
+      [...wordList].map((entry) => ({
+        word: String(entry),
+        instructions: entry.elements,
+      })),
+    ).toEqual(expected);
+  });
+
+  it("should pass through undefined bigint instructions", () => {
+    const name = "Test Lexicon";
+    const description = "Lexicon for testing.";
+    const lexicon = Lexicon.create({
+      metadata: {name, description, macros: [{ subword: "A" }]},
+      data: writeVarints([99111999111999111999n, 0]),
+    });
+    const expected = [{word: "A", instructions: [[99111999111999111999n, 0n]]}];
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);
     expect(
