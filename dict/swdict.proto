@@ -31,7 +31,7 @@ message Macro {
   message Clear {};
   message Subroutine {
     // Index into `metadata.macros`.
-    repeated uint64 instructions = 1;
+    bytes data = 1;
   }
   oneof macro {
     // Clears the word buffer. Placing this every so often in sorted
@@ -64,5 +64,5 @@ message Lexicon {
   // A "word buffer" is initialized as an empty string. Each instruction is
   // applied. Some instructions emit words to the list. After the last
   // instruction, if the word buffer is not empty, it is added to the list.
-  repeated uint64 instructions = 2 [packed=true];
+  bytes data = 2;
 };

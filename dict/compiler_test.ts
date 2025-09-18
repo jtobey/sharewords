@@ -19,6 +19,18 @@ import { Lexicon } from "./swdict.js";
 import { WordList } from "./word_list.js";
 import { codePointCompare } from "./code_point_compare.js";
 
+function writeVarints(ns: number[]): Uint8Array {
+  const data: number[] = [];
+  for (let n of ns) {
+    while (n >= 0x80) {
+      data.push((n & 0x7f) | 0x80);
+      n >>>= 7;
+    }
+    data.push(n);
+  }
+  return new Uint8Array(data);
+}
+
 describe("compiler", () => {
   it("should compile a lexicon", async () => {
     const words = ["green", "peas", "the", "three"];
@@ -75,7 +87,7 @@ describe("compiler", () => {
             ]),
             wordCount: 4,
           },
-          instructions: [
+          data: writeVarints([
             SUBWORD.g!, // "g"
             SUBWORD.r!, // "gr"
             SUBWORD.e!, // "gre"
@@ -94,7 +106,7 @@ describe("compiler", () => {
             SUBWORD.r!, // "thr"
             SUBWORD.e!, // "thre"
             SUBWORD.e!, // "three"
-          ],
+          ]),
         }),
       ),
     );
@@ -141,7 +153,7 @@ describe("compiler", () => {
             ]),
             wordCount: 6,
           },
-          instructions: [
+          data: writeVarints([
             SUBWORD.e!, // "e"
             SUBWORD.a!, // "ea"
             SUBWORD.g!, // "eag"
@@ -173,7 +185,7 @@ describe("compiler", () => {
             BACKUP0, // "groan"
             SUBWORD.e!, // "groane"
             SUBWORD.r!, // "groaner"
-          ],
+          ]),
         }),
       ),
     );
