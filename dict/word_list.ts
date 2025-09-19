@@ -31,7 +31,18 @@ export class InvalidLexiconError extends Error {
   }
 }
 
-export class Subword {
+export type Word = {
+  toString: () => string;
+  metadata: Iterable<bigint>;
+  subwords: Iterable<Subword>;
+};
+
+export type Subword = {
+  toString: () => string;
+  metadata: Iterable<bigint>;
+};
+
+class SubwordImpl implements Subword {
   constructor(
     private macros: ReadonlyArray<Readonly<Macro>>,
     // Non-empty. The last element must be a subword macro index.
@@ -44,11 +55,11 @@ export class Subword {
   }
 
   toString() {
-    return this.macros[Number(this.elements[this.elements.length - 1]!)]!.subword;
+    return this.macros[Number(this.elements[this.elements.length - 1]!)]!.subword!;
   }
 }
 
-export class WordListEntry extends String {
+class WordListEntry extends String implements Word {
   constructor(
     private macros: ReadonlyArray<Readonly<Macro>>,
     // Non-empty. Each element's last element must be a subword macro index.
@@ -69,7 +80,7 @@ export class WordListEntry extends String {
   }
 
   get subwords() {
-    return this.elements.slice(0, -1).map(elt => new Subword(this.macros, elt));
+    return this.elements.slice(0, -1).map(elt => new SubwordImpl(this.macros, elt));
   }
 }
 
