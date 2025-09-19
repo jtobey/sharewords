@@ -19,6 +19,32 @@ limitations under the License.
 
 import { codePointCompare } from "./code_point_compare.js";
 import { Lexicon } from "./swdict.js";
+import type { Word, Subword } from "./word.js";
+
+function toWord(input: Word | string): Word {
+  if (typeof input === "object") {
+    if ("subwords" in input && "metadata" in input) {
+      return input;
+    }
+    throw TypeError("Object should have `subwords` and `metadata` properites", input);
+  }
+  const wordStr = input as string;
+  // Return a `Word` with empty metadata.
+  function* subwords(): Generator<Subword> {
+    // Deal in code points, not code units.
+    for (const character of [...wordStr]) {
+      yield {
+        toString() { return character; },
+        metadata: [],
+      };
+    }
+  }
+  return {
+    toString: () => wordStr,
+    metadata: [],
+    get subwords() { return subwords(); }
+  };
+}
 
 export async function compile({
   words,
@@ -28,7 +54,7 @@ export async function compile({
   clearInterval = 1024,
   alphabet = null,
 }: {
-  words: Iterable<string> | AsyncIterable<string>;
+  words: Iterable<Word | string> | AsyncIterable<Word | string>;
   name: string;
   description: string;
   languageCodes?: string[];
@@ -36,15 +62,16 @@ export async function compile({
   alphabet?: Array<string> | null;
 }): Promise<Lexicon> {
   if (!alphabet) {
-    const tempWords: string[] = [];
+    const tempWords: Word[] = [];
     const subwords = new Set<string>();
-    for await (const word of words) {
+    for await (const input of words) {
+      const word = toWord(input);
       tempWords.push(word);
-      for (const subword of [...word]) {
-        subwords.add(subword);
+      for (const subword of word.subwords) {
+        subwords.add(subword.toString());
       }
     }
-    tempWords.sort(codePointCompare);
+    tempWords.sort((a, b) => codePointCompare(a.toString(), b.toString()));
     words = tempWords;
     alphabet = [...subwords];
     alphabet.sort(codePointCompare);
@@ -77,7 +104,9 @@ export async function compile({
   let wordBuffer: string[] = [];
   let nextClear = clearInterval;
   let lastWordStr: string | null = null;
-  for await (const wordStr of words) {
+  for await (const input of words) {
+    const word = toWord(input);
+    const wordStr = word.toString();
     if (lastWordStr !== null) {
       switch (codePointCompare(lastWordStr, wordStr)) {
         case 0:
@@ -91,11 +120,12 @@ export async function compile({
     }
     ++metadata.wordCount;
     lastWordStr = wordStr;
-    const word = [...wordStr]; // Deal in code points, not code units.
-    word.forEach((subword) => {
+    const subwords = [...word.subwords];
+    subwords.forEach(subword => {
+      const subwordStr = String(subword);
       metadata.subwordFrequencies.set(
-        subword,
-        1 + (metadata.subwordFrequencies.get(subword) ?? 0),
+        subwordStr,
+        1 + (metadata.subwordFrequencies.get(subwordStr) ?? 0),
       );
     });
     let commonPrefixLength = 0;
@@ -108,16 +138,16 @@ export async function compile({
         }
       } else {
         while (
-          word.length > commonPrefixLength &&
-          wordBuffer.length > commonPrefixLength &&
-          word[commonPrefixLength] === wordBuffer[commonPrefixLength]
+          subwords.length > commonPrefixLength &&
+            wordBuffer.length > commonPrefixLength &&
+            subwords[commonPrefixLength]!.toString() === wordBuffer[commonPrefixLength]
         ) {
           ++commonPrefixLength;
         }
         const numberOfCharsToDelete = wordBuffer.length - commonPrefixLength;
         while (
           metadata.macros.length - macroIndexForDeleteZero <=
-          numberOfCharsToDelete
+            numberOfCharsToDelete
         ) {
           metadata.macros.push({
             backup: metadata.macros.length - macroIndexForDeleteZero,
@@ -129,17 +159,19 @@ export async function compile({
         wordBuffer.length = commonPrefixLength;
       }
     }
-    const subwordsToAdd = word.splice(commonPrefixLength);
-    if (!subwordsToAdd.every((subword) => macroIndexForSubword.has(subword))) {
-      // TODO - Automatically build the alphabet.
+    const subwordsToAdd = subwords.splice(commonPrefixLength);
+    if (!subwordsToAdd.every(subword => macroIndexForSubword.has(subword.toString()))) {
       throw new Error(
         `Word "${wordStr}" contains characters missing from alphabet.`,
       );
     }
     for (const subword of subwordsToAdd) {
-      writeVarint(macroIndexForSubword.get(subword)!);
-      wordBuffer.push(subword);
+      // TODO - Write subword metadata.
+      const subwordStr = subword.toString()
+      writeVarint(macroIndexForSubword.get(subwordStr)!);
+      wordBuffer.push(subwordStr);
     }
+    // TODO - Write word metadata.
   }
   lexicon.data = new Uint8Array(data);
   return lexicon;

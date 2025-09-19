@@ -1,4 +1,7 @@
 /*
+ * @file String comparison using code points instead of code units.
+ */
+/*
 Copyright 2025 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +16,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+type Stringish = {
+  [Symbol.iterator]: () => Iterator<string>;
+}
+
 // https://github.com/tc39/proposal-compare-strings-by-codepoint
 export function codePointCompare(
-  left: string | String,
-  right: string | String,
+  left: Stringish,
+  right: Stringish,
 ): -1 | 0 | 1 {
   const leftIter = left[Symbol.iterator]();
   const rightIter = right[Symbol.iterator]();
