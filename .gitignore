@@ -7,3 +7,8 @@ logs
 empty_test.ts
 publish.sh
 io.sh
+dict/[^t]*.swdict
+dict/t[^e]*.swdict
+dict/te[^s]*.swdict
+dict/tes[^t]*.swdict
+dict/test?*.swdict
