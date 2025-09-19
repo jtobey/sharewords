@@ -29,7 +29,6 @@ function toWord(input: Word | string): Word {
     throw TypeError("Object should have `subwords` and `metadata` properites", input);
   }
   const wordStr = input as string;
-  // Return a `Word` with empty metadata.
   function* subwords(): Generator<Subword> {
     // Deal in code points, not code units.
     for (const character of [...wordStr]) {
@@ -39,6 +38,7 @@ function toWord(input: Word | string): Word {
       };
     }
   }
+  // Return a `Word` with empty metadata.
   return {
     toString: () => wordStr,
     metadata: [],
