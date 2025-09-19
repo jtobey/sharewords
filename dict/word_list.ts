@@ -20,6 +20,7 @@ limitations under the License.
 import { codePointCompare } from "./code_point_compare.js";
 import { Macro, Metadata } from "./swdict.js";
 import { Pointer } from "./pointer.js";
+import type { Word, Subword } from "./word.js";
 
 const METADATA_FIELD_NUMBER = 1n;
 const DATA_FIELD_NUMBER = 2n;
@@ -30,17 +31,6 @@ export class InvalidLexiconError extends Error {
     this.name = "InvalidLexiconError";
   }
 }
-
-export type Word = {
-  toString: () => string;
-  metadata: Iterable<bigint>;
-  subwords: Iterable<Subword>;
-};
-
-export type Subword = {
-  toString: () => string;
-  metadata: Iterable<bigint>;
-};
 
 class SubwordImpl implements Subword {
   constructor(
