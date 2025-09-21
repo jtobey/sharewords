@@ -32,7 +32,7 @@ export class InvalidLexiconError extends Error {
   }
 }
 
-class SubwordImpl implements Subword {
+class WordListSubword implements Subword {
   constructor(
     private macros: ReadonlyArray<Readonly<Macro>>,
     // Non-empty. The last element must be a subword macro index.
@@ -70,7 +70,7 @@ class WordListEntry extends String implements Word {
   }
 
   get subwords() {
-    return this.elements.slice(0, -1).map(elt => new SubwordImpl(this.macros, elt));
+    return this.elements.slice(0, -1).map(elt => new WordListSubword(this.macros, elt));
   }
 }
 
