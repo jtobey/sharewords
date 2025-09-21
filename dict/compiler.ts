@@ -179,6 +179,26 @@ export async function compile({
   return lexicon;
 }
 
+export async function* _sortAndDeduplicate(
+  words: AsyncIterable<Word>,
+  sortalikes: Sortalike[],
+): AsyncIterable<Word> {
+  const sortingInfo = buildSortingInfoMap(sortalikes.map(sa => sa.subwords));
+  const baseWordsWithWords: [Word, Word][] = [];
+  for await (const word of words) {
+    const baseWord = extractBaseWord(word, sortingInfo);
+    baseWordsWithWords.push([baseWord, word]);
+  }
+  baseWordsWithWords.sort((a, b) => wordCompare(a[0], b[0]) || wordCompare(a[1], b[1]));
+  let lastWord: Word | null = null;
+  for (const [, word] of baseWordsWithWords) {
+    if (lastWord === null || wordCompare(word, lastWord) !== 0) {
+      yield word;
+      lastWord = word;
+    }
+  }
+}
+
 export async function* _mergeSortalikes(
   sortedUniqueWords: AsyncIterable<Word>,
   sortalikes: Sortalike[],
@@ -212,32 +232,49 @@ export async function* _mergeSortalikes(
 
 export async function* _compile(
   sortedUniqueBaseWords: AsyncIterable<Word>,
+  clearInterval = 1024,
 ): AsyncIterable<Macro> {
   let wordBuffer: string[] = [];
+  let macrosEmitted = 0;
+  let nextClear = clearInterval;
+
+  function emit(macro: Macro) {
+    ++macrosEmitted;
+    return macro;
+  }
+
   for await (const word of sortedUniqueBaseWords) {
     const subwords = [...word.subwords];
     let commonPrefixLength = 0;
     if (wordBuffer.length) {
-      while (
-        subwords.length > commonPrefixLength &&
-          wordBuffer.length > commonPrefixLength &&
-          subwords[commonPrefixLength]!.toString() === wordBuffer[commonPrefixLength]
-      ) {
-        ++commonPrefixLength;
+      if (macrosEmitted >= nextClear) {
+        yield emit(Macro.create({ clear: {} }));
+        wordBuffer.length = 0;
+        while (macrosEmitted >= nextClear) {
+          nextClear += clearInterval;
+        }
+      } else {
+        while (
+          subwords.length > commonPrefixLength &&
+            wordBuffer.length > commonPrefixLength &&
+            subwords[commonPrefixLength]!.toString() === wordBuffer[commonPrefixLength]
+        ) {
+          ++commonPrefixLength;
+        }
+        yield emit(Macro.create({ backup: wordBuffer.length - commonPrefixLength }));
+        wordBuffer.length = commonPrefixLength;
       }
-      yield Macro.create({ backup: wordBuffer.length - commonPrefixLength });
-      wordBuffer.length = commonPrefixLength;
     }
     for (const subword of subwords.splice(commonPrefixLength)) {
       for (const bigint of subword.metadata) {
-        yield Macro.create({ inlineMetadata: String(bigint) });
+        yield emit(Macro.create({ inlineMetadata: String(bigint) }));
       }
       const subwordStr = subword.toString()
-      yield Macro.create({ subword: subwordStr });
+      yield emit(Macro.create({ subword: subwordStr }));
       wordBuffer.push(subwordStr);
     }
     for (const bigint of word.metadata) {
-      yield Macro.create({ inlineMetadata: String(bigint) });
+      yield emit(Macro.create({ inlineMetadata: String(bigint) }));
     }
   }
 }

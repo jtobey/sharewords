@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
-import { _mergeSortalikes, _compile } from "./compiler.js";
+import { _sortAndDeduplicate, _mergeSortalikes, _compile } from "./compiler.js";
 import { WordImpl, SubwordImpl } from "./word.js";
 import { Sortalike, Macro } from "./swdict.ts";
 
+// Test helper. Converts an Iterable to an AsyncIterable.
 async function* toAsync<T>(iterable: Iterable<T>): AsyncIterable<T> {
   for (const t of iterable) {
     yield t;
   }
 }
 
+// Test helper. Converts an AsyncIterable to an Iterable.
 async function fromAsync<T>(asyncIterable: AsyncIterable<T>): Promise<T[]> {
   const ts: T[] = [];
   for await (const t of asyncIterable) {
@@ -33,6 +35,22 @@ async function fromAsync<T>(asyncIterable: AsyncIterable<T>): Promise<T[]> {
 }
 
 describe("compiler", () => {
+  describe("_sortAndDeduplicate", () => {
+    it("should sort and deduplicate an empty list", async () => {
+      expect(await fromAsync(_sortAndDeduplicate(toAsync([]), []))).toEqual([]);
+    });
+
+    it("should sort and deduplicate words", async () => {
+      const input = ["unsorted", "list", "of", "unsortéd", "list", "unsorts"];
+      const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
+      const expected = ["list", "of", "unsorted", "unsortéd", "unsorts"];
+      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const actualWords = await fromAsync(_sortAndDeduplicate(toAsync(inputWords), sortalikes));
+      const actual = actualWords.map(String);
+      expect(actual).toEqual(expected);
+    });
+  });
+
   describe("_mergeSortalikes", () => {
     it("should accept empty input", async () => {
       expect(await fromAsync(_mergeSortalikes(toAsync([]), []))).toEqual([]);
@@ -84,6 +102,47 @@ describe("compiler", () => {
         Macro.create({ subword: "n" }),
       ];
       const actualMacros = await fromAsync(_compile(toAsync(inputWords)));
+      expect(actualMacros).toEqual(expectedMacros);
+    });
+
+    it("should clear the word buffer at intervals", async () => {
+      const input = ["eager", "green", "greener", "greenest", "groan", "groaner"];
+      const clearInterval = 11;
+      const expectedMacros = [
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "a" }),
+        Macro.create({ subword: "g" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ backup: 5 }),
+        Macro.create({ subword: "g" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "n" }),
+        Macro.create({ clear: {} }),
+        Macro.create({ subword: "g" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "n" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ backup: 1 }),
+        Macro.create({ subword: "s" }),
+        Macro.create({ subword: "t" }),
+        Macro.create({ clear: {} }),
+        Macro.create({ subword: "g" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ subword: "o" }),
+        Macro.create({ subword: "a" }),
+        Macro.create({ subword: "n" }),
+        Macro.create({ backup: 0 }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "r" }),
+      ];
+      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const actualMacros = await fromAsync(_compile(toAsync(inputWords), clearInterval));
       expect(actualMacros).toEqual(expectedMacros);
     });
   });
