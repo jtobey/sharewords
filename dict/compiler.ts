@@ -18,8 +18,10 @@ limitations under the License.
  */
 
 import { codePointCompare } from "./code_point_compare.js";
-import { Lexicon } from "./swdict.js";
-import type { Word, Subword } from "./word.js";
+import { Lexicon, Macro, Sortalike } from "./swdict.js";
+import type { Word, Subword, WordImpl } from "./word.js";
+import { wordCompare } from "./word.js";
+import { buildSortingInfoMap, extractBaseWord } from "./sortalike.js";
 
 function toWord(input: Word | string): Word {
   if (typeof input === "object") {
@@ -175,4 +177,67 @@ export async function compile({
   }
   lexicon.data = new Uint8Array(data);
   return lexicon;
+}
+
+export async function* _mergeSortalikes(
+  sortedUniqueWords: AsyncIterable<Word>,
+  sortalikes: Sortalike[],
+): AsyncIterable<Word> {
+  const sortingInfo = buildSortingInfoMap(sortalikes.map(sa => sa.subwords));
+
+  let lastBaseWord: WordImpl | null = null;
+  function* maybeEmit() {
+    if (lastBaseWord !== null) {
+      if (lastBaseWord.metadata.length === 1 && lastBaseWord.metadata[0] === 0n) {
+        lastBaseWord.metadata.length = 0;
+      }
+      yield lastBaseWord;
+      lastBaseWord = null;
+    }
+  }
+  for await (const word of sortedUniqueWords) {
+    for (const {} of word.metadata) {
+      throw new Error(`Word metadata not supported: "${word}" [${word.metadata}]`);
+    }
+    const baseWord = extractBaseWord(word, sortingInfo);
+    if (lastBaseWord && wordCompare(baseWord, lastBaseWord) === 0) {
+      lastBaseWord.metadata.push(...baseWord.metadata);
+    } else {
+      yield* maybeEmit();
+      lastBaseWord = baseWord;
+    }
+  }
+  yield* maybeEmit();
+}
+
+export async function* _compile(
+  sortedUniqueBaseWords: AsyncIterable<Word>,
+): AsyncIterable<Macro> {
+  let wordBuffer: string[] = [];
+  for await (const word of sortedUniqueBaseWords) {
+    const subwords = [...word.subwords];
+    let commonPrefixLength = 0;
+    if (wordBuffer.length) {
+      while (
+        subwords.length > commonPrefixLength &&
+          wordBuffer.length > commonPrefixLength &&
+          subwords[commonPrefixLength]!.toString() === wordBuffer[commonPrefixLength]
+      ) {
+        ++commonPrefixLength;
+      }
+      yield Macro.create({ backup: wordBuffer.length - commonPrefixLength });
+      wordBuffer.length = commonPrefixLength;
+    }
+    for (const subword of subwords.splice(commonPrefixLength)) {
+      for (const bigint of subword.metadata) {
+        yield Macro.create({ inlineMetadata: String(bigint) });
+      }
+      const subwordStr = subword.toString()
+      yield Macro.create({ subword: subwordStr });
+      wordBuffer.push(subwordStr);
+    }
+    for (const bigint of word.metadata) {
+      yield Macro.create({ inlineMetadata: String(bigint) });
+    }
+  }
 }

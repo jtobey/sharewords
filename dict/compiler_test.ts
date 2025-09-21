@@ -14,222 +14,77 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
-import { compile } from "./compiler.js";
-import { Lexicon } from "./swdict.js";
-import { WordList } from "./word_list.js";
-import { codePointCompare } from "./code_point_compare.js";
+import { _mergeSortalikes, _compile } from "./compiler.js";
+import { WordImpl, SubwordImpl } from "./word.js";
+import { Sortalike, Macro } from "./swdict.ts";
 
-function writeVarints(ns: number[]): Uint8Array {
-  const data: number[] = [];
-  for (let n of ns) {
-    while (n >= 0x80) {
-      data.push((n & 0x7f) | 0x80);
-      n >>>= 7;
-    }
-    data.push(n);
+async function* toAsync<T>(iterable: Iterable<T>): AsyncIterable<T> {
+  for (const t of iterable) {
+    yield t;
   }
-  return new Uint8Array(data);
+}
+
+async function fromAsync<T>(asyncIterable: AsyncIterable<T>): Promise<T[]> {
+  const ts: T[] = [];
+  for await (const t of asyncIterable) {
+    ts.push(t);
+  }
+  return ts;
 }
 
 describe("compiler", () => {
-  it("should compile a lexicon", async () => {
-    const words = ["green", "peas", "the", "three"];
-    const alphabet = [..."aeghnprst"];
-    const SUBWORD = {
-      a: 1,
-      e: 2,
-      g: 3,
-      h: 4,
-      n: 5,
-      p: 6,
-      r: 7,
-      s: 8,
-      t: 9,
-    };
-    const BACKUP0 = 1 + alphabet.length;
-    const name = "Test Lexicon";
-    const description = "Lexicon for testing.";
-    const expected = Lexicon.fromJSON(
-      Lexicon.toJSON(
-        Lexicon.create({
-          metadata: {
-            name,
-            description,
-            clearInterval: 1024,
-            macros: [
-              { clear: true },
-              { subword: "a" },
-              { subword: "e" },
-              { subword: "g" },
-              { subword: "h" },
-              { subword: "n" },
-              { subword: "p" },
-              { subword: "r" },
-              { subword: "s" },
-              { subword: "t" },
-              { backup: 0 },
-              { backup: 1 },
-              { backup: 2 },
-              { backup: 3 },
-              { backup: 4 },
-              { backup: 5 },
-            ],
-            subwordFrequencies: new Map([
-              ["g", 1],
-              ["r", 2],
-              ["e", 6],
-              ["n", 1],
-              ["p", 1],
-              ["a", 1],
-              ["s", 1],
-              ["t", 2],
-              ["h", 2],
-            ]),
-            wordCount: 4,
-          },
-          data: writeVarints([
-            SUBWORD.g!, // "g"
-            SUBWORD.r!, // "gr"
-            SUBWORD.e!, // "gre"
-            SUBWORD.e!, // "gree"
-            SUBWORD.n!, // "green"
-            BACKUP0 + 5, // ""
-            SUBWORD.p!, // "p"
-            SUBWORD.e!, // "pe"
-            SUBWORD.a!, // "pea"
-            SUBWORD.s!, // "peas"
-            BACKUP0 + 4, // ""
-            SUBWORD.t!, // "t"
-            SUBWORD.h!, // "th"
-            SUBWORD.e!, // "the"
-            BACKUP0 + 1, // "th"
-            SUBWORD.r!, // "thr"
-            SUBWORD.e!, // "thre"
-            SUBWORD.e!, // "three"
-          ]),
-        }),
-      ),
-    );
-    const actual = Lexicon.fromJSON(
-      Lexicon.toJSON(await compile({ words, alphabet, name, description })),
-    );
-    expect(actual).toEqual(expected);
-  });
-
-  it("should clear the word buffer at intervals", async () => {
-    const words = ["eager", "green", "greener", "greenest", "groan", "groaner"];
-    const alphabet = [..."aegnorst"];
-    const SUBWORD = { a: 1, e: 2, g: 3, n: 4, o: 5, r: 6, s: 7, t: 8 };
-    const BACKUP0 = 1 + alphabet.length;
-    const name = "Test Lexicon";
-    const description = "Lexicon for testing.";
-    const clearInterval = 11;
-    const expected = Lexicon.fromJSON(
-      Lexicon.toJSON(
-        Lexicon.create({
-          metadata: {
-            name,
-            description,
-            clearInterval,
-            macros: [
-              { clear: true },
-              ...alphabet.map((subword) => ({ subword })),
-              { backup: 0 },
-              { backup: 1 },
-              { backup: 2 },
-              { backup: 3 },
-              { backup: 4 },
-              { backup: 5 },
-            ],
-            subwordFrequencies: new Map([
-              ["e", 11],
-              ["a", 3],
-              ["g", 6],
-              ["r", 8],
-              ["n", 5],
-              ["s", 1],
-              ["t", 1],
-              ["o", 2],
-            ]),
-            wordCount: 6,
-          },
-          data: writeVarints([
-            SUBWORD.e!, // "e"
-            SUBWORD.a!, // "ea"
-            SUBWORD.g!, // "eag"
-            SUBWORD.e!, // "eage"
-            SUBWORD.r!, // "eager"
-            BACKUP0 + 5, // ""
-            SUBWORD.g!, // "g"
-            SUBWORD.r!, // "gr"
-            SUBWORD.e!, // "gre"
-            SUBWORD.e!, // "gree"
-            SUBWORD.n!, // "green"
-            0, // ""
-            SUBWORD.g!, // "g"
-            SUBWORD.r!, // "gr"
-            SUBWORD.e!, // "gre"
-            SUBWORD.e!, // "gree"
-            SUBWORD.n!, // "green"
-            SUBWORD.e!, // "greene"
-            SUBWORD.r!, // "greener"
-            BACKUP0 + 1, // "greene"
-            SUBWORD.s!, // "greenes"
-            SUBWORD.t!, // "greenest"
-            0, // ""
-            SUBWORD.g!, // "g"
-            SUBWORD.r!, // "gr"
-            SUBWORD.o!, // "gro"
-            SUBWORD.a!, // "groa"
-            SUBWORD.n!, // "groan"
-            BACKUP0, // "groan"
-            SUBWORD.e!, // "groane"
-            SUBWORD.r!, // "groaner"
-          ]),
-        }),
-      ),
-    );
-    const actual = Lexicon.fromJSON(
-      Lexicon.toJSON(
-        await compile({ words, alphabet, name, description, clearInterval }),
-      ),
-    );
-    expect(actual).toEqual(expected);
-  });
-
-  it("should roundtrip a word list", async () => {
-    const words = ["blue", "bluer", "bluest", "green", "greener", "greenest"];
-    const alphabet = [...new Set(words.join(""))];
-    const name = "Test Lexicon";
-    const description = "Lexicon for testing.";
-    const clearInterval = 16;
-    const lexicon = await compile({
-      words,
-      alphabet,
-      name,
-      description,
-      clearInterval,
+  describe("_mergeSortalikes", () => {
+    it("should accept empty input", async () => {
+      expect(await fromAsync(_mergeSortalikes(toAsync([]), []))).toEqual([]);
     });
-    const binary = Lexicon.encode(lexicon).finish();
-    const wordList = new WordList(binary);
-    expect([...wordList].map(String)).toEqual(words);
+
+    it("should perform a trivial merge", async () => {
+      const input = ["hello", "world"];
+      const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
+      const expected = input;
+      const expectedMetadata = [[], []];
+      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
+      const actual = actualWords.map(String);
+      expect(actual).toEqual(expected);
+      const actualMetadata = actualWords.map(word => word.metadata);
+      expect(actualMetadata).toEqual(expectedMetadata);
+    });
+
+    it("should merge sortalikes", async() => {
+      const input = ["café", "cafe", "world"];
+      const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
+      const expected = ["cafe", "world"];
+      const expectedMetadata = [[1n, 0n], []];
+      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
+      const actual = actualWords.map(String);
+      expect(actual).toEqual(expected);
+      const actualMetadata = actualWords.map(word => word.metadata);
+      expect(actualMetadata).toEqual(expectedMetadata);
+    });
   });
 
-  it("should infer alphabet and sort words", async () => {
-    const words = [
-      "blue",
-      "bluer",
-      "green",
-      "bluest",
-      "greener",
-      "greenest",
-      "mauve",
-    ];
-    const name = "Test Lexicon";
-    const description = "Lexicon for testing.";
-    const lexicon = await compile({ words, name, description });
-    const binary = Lexicon.encode(lexicon).finish();
-    const wordList = new WordList(binary);
-    expect([...wordList].map(String)).toEqual(words.toSorted(codePointCompare));
+  describe("_compile", () => {
+    it("should compile an empty list", async () => {
+      expect(await fromAsync(_compile(toAsync([])))).toEqual([]);
+    });
+
+    it("should compile cafe and can", async () => {
+      const input = ["cafe", "can"];
+      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      inputWords[0]!.metadata = [1n];
+      const expectedMacros = [
+        Macro.create({ subword: "c" }),
+        Macro.create({ subword: "a" }),
+        Macro.create({ subword: "f" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ inlineMetadata: "1" }),
+        Macro.create({ backup: 2 }),
+        Macro.create({ subword: "n" }),
+      ];
+      const actualMacros = await fromAsync(_compile(toAsync(inputWords)));
+      expect(actualMacros).toEqual(expectedMacros);
+    });
   });
 });

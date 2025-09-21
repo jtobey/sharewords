@@ -44,7 +44,13 @@ message Macro {
     // A list of macros with which to replace this macro.
     // Recursion is not allowed.
     Subroutine subroutine = 4;
+    // A decimal bigint value whose meaning depends on the context.
+    string inline_metadata = 5;
   };
+};
+
+message Sortalike {
+  repeated string subwords = 1;
 };
 
 message Metadata {
@@ -55,6 +61,7 @@ message Metadata {
   map<string, uint64> subword_frequencies = 5;
   repeated string language_codes = 6;
   uint64 word_count = 7;
+  repeated Sortalike sortalikes = 8;
 };
 
 // A word list, compressed and optimized for zero-copy searching.
