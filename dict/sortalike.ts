@@ -46,7 +46,7 @@ export function extractBaseWord(
       baseSubwords.push(subword);
     }
   }
-  return new WordImpl([wordMetadata], baseSubwords);
+  return new WordImpl(baseSubwords, [wordMetadata]);
 }
 
 export function buildSortingInfoMap(
@@ -85,5 +85,5 @@ export function makeSortalike(
   if (n !== 0n) {
     throw new RangeError(`Metadata ${wordMetadata} out of range for base word "${baseWord}".`);
   }
-  return new WordImpl([], subwords);
+  return new WordImpl(subwords);
 }

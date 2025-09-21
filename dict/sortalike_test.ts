@@ -28,13 +28,13 @@ const SPANISH_LETTERS_SORTED_TOGETHER = [
 const SPANISH_SORTING_INFO_MAP = buildSortingInfoMap(SPANISH_LETTERS_SORTED_TOGETHER);
 
 function extractBaseWordForTest(spanishWord: string) {
-  const word = new WordImpl([], [...spanishWord].map(c => new SubwordImpl(c)));
+  const word = new WordImpl([...spanishWord].map(c => new SubwordImpl(c)));
   const baseWordWithMetadata = extractBaseWord(word, SPANISH_SORTING_INFO_MAP);
   return [ baseWordWithMetadata.toString(), ...baseWordWithMetadata.metadata ];
 }
 
 function makeSortalikeForTest(baseWordStr: string, accentInfo: bigint) {
-  const baseWord = new WordImpl([accentInfo], [...baseWordStr].map(c => new SubwordImpl(c)));
+  const baseWord = new WordImpl([...baseWordStr].map(c => new SubwordImpl(c)), [accentInfo]);
   const word = makeSortalike(baseWord, accentInfo, SPANISH_SORTING_INFO_MAP);
   return word.toString();
 }

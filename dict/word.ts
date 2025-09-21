@@ -37,8 +37,10 @@ export type Subword = {
 };
 
 export class SubwordImpl implements Subword {
-  metadata = [];
-  constructor(private str: string) {}
+  constructor(
+    private str: string,
+    public metadata: bigint[] = [],
+  ) {}
   toString() {
     return this.str;
   }
@@ -46,12 +48,12 @@ export class SubwordImpl implements Subword {
 
 export class WordImpl<SubwordType extends Subword = Subword> implements Word {
   constructor(
-    public metadata: bigint[],
-    public subwords: Iterable<SubwordType>,
+    public subwords: SubwordType[],
+    public metadata: bigint[] = [],
   ) {}
 
   toString() {
-    return [...this.subwords].map(String).join("");
+    return this.subwords.map(subword => subword.toString()).join("");
   }
 };
 
