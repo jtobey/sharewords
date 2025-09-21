@@ -17,6 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { codePointCompare } from "./code_point_compare.js";
+
 /**
  * A SWDICT file entry.
  */
@@ -33,3 +35,45 @@ export type Subword = {
   toString: () => string;
   metadata: Iterable<bigint>;
 };
+
+export class SubwordImpl implements Subword {
+  metadata = [];
+  constructor(private str: string) {}
+  toString() {
+    return this.str;
+  }
+};
+
+export class WordImpl<SubwordType extends Subword = Subword> implements Word {
+  constructor(
+    public metadata: bigint[],
+    public subwords: Iterable<SubwordType>,
+  ) {}
+
+  toString() {
+    return [...this.subwords].map(String).join("");
+  }
+};
+
+/**
+ * Returns -1 if {left} sorts before {right}, 0 if equal, 1 otherwise.
+ */
+export function wordCompare(left: Word, right: Word): -1 | 0 | 1 {
+  const leftIter = left.subwords[Symbol.iterator]();
+  const rightIter = right.subwords[Symbol.iterator]();
+  for (;;) {
+    const { value: leftSubword } = leftIter.next();
+    const { value: rightSubword } = rightIter.next();
+    if (leftSubword === undefined && rightSubword === undefined) {
+      return 0;
+    } else if (leftSubword === undefined) {
+      // left is a prefix of right.
+      return -1;
+    } else if (rightSubword === undefined) {
+      // right is a prefix of left.
+      return 1;
+    }
+    const comparison = codePointCompare(leftSubword.toString(), rightSubword.toString());
+    if (comparison) return comparison;
+  }
+}
