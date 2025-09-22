@@ -48,6 +48,7 @@ function toWord(input: Word | string): Word {
   };
 }
 
+/** @deprecated */
 export async function compile({
   words,
   name,
@@ -285,6 +286,10 @@ type IndexMacroAndCount = {
   count: number;
 };
 
+/**
+ * Populates the `data`, `metadata.macros`, and `metadata.wordCount` fields of
+ * {lexicon}.
+ */
 export async function _populateMacrosAndWords(
   macros: AsyncIterable<Macro>,
   lexicon: Partial<Lexicon>,
