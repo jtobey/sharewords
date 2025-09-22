@@ -41,7 +41,9 @@ class WordListSubword implements Subword {
 
   get metadata() {
     const metadataZero = BigInt(this.macros.length);
-    return this.elements.slice(0, -1).map(n => n - metadataZero);
+    return this.elements.slice(0, -1).map(
+      n => BigInt(this.macros[Number(n)]?.inlineMetadata ?? n - metadataZero)
+    );
   }
 
   toString() {
@@ -66,7 +68,9 @@ class WordListEntry extends String implements Word {
 
   get metadata() {
     const metadataZero = BigInt(this.macros.length);
-    return this.elements[this.elements.length - 1]!.map(n => n - metadataZero);
+    return this.elements[this.elements.length - 1]!.map(
+      n => BigInt(this.macros[Number(n)]?.inlineMetadata ?? n - metadataZero)
+    );
   }
 
   get subwords() {
@@ -224,6 +228,10 @@ export class WordList {
    * Returns true if `possibleWord` is in the list.
    */
   has(possibleWord: string): boolean {
+    return Boolean(this.get(possibleWord));
+  }
+
+  get(possibleWord: string): Word | undefined {
     // This performs a binary search through blocks delimited by "clear" instructions,
     // followed by a scan within a block.
     let iterator = this[Symbol.iterator]();
@@ -244,7 +252,7 @@ export class WordList {
         const midWord = midIterator.next().value!;
         switch (codePointCompare(possibleWord, midWord)) {
           case 0:
-            return true;
+            return midWord;
           case -1:
             hiBlock = midBlock;
             continue;
@@ -258,15 +266,15 @@ export class WordList {
     for (const word of iterator) {
       switch (codePointCompare(possibleWord, word)) {
         case 0:
-          return true;
+          return word;
         case 1:
           // `possibleWord` sorts after `word`. Keep scanning.
           continue;
         case -1:
           // `possibleWord` sorts before `word`. Not found.
-          return false;
+          return undefined;
       }
     }
-    return false;
+    return undefined;
   }
 }

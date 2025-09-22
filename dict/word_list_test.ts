@@ -162,7 +162,7 @@ describe("word list", () => {
     ).toEqual(expected);
   });
 
-  it("should expose word metadata", () => {
+  it("should expose word metadata by iteration", () => {
     const name = "Test Lexicon";
     const description = "Lexicon for testing.";
     const lexicon = Lexicon.create({
@@ -178,5 +178,23 @@ describe("word list", () => {
         metadata: entry.metadata,
       })),
     ).toEqual(expected);
+  });
+
+  it("should expose word metadata by get", () => {
+    const name = "Test Lexicon";
+    const description = "Lexicon for testing.";
+    const lexicon = Lexicon.create({
+      metadata: {name, description, macros: [
+        { subword: "A" },
+        { inlineMetadata: "55" },
+      ]},
+      data: writeVarints([0, 79, 1]),
+    });
+    const expected = {word: "A", metadata: [77n, 55n]};
+    const binary = Lexicon.encode(lexicon).finish();
+    const wordList = new WordList(binary);
+    const actual = wordList.get("A");
+    expect(String(actual)).toEqual(expected.word);
+    expect(actual?.metadata).toEqual(expected.metadata);
   });
 });
