@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
-import { _sortAndDeduplicate, _mergeSortalikes, _compile, _getMacroStatistics, type MacroStatistics } from "./compiler.js";
+import { _sortAndDeduplicate, _mergeSortalikes, _compile, _populateMacrosAndWords } from "./compiler.js";
 import { WordImpl, SubwordImpl } from "./word.js";
-import { Sortalike, Macro } from "./swdict.ts";
+import { Sortalike, Macro, Lexicon } from "./swdict.ts";
 
 // Test helper. Converts an Iterable to an AsyncIterable.
 async function* toAsync<T>(iterable: Iterable<T>): AsyncIterable<T> {
@@ -147,7 +147,7 @@ describe("compiler", () => {
     });
   });
 
-  describe("_getMacroStatistics", () => {
+  describe("_populateMacrosAndWords", () => {
     it("should get macro statistics", async () => {
       const macros = [
         Macro.create({ subword: "a" }),
@@ -159,46 +159,19 @@ describe("compiler", () => {
         Macro.create({ subword: "a" }),
         Macro.create({ inlineMetadata: "1" }),
       ];
-      const expectedData = [
-        { index: 0, macro: Macro.create({ subword: "a" }), count: 1 },
-        { index: 0, macro: Macro.create({ subword: "a" }), count: 2 },
-        { index: 1, macro: Macro.create({ backup: 1 }), count: 1 },
-        { index: 2, macro: Macro.create({ subword: "b" }), count: 1 },
-        { index: 3, macro: Macro.create({ clear: {} }), count: 1 },
-        { index: 2, macro: Macro.create({ subword: "b" }), count: 2 },
-        { index: 0, macro: Macro.create({ subword: "a" }), count: 3 },
-        { index: 4, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
-      ];
-      const expectedCounts = [
-        { index: 0, macro: Macro.create({ subword: "a" }), count: 3 },
-        { index: 1, macro: Macro.create({ backup: 1 }), count: 1 },
-        { index: 2, macro: Macro.create({ subword: "b" }), count: 2 },
-        { index: 3, macro: Macro.create({ clear: {} }), count: 1 },
-        { index: 4, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
-      ];
-      const expectedStatistics: MacroStatistics = {
-        byContent: expectedCounts,
-        byKind: {
-          subword: 5,
-          backup: 1,
-          clear: 1,
-          inlineMetadata: 1,
-        },
-      }
-      const actualData: typeof expectedData = [];
-      let actualStatistics: typeof expectedStatistics | null = null;
-      const asyncIter = _getMacroStatistics(toAsync(macros));
-      for (;;) {
-        const { value, done } = await asyncIter.next();
-        if (done) {
-          actualStatistics = value;
-          break;
-        }
-        const { index, macro, count } = value;
-        actualData.push({ index, macro, count });
-      }
-      expect(actualData).toEqual(expectedData);
-      expect(actualStatistics).toEqual(expectedStatistics);
+      const expectedMacros: Macro[] = [];
+      expectedMacros[0] = Macro.create({ subword: "a" });
+      expectedMacros[1] = Macro.create({ backup: 1 });
+      expectedMacros[2] = Macro.create({ subword: "b" });
+      expectedMacros[3] = Macro.create({ clear: {} });
+      expectedMacros[4] = Macro.create({ inlineMetadata: "1" });
+      const expectedData = new Uint8Array([ 0, 0, 1, 2, 3, 2, 0, 4 ]);
+      const expectedWordCount = 3;
+      const lexicon = Lexicon.create();
+      await _populateMacrosAndWords(toAsync(macros), lexicon);
+      expect(lexicon.metadata?.macros).toEqual(expectedMacros);
+      expect(lexicon.data).toEqual(expectedData);
+      expect(lexicon.metadata?.wordCount).toEqual(expectedWordCount);
     });
   });
 });

@@ -18,7 +18,7 @@ limitations under the License.
  */
 
 import { codePointCompare } from "./code_point_compare.js";
-import { Lexicon, Macro, Sortalike } from "./swdict.js";
+import { Lexicon, Metadata, Macro, Sortalike } from "./swdict.js";
 import type { Word, Subword, WordImpl } from "./word.js";
 import { wordCompare } from "./word.js";
 import { buildSortingInfoMap, extractBaseWord } from "./sortalike.js";
@@ -285,48 +285,42 @@ type IndexMacroAndCount = {
   count: number;
 };
 
-export type MacroStatistics = {
-  byContent: IndexMacroAndCount[],
-  byKind: {
-    subword: number,
-    backup: number,
-    clear: number,
-    inlineMetadata: number,
+export async function _populateMacrosAndWords(
+  macros: AsyncIterable<Macro>,
+  lexicon: Partial<Lexicon>,
+): Promise<void> {
+  const data: number[] = [];
+  function writeVarint(n: number) {
+    while (n >= 0x80) {
+      data.push((n & 0x7f) | 0x80);
+      n >>>= 7;
+    }
+    data.push(n);
   }
-};
-
-export async function* _getMacroStatistics(
-  macros: AsyncIterable<Macro>
-): AsyncGenerator<IndexMacroAndCount, MacroStatistics> {
   const counts = new Map<string, IndexMacroAndCount>;
   for await (const macro of macros) {
     const key = JSON.stringify(Macro.toJSON(macro));
-    let toYield = counts.get(key);
-    if (!toYield) {
-      toYield = {
+    let value = counts.get(key);
+    if (!value) {
+      value = {
         index: counts.size,
         macro: macro,
         count: 0,
       };
-      counts.set(key, toYield);
+      counts.set(key, value);
     }
-    ++toYield.count;
-    yield toYield;
+    ++value.count;
+    writeVarint(value.index);
   }
-  const stats: MacroStatistics = {
-    byContent: [...counts.values()],
-    byKind: {
-      subword: 0,
-      backup: 0,
-      clear: 0,
-      inlineMetadata: 0,
-    },
-  };
-  for (const [/* key */, { macro, count }] of counts.entries()) {
-    if (macro.subword !== undefined) stats.byKind.subword += count;
-    if (macro.backup !== undefined) stats.byKind.backup += count;
-    if (macro.clear !== undefined) stats.byKind.clear += count;
-    if (macro.inlineMetadata !== undefined) stats.byKind.inlineMetadata += count;
+  const countByKind = { subword: 0, backup: 0, clear: 0 };
+  lexicon.metadata ||= Metadata.create();
+  for (const { index, macro, count } of counts.values()) {
+    lexicon.metadata.macros[index] = macro;
+    if (macro.subword !== undefined) countByKind.subword += count;
+    if (macro.backup !== undefined) countByKind.backup += count;
+    if (macro.clear !== undefined) countByKind.clear += count;
   }
-  return stats;
+  lexicon.metadata.wordCount = countByKind.backup + countByKind.clear;
+  if (countByKind.subword) ++lexicon.metadata.wordCount;
+  lexicon.data = new Uint8Array(data);
 }
