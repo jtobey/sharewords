@@ -51,6 +51,11 @@ const { values: args, positionals: dictFiles } = parseArgs({
       type: "boolean",
       short: "w",
     },
+    "show-metadata": {
+      // Print all metadata.
+      type: "boolean",
+      short: "m",
+    },
     "show-all": {
       type: "boolean",
       short: "a",
@@ -61,11 +66,12 @@ const { values: args, positionals: dictFiles } = parseArgs({
 });
 
 const showAll = args["show-all"];
-const showName = showAll || args["show-name"];
-const showDescription = showAll || args["show-description"];
-const showLanguageCodes = showAll || args["show-language-codes"];
-const showFrequencies = showAll || args["show-frequencies"];
-const showWordCount = showAll || args["show-word-count"];
+const showMetadata = showAll || args["show-metadata"];
+const showName = showMetadata || args["show-name"];
+const showDescription = showMetadata || args["show-description"];
+const showLanguageCodes = showMetadata || args["show-language-codes"];
+const showFrequencies = showMetadata || args["show-frequencies"];
+const showWordCount = showMetadata || args["show-word-count"];
 const showWords =
   showAll ||
   (args["show-words"] ??
