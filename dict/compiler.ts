@@ -191,7 +191,7 @@ export async function* _sortAndDeduplicate(
   }
   baseWordsWithWords.sort((a, b) => wordCompare(a[0], b[0]) || wordCompare(a[1], b[1]));
   let lastWord: Word | null = null;
-  for (const [, word] of baseWordsWithWords) {
+  for (const [/* baseWord */, word] of baseWordsWithWords) {
     if (lastWord === null || wordCompare(word, lastWord) !== 0) {
       yield word;
       lastWord = word;
@@ -234,7 +234,7 @@ export async function* _compile(
   sortedUniqueBaseWords: AsyncIterable<Word>,
   clearInterval = 1024,
 ): AsyncIterable<Macro> {
-  let wordBuffer: string[] = [];
+  const wordBuffer: string[] = [];
   let macrosEmitted = 0;
   let nextClear = clearInterval;
 
@@ -277,4 +277,56 @@ export async function* _compile(
       yield emit(Macro.create({ inlineMetadata: String(bigint) }));
     }
   }
+}
+
+type IndexMacroAndCount = {
+  index: number;
+  macro: Macro;
+  count: number;
+};
+
+export type MacroStatistics = {
+  byContent: IndexMacroAndCount[],
+  byKind: {
+    subword: number,
+    backup: number,
+    clear: number,
+    inlineMetadata: number,
+  }
+};
+
+export async function* _getMacroStatistics(
+  macros: AsyncIterable<Macro>
+): AsyncGenerator<IndexMacroAndCount, MacroStatistics> {
+  const counts = new Map<string, IndexMacroAndCount>;
+  for await (const macro of macros) {
+    const key = JSON.stringify(Macro.toJSON(macro));
+    let toYield = counts.get(key);
+    if (!toYield) {
+      toYield = {
+        index: counts.size,
+        macro: macro,
+        count: 0,
+      };
+      counts.set(key, toYield);
+    }
+    ++toYield.count;
+    yield toYield;
+  }
+  const stats: MacroStatistics = {
+    byContent: [...counts.values()],
+    byKind: {
+      subword: 0,
+      backup: 0,
+      clear: 0,
+      inlineMetadata: 0,
+    },
+  };
+  for (const [/* key */, { macro, count }] of counts.entries()) {
+    if (macro.subword !== undefined) stats.byKind.subword += count;
+    if (macro.backup !== undefined) stats.byKind.backup += count;
+    if (macro.clear !== undefined) stats.byKind.clear += count;
+    if (macro.inlineMetadata !== undefined) stats.byKind.inlineMetadata += count;
+  }
+  return stats;
 }
