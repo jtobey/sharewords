@@ -17,6 +17,7 @@ import { expect, describe, it } from "bun:test";
 import { _sortAndDeduplicate, _mergeSortalikes, _compile, _populateMacrosAndWords } from "./compiler.js";
 import { WordImpl, SubwordImpl } from "./word.js";
 import { Sortalike, Macro, Lexicon } from "./swdict.ts";
+import { WordList } from "./word_list.ts";
 
 // Test helper. Converts an Iterable to an AsyncIterable.
 async function* toAsync<T>(iterable: Iterable<T>): AsyncIterable<T> {
@@ -173,5 +174,24 @@ describe("compiler", () => {
       expect(lexicon.data).toEqual(expectedData);
       expect(lexicon.metadata?.wordCount).toEqual(expectedWordCount);
     });
+  });
+
+  it("should roundtrip a word list", async () => {
+    const input = ["blue", "bluer", "bluest", "green", "greener", "greenest"];
+    const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+    const lexicon = Lexicon.create({
+      metadata: {
+        name: "Test Lexicon",
+        description: "Lexicon for testing.",
+        clearInterval: 16,
+      },
+    });
+    const sorted = _sortAndDeduplicate(toAsync(inputWords), []);
+    const merged = _mergeSortalikes(sorted, []);
+    const compiled = _compile(merged);
+    await _populateMacrosAndWords(compiled, lexicon);
+    const binary = Lexicon.encode(lexicon).finish();
+    const wordList = new WordList(binary);
+    expect([...wordList].map(String)).toEqual(input);
   });
 });
