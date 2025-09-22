@@ -304,7 +304,7 @@ export async function _populateMacrosAndWords(
   }
   const counts = new Map<string, IndexMacroAndCount>;
   for await (const macro of macros) {
-    const key = JSON.stringify(Macro.toJSON(macro));
+    const key = String.fromCodePoint(...Macro.encode(macro).finish());
     let value = counts.get(key);
     if (!value) {
       value = {
