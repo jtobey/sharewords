@@ -42,13 +42,11 @@ describe("word list", () => {
       "greenery",
       "greenest",
     ];
-    const alphabet = [...new Set(words.join(""))];
     const name = "Test Lexicon";
     const description = "Lexicon for testing.";
     const clearInterval = 16;
     const lexicon = await compile({
       words,
-      alphabet,
       name,
       description,
       clearInterval,

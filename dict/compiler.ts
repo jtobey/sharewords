@@ -17,166 +17,57 @@ limitations under the License.
  * Compiles a word list into a Lexicon protobuf.
  */
 
-import { codePointCompare } from "./code_point_compare.js";
 import { Lexicon, Metadata, Macro, Sortalike } from "./swdict.js";
-import type { Word, Subword, WordImpl } from "./word.js";
-import { wordCompare } from "./word.js";
+import { type Word, WordImpl, SubwordImpl, wordCompare } from "./word.js";
 import { buildSortingInfoMap, extractBaseWord } from "./sortalike.js";
 
-function toWord(input: Word | string): Word {
+export const DEFAULT_CLEAR_INTERVAL = 1024;
+
+export function _toWord(input: Word | string): Word {
   if (typeof input === "object") {
     if ("subwords" in input && "metadata" in input) {
       return input;
     }
     throw TypeError("Object should have `subwords` and `metadata` properites", input);
   }
-  const wordStr = input as string;
-  function* subwords(): Generator<Subword> {
-    // Deal in code points, not code units.
-    for (const character of [...wordStr]) {
-      yield {
-        toString() { return character; },
-        metadata: [],
-      };
-    }
-  }
-  // Return a `Word` with empty metadata.
-  return {
-    toString: () => wordStr,
-    metadata: [],
-    get subwords() { return subwords(); }
-  };
+  return new WordImpl([...input].map(c => new SubwordImpl(c)));
 }
 
-/** @deprecated */
 export async function compile({
   words,
   name,
   description,
   languageCodes = [],
-  clearInterval = 1024,
-  alphabet = null,
+  clearInterval = DEFAULT_CLEAR_INTERVAL,
+  sortalikes = [],
 }: {
   words: Iterable<Word | string> | AsyncIterable<Word | string>;
   name: string;
   description: string;
   languageCodes?: string[];
   clearInterval?: number;
-  alphabet?: Array<string> | null;
+  sortalikes?: Sortalike[];
 }): Promise<Lexicon> {
-  if (!alphabet) {
-    const tempWords: Word[] = [];
-    const subwords = new Set<string>();
-    for await (const input of words) {
-      const word = toWord(input);
-      tempWords.push(word);
-      for (const subword of word.subwords) {
-        subwords.add(subword.toString());
-      }
-    }
-    tempWords.sort((a, b) => codePointCompare(a.toString(), b.toString()));
-    words = tempWords;
-    alphabet = [...subwords];
-    alphabet.sort(codePointCompare);
-  }
+
   const lexicon = Lexicon.create({
     metadata: {
       name,
       description,
       languageCodes,
       clearInterval,
-      macros: [{ clear: {} }],
+      sortalikes,
     },
-    data: new Uint8Array(),
   });
-  const data: number[] = [];
-  function writeVarint(n: number) {
-    while (n >= 0x80) {
-      data.push((n & 0x7f) | 0x80);
-      n >>>= 7;
+  async function* getAsyncWords() {
+    for await (const wordOrString of words) {
+      yield _toWord(wordOrString);
     }
-    data.push(n);
   }
-  const metadata = lexicon.metadata!;
-  const macroIndexForSubword = new Map<string, number>();
-  for (const subword of alphabet) {
-    macroIndexForSubword.set(subword, metadata.macros.length);
-    metadata.macros.push({ subword });
-  }
-  const macroIndexForDeleteZero = metadata.macros.length;
-  let wordBuffer: string[] = [];
-  let nextClear = clearInterval;
-  let lastWordStr: string | null = null;
-  for await (const input of words) {
-    const word = toWord(input);
-    const wordStr = word.toString();
-    if (lastWordStr !== null) {
-      switch (codePointCompare(lastWordStr, wordStr)) {
-        case 0:
-          console.warn(`Duplicate word "${wordStr}".`);
-          continue;
-        case 1:
-          throw new Error(
-            `Alphabet passed but words are out of order: "${lastWordStr}" should follow "${wordStr}".`,
-          );
-      }
-    }
-    ++metadata.wordCount;
-    lastWordStr = wordStr;
-    const subwords = [...word.subwords];
-    subwords.forEach(subword => {
-      const subwordStr = String(subword);
-      metadata.subwordFrequencies.set(
-        subwordStr,
-        1 + (metadata.subwordFrequencies.get(subwordStr) ?? 0),
-      );
-    });
-    let commonPrefixLength = 0;
-    if (wordBuffer.length) {
-      if (data.length >= nextClear) {
-        writeVarint(0);
-        wordBuffer.length = 0;
-        while (data.length >= nextClear) {
-          nextClear += clearInterval;
-        }
-      } else {
-        while (
-          subwords.length > commonPrefixLength &&
-            wordBuffer.length > commonPrefixLength &&
-            subwords[commonPrefixLength]!.toString() === wordBuffer[commonPrefixLength]
-        ) {
-          ++commonPrefixLength;
-        }
-        const numberOfCharsToDelete = wordBuffer.length - commonPrefixLength;
-        while (
-          metadata.macros.length - macroIndexForDeleteZero <=
-            numberOfCharsToDelete
-        ) {
-          metadata.macros.push({
-            backup: metadata.macros.length - macroIndexForDeleteZero,
-          });
-        }
-        const indexForDeletion =
-          macroIndexForDeleteZero + numberOfCharsToDelete;
-        writeVarint(indexForDeletion);
-        wordBuffer.length = commonPrefixLength;
-      }
-    }
-    const subwordsToAdd = subwords.splice(commonPrefixLength);
-    if (!subwordsToAdd.every(subword => macroIndexForSubword.has(subword.toString()))) {
-      throw new Error(
-        `Word "${wordStr}" contains characters missing from alphabet.`,
-      );
-    }
-    for (const subword of subwordsToAdd) {
-      // TODO - Write subword metadata.
-      const subwordStr = subword.toString()
-      writeVarint(macroIndexForSubword.get(subwordStr)!);
-      wordBuffer.push(subwordStr);
-    }
-    // TODO - Write word metadata.
-  }
-  lexicon.data = new Uint8Array(data);
+  const asyncWords = getAsyncWords();
+  const sorted = _sortAndDeduplicate(asyncWords, sortalikes);
+  const merged = _mergeSortalikes(sorted, sortalikes);
+  const compiled = _compile(merged, clearInterval);
+  await _populateMacrosAndWords(compiled, lexicon);
   return lexicon;
 }
 
@@ -233,7 +124,7 @@ export async function* _mergeSortalikes(
 
 export async function* _compile(
   sortedUniqueBaseWords: AsyncIterable<Word>,
-  clearInterval = 1024,
+  clearInterval = DEFAULT_CLEAR_INTERVAL,
 ): AsyncIterable<Macro> {
   const wordBuffer: string[] = [];
   let macrosEmitted = 0;

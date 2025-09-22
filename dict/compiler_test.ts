@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
+import { _toWord } from "./compiler.js";
 import { _sortAndDeduplicate, _mergeSortalikes, _compile, _populateMacrosAndWords } from "./compiler.js";
-import { WordImpl, SubwordImpl } from "./word.js";
 import { Sortalike, Macro, Lexicon } from "./swdict.ts";
 import { WordList } from "./word_list.ts";
 
-// Test helper. Converts an Iterable to an AsyncIterable.
-async function* toAsync<T>(iterable: Iterable<T>): AsyncIterable<T> {
-  for (const t of iterable) {
+// Converts an Iterable to an AsyncIterable.
+async function* toAsync<T>(iterable: Iterable<T> | AsyncIterable<T>): AsyncIterable<T> {
+  for await (const t of iterable) {
     yield t;
   }
 }
@@ -45,7 +45,7 @@ describe("compiler", () => {
       const input = ["unsorted", "list", "of", "unsortéd", "list", "unsorts"];
       const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
       const expected = ["list", "of", "unsorted", "unsortéd", "unsorts"];
-      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const inputWords = input.map(_toWord);
       const actualWords = await fromAsync(_sortAndDeduplicate(toAsync(inputWords), sortalikes));
       const actual = actualWords.map(String);
       expect(actual).toEqual(expected);
@@ -62,7 +62,7 @@ describe("compiler", () => {
       const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
       const expected = input;
       const expectedMetadata = [[], []];
-      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const inputWords = input.map(_toWord);
       const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
       const actual = actualWords.map(String);
       expect(actual).toEqual(expected);
@@ -75,7 +75,7 @@ describe("compiler", () => {
       const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
       const expected = ["cafe", "world"];
       const expectedMetadata = [[1n, 0n], []];
-      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const inputWords = input.map(_toWord);
       const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
       const actual = actualWords.map(String);
       expect(actual).toEqual(expected);
@@ -91,7 +91,7 @@ describe("compiler", () => {
 
     it("should compile cafe and can", async () => {
       const input = ["cafe", "can"];
-      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const inputWords = input.map(_toWord);
       inputWords[0]!.metadata = [1n];
       const expectedMacros = [
         Macro.create({ subword: "c" }),
@@ -142,7 +142,7 @@ describe("compiler", () => {
         Macro.create({ subword: "e" }),
         Macro.create({ subword: "r" }),
       ];
-      const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+      const inputWords = input.map(_toWord);
       const actualMacros = await fromAsync(_compile(toAsync(inputWords), clearInterval));
       expect(actualMacros).toEqual(expectedMacros);
     });
@@ -178,7 +178,7 @@ describe("compiler", () => {
 
   it("should roundtrip a word list", async () => {
     const input = ["blue", "bluer", "bluest", "green", "greener", "greenest"];
-    const inputWords = input.map(w => new WordImpl([...w].map(c => new SubwordImpl(c))));
+    const inputWords = input.map(_toWord);
     const lexicon = Lexicon.create({
       metadata: {
         name: "Test Lexicon",
