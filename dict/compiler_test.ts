@@ -155,7 +155,7 @@ describe("compiler", () => {
         Macro.create({ backup: 1 }),
         Macro.create({ subword: "b" }),
         Macro.create({ clear: {} }),
-        Macro.create({ subword: "c" }),
+        Macro.create({ subword: "b" }),
         Macro.create({ subword: "a" }),
         Macro.create({ inlineMetadata: "1" }),
       ];
@@ -165,17 +165,16 @@ describe("compiler", () => {
         { index: 1, macro: Macro.create({ backup: 1 }), count: 1 },
         { index: 2, macro: Macro.create({ subword: "b" }), count: 1 },
         { index: 3, macro: Macro.create({ clear: {} }), count: 1 },
-        { index: 4, macro: Macro.create({ subword: "c" }), count: 1 },
+        { index: 2, macro: Macro.create({ subword: "b" }), count: 2 },
         { index: 0, macro: Macro.create({ subword: "a" }), count: 3 },
-        { index: 5, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
+        { index: 4, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
       ];
       const expectedCounts = [
         { index: 0, macro: Macro.create({ subword: "a" }), count: 3 },
         { index: 1, macro: Macro.create({ backup: 1 }), count: 1 },
-        { index: 2, macro: Macro.create({ subword: "b" }), count: 1 },
+        { index: 2, macro: Macro.create({ subword: "b" }), count: 2 },
         { index: 3, macro: Macro.create({ clear: {} }), count: 1 },
-        { index: 4, macro: Macro.create({ subword: "c" }), count: 1 },
-        { index: 5, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
+        { index: 4, macro: Macro.create({ inlineMetadata: "1" }), count: 1 },
       ];
       const expectedStatistics: MacroStatistics = {
         byContent: expectedCounts,
