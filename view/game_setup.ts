@@ -186,7 +186,7 @@ export class GameSetup {
       };
       playerEntry.appendChild(removeButton);
 
-      if (this.gameState.keepAllHistory && player.id !== undefined) {
+      if (player.id !== undefined) {
         const historyParams = this.gameState.getHistoryUrlParamsForPlayer(
           player.id,
         );

@@ -303,7 +303,7 @@ describe("game state", () => {
 
   it("should clear assigned letter on recall", async () => {
     const settings = Settings.forLanguage("en");
-    const gameState = new GameState("1", settings, false, undefined, []);
+    const gameState = new GameState("1", settings, undefined, []);
 
     const blankTilePlacement: TilePlacement = {
       tile: new Tile({ letter: "", value: 0 }),

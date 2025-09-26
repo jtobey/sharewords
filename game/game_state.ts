@@ -67,7 +67,6 @@ export class GameState extends EventTarget {
   constructor(
     readonly playerId: string, // The local player.
     settings?: Settings,
-    public keepAllHistory = true,
     shared?: SharedState,
     readonly tilesHeld: Array<TilePlacement> = [],
     /**
@@ -111,7 +110,6 @@ export class GameState extends EventTarget {
   copyFrom(other: GameState) {
     // Assume that constant fields are equal.
     this.shared.copyFrom(other.shared);
-    this.keepAllHistory = other.keepAllHistory; // TODO - Reconsider.
     this.tilesHeld.splice(0, this.tilesHeld.length, ...other.tilesHeld);
     this.history.splice(0, this.history.length, ...other.history);
     this.pendingExtraParams = other.pendingExtraParams;
@@ -579,12 +577,6 @@ export class GameState extends EventTarget {
         (this.board.scores.get(finalTurnPlayerId) ?? 0) + allTilesSum,
       );
     }
-    if (!this.keepAllHistory) {
-      const turnsToKeep = this.players.length - 1;
-      if (turnsToKeep > 0 && this.history.length > turnsToKeep) {
-        this.history.splice(0, this.history.length - turnsToKeep);
-      }
-    }
   }
 
   changePlayerName(playerId: string, name: string) {
@@ -655,7 +647,6 @@ export class GameState extends EventTarget {
     return {
       shared: this.shared.toJSON(),
       playerId: this.playerId,
-      keepAllHistory: this.keepAllHistory,
       tilesHeld: this.tilesHeld.map((placement: TilePlacement) => {
         const json = {
           tile: placement.tile.toJSON(),
@@ -680,13 +671,13 @@ export class GameState extends EventTarget {
       );
     }
     if (typeof json !== "object") fail("Not an object");
+    delete json.keepAllHistory;
     if (
       !arraysEqual(
         [...Object.keys(json)],
         [
           "shared",
           "playerId",
-          "keepAllHistory",
           "tilesHeld",
           "history",
           "pendingExtraParams",
@@ -696,8 +687,6 @@ export class GameState extends EventTarget {
       fail("Wrong keys or key order");
     }
     if (typeof json.playerId !== "string") fail("Player ID is not a string");
-    if (typeof json.keepAllHistory !== "boolean")
-      fail("keepAllHistory is not a boolean");
     if (!Array.isArray(json.tilesHeld)) fail("tilesHeld is not an array");
     if (!Array.isArray(json.history)) fail("History is not an array");
     if (typeof json.pendingExtraParams !== "string")
@@ -759,7 +748,6 @@ export class GameState extends EventTarget {
     const gameState = new GameState(
       json.playerId,
       undefined, // settings
-      json.keepAllHistory,
       SharedState.fromJSON(json.shared),
       tilesHeld,
       history,
