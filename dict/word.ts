@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { InlineMetadata } from "./swdict.ts";
+import { InlineMetadata } from "./swdict.js";
 import { codePointCompare } from "./code_point_compare.js";
 import type { SortingInfo } from "./sortalike.js";
 

@@ -16,9 +16,9 @@ limitations under the License.
 import { expect, describe, it } from "bun:test";
 import { _toWord } from "./compiler.js";
 import { _sortAndDeduplicate, _compile, _populateMacrosAndWords } from "./compiler.js";
-import { Sortalike, Macro, Lexicon } from "./swdict.ts";
-import { WordList } from "./word_list.ts";
-import { toVarint } from "./varint.ts";
+import { Sortalike, Macro, Lexicon } from "./swdict.js";
+import { WordList } from "./word_list.js";
+import { toVarint } from "./varint.js";
 
 // Converts an Iterable to an AsyncIterable.
 async function* toAsync<T>(iterable: Iterable<T> | AsyncIterable<T>): AsyncIterable<T> {

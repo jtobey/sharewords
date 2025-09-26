@@ -20,7 +20,7 @@ limitations under the License.
 import { Lexicon, Metadata, Macro, Sortalike } from "./swdict.js";
 import { type Word, WordImpl, SubwordImpl, wordCompare } from "./word.js";
 import { buildSortingInfoMap } from "./sortalike.js";
-import { writeVarint } from "./varint.ts";
+import { writeVarint } from "./varint.js";
 
 export const DEFAULT_CLEAR_INTERVAL = 1024;
 
