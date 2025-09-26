@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import { expect, describe, it } from "bun:test";
-import { wordCompare, WordImpl, SubwordImpl } from "./word.ts";
+import { wordCompare, WordImpl, SubwordImpl } from "./word.js";
+import { buildSortingInfoMap } from "./sortalike.js";
 
 describe("word", () => {
   it("should compare word with itself", () => {
@@ -26,6 +27,9 @@ describe("word", () => {
   it("should order a before b", () => {
     const wordA = new WordImpl([..."a"].map(c => new SubwordImpl(c)));
     const wordB = new WordImpl([..."b"].map(c => new SubwordImpl(c)));
+    const sortingInfo = buildSortingInfoMap([["e", "é"]]);
+    expect(wordCompare(wordA, wordB, sortingInfo)).toEqual(-1);
+    expect(wordCompare(wordB, wordA, sortingInfo)).toEqual(1);
     expect(wordCompare(wordA, wordB)).toEqual(-1);
     expect(wordCompare(wordB, wordA)).toEqual(1);
   });
@@ -33,7 +37,23 @@ describe("word", () => {
   it("should order cafe before café", () => {
     const wordA = new WordImpl([..."cafe"].map(c => new SubwordImpl(c)));
     const wordB = new WordImpl([..."café"].map(c => new SubwordImpl(c)));
+    const sortingInfo = buildSortingInfoMap([["e", "é"]]);
+    expect(wordCompare(wordA, wordB, sortingInfo)).toEqual(-1);
+    expect(wordCompare(wordB, wordA, sortingInfo)).toEqual(1);
+  });
+
+  it("should order Junge before junge", () => {
+    const wordA = new WordImpl([..."Junge"].map(c => new SubwordImpl(c)));
+    const wordB = new WordImpl([..."junge"].map(c => new SubwordImpl(c)));
     expect(wordCompare(wordA, wordB)).toEqual(-1);
     expect(wordCompare(wordB, wordA)).toEqual(1);
+  });
+
+  it("should order halt before Hält", () => {
+    const wordA = new WordImpl([..."halt"].map(c => new SubwordImpl(c)));
+    const wordB = new WordImpl([..."Hält"].map(c => new SubwordImpl(c)));
+    const sortingInfo = buildSortingInfoMap([["a", "ä"], ["e", "é"]]);
+    expect(wordCompare(wordA, wordB, sortingInfo)).toEqual(-1);
+    expect(wordCompare(wordB, wordA, sortingInfo)).toEqual(1);
   });
 });
