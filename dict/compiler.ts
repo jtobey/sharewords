@@ -19,7 +19,8 @@ limitations under the License.
 
 import { Lexicon, Metadata, Macro, Sortalike } from "./swdict.js";
 import { type Word, WordImpl, SubwordImpl, wordCompare } from "./word.js";
-import { buildSortingInfoMap, extractBaseWord } from "./sortalike.js";
+import { buildSortingInfoMap } from "./sortalike.js";
+import { writeVarint } from "./varint.ts";
 
 export const DEFAULT_CLEAR_INTERVAL = 1024;
 
@@ -65,8 +66,7 @@ export async function compile({
   }
   const asyncWords = getAsyncWords();
   const sorted = _sortAndDeduplicate(asyncWords, sortalikes);
-  const merged = _mergeSortalikes(sorted, sortalikes);
-  const compiled = _compile(merged, clearInterval);
+  const compiled = _compile(sorted, clearInterval);
   await _populateMacrosAndWords(compiled, lexicon);
   return lexicon;
 }
@@ -76,50 +76,18 @@ export async function* _sortAndDeduplicate(
   sortalikes: Sortalike[],
 ): AsyncIterable<Word> {
   const sortingInfo = buildSortingInfoMap(sortalikes.map(sa => sa.subwords));
-  const baseWordsWithWords: [Word, Word][] = [];
+  const wordsArray: Word[] = [];
   for await (const word of words) {
-    const baseWord = extractBaseWord(word, sortingInfo);
-    baseWordsWithWords.push([baseWord, word]);
+    wordsArray.push(word);
   }
-  baseWordsWithWords.sort((a, b) => wordCompare(a[0], b[0]) || wordCompare(a[1], b[1]));
+  wordsArray.sort((a, b) => wordCompare(a, b, sortingInfo));
   let lastWord: Word | null = null;
-  for (const [/* baseWord */, word] of baseWordsWithWords) {
+  for (const word of wordsArray) {
     if (lastWord === null || wordCompare(word, lastWord) !== 0) {
       yield word;
       lastWord = word;
     }
   }
-}
-
-export async function* _mergeSortalikes(
-  sortedUniqueWords: AsyncIterable<Word>,
-  sortalikes: Sortalike[],
-): AsyncIterable<Word> {
-  const sortingInfo = buildSortingInfoMap(sortalikes.map(sa => sa.subwords));
-
-  let lastBaseWord: WordImpl | null = null;
-  function* maybeEmit() {
-    if (lastBaseWord !== null) {
-      if (lastBaseWord.metadata.length === 1 && lastBaseWord.metadata[0] === 0n) {
-        lastBaseWord.metadata.length = 0;
-      }
-      yield lastBaseWord;
-      lastBaseWord = null;
-    }
-  }
-  for await (const word of sortedUniqueWords) {
-    for (const {} of word.metadata) {
-      throw new Error(`Word metadata not supported: "${word}" [${word.metadata}]`);
-    }
-    const baseWord = extractBaseWord(word, sortingInfo);
-    if (lastBaseWord && wordCompare(baseWord, lastBaseWord) === 0) {
-      lastBaseWord.metadata.push(...baseWord.metadata);
-    } else {
-      yield* maybeEmit();
-      lastBaseWord = baseWord;
-    }
-  }
-  yield* maybeEmit();
 }
 
 export async function* _compile(
@@ -158,15 +126,15 @@ export async function* _compile(
       }
     }
     for (const subword of subwords.splice(commonPrefixLength)) {
-      for (const bigint of subword.metadata) {
-        yield emit(Macro.create({ inlineMetadata: String(bigint) }));
+      for (const inlineMetadata of subword.metadata) {
+        yield emit(Macro.create({ inlineMetadata }));
       }
       const subwordStr = subword.toString()
       yield emit(Macro.create({ subword: subwordStr }));
       wordBuffer.push(subwordStr);
     }
-    for (const bigint of word.metadata) {
-      yield emit(Macro.create({ inlineMetadata: String(bigint) }));
+    for (const inlineMetadata of word.metadata) {
+      yield emit(Macro.create({ inlineMetadata }));
     }
   }
 }
@@ -186,13 +154,6 @@ export async function _populateMacrosAndWords(
   lexicon: Partial<Lexicon>,
 ): Promise<void> {
   const data: number[] = [];
-  function writeVarint(n: number) {
-    while (n >= 0x80) {
-      data.push((n & 0x7f) | 0x80);
-      n >>>= 7;
-    }
-    data.push(n);
-  }
   const counts = new Map<string, IndexMacroAndCount>;
   for await (const macro of macros) {
     const key = String.fromCodePoint(...Macro.encode(macro).finish());
@@ -206,7 +167,7 @@ export async function _populateMacrosAndWords(
       counts.set(key, value);
     }
     ++value.count;
-    writeVarint(value.index);
+    writeVarint(data, value.index);
   }
   const countByKind = { subword: 0, backup: 0, clear: 0 };
   lexicon.metadata ||= Metadata.create();

@@ -15,9 +15,10 @@ limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
 import { _toWord } from "./compiler.js";
-import { _sortAndDeduplicate, _mergeSortalikes, _compile, _populateMacrosAndWords } from "./compiler.js";
+import { _sortAndDeduplicate, _compile, _populateMacrosAndWords } from "./compiler.js";
 import { Sortalike, Macro, Lexicon } from "./swdict.ts";
 import { WordList } from "./word_list.ts";
+import { toVarint } from "./varint.ts";
 
 // Converts an Iterable to an AsyncIterable.
 async function* toAsync<T>(iterable: Iterable<T> | AsyncIterable<T>): AsyncIterable<T> {
@@ -52,55 +53,26 @@ describe("compiler", () => {
     });
   });
 
-  describe("_mergeSortalikes", () => {
-    it("should accept empty input", async () => {
-      expect(await fromAsync(_mergeSortalikes(toAsync([]), []))).toEqual([]);
-    });
-
-    it("should perform a trivial merge", async () => {
-      const input = ["hello", "world"];
-      const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
-      const expected = input;
-      const expectedMetadata = [[], []];
-      const inputWords = input.map(_toWord);
-      const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
-      const actual = actualWords.map(String);
-      expect(actual).toEqual(expected);
-      const actualMetadata = actualWords.map(word => word.metadata);
-      expect(actualMetadata).toEqual(expectedMetadata);
-    });
-
-    it("should merge sortalikes", async() => {
-      const input = ["café", "cafe", "world"];
-      const sortalikes = [Sortalike.create({ subwords: ["e", "é"]})];
-      const expected = ["cafe", "world"];
-      const expectedMetadata = [[1n, 0n], []];
-      const inputWords = input.map(_toWord);
-      const actualWords = await fromAsync(_mergeSortalikes(toAsync(inputWords), sortalikes));
-      const actual = actualWords.map(String);
-      expect(actual).toEqual(expected);
-      const actualMetadata = actualWords.map(word => word.metadata);
-      expect(actualMetadata).toEqual(expectedMetadata);
-    });
-  });
-
   describe("_compile", () => {
     it("should compile an empty list", async () => {
       expect(await fromAsync(_compile(toAsync([])))).toEqual([]);
     });
 
-    it("should compile cafe and can", async () => {
-      const input = ["cafe", "can"];
+    it("should compile café and cafeteria", async () => {
+      const input = ["café", "cafeteria"];
       const inputWords = input.map(_toWord);
-      inputWords[0]!.metadata = [1n];
       const expectedMacros = [
         Macro.create({ subword: "c" }),
         Macro.create({ subword: "a" }),
         Macro.create({ subword: "f" }),
+        Macro.create({ subword: "é" }),
+        Macro.create({ backup: 1 }),
         Macro.create({ subword: "e" }),
-        Macro.create({ inlineMetadata: "1" }),
-        Macro.create({ backup: 2 }),
-        Macro.create({ subword: "n" }),
+        Macro.create({ subword: "t" }),
+        Macro.create({ subword: "e" }),
+        Macro.create({ subword: "r" }),
+        Macro.create({ subword: "i" }),
+        Macro.create({ subword: "a" }),
       ];
       const actualMacros = await fromAsync(_compile(toAsync(inputWords)));
       expect(actualMacros).toEqual(expectedMacros);
@@ -158,14 +130,14 @@ describe("compiler", () => {
         Macro.create({ clear: {} }),
         Macro.create({ subword: "b" }),
         Macro.create({ subword: "a" }),
-        Macro.create({ inlineMetadata: "1" }),
+        Macro.create({ inlineMetadata: { bigint: toVarint(1) } }),
       ];
       const expectedMacros: Macro[] = [];
       expectedMacros[0] = Macro.create({ subword: "a" });
       expectedMacros[1] = Macro.create({ backup: 1 });
       expectedMacros[2] = Macro.create({ subword: "b" });
       expectedMacros[3] = Macro.create({ clear: {} });
-      expectedMacros[4] = Macro.create({ inlineMetadata: "1" });
+      expectedMacros[4] = Macro.create({ inlineMetadata: { bigint: toVarint(1) } });
       const expectedData = new Uint8Array([ 0, 0, 1, 2, 3, 2, 0, 4 ]);
       const expectedWordCount = 3;
       const lexicon = Lexicon.create();
@@ -187,8 +159,7 @@ describe("compiler", () => {
       },
     });
     const sorted = _sortAndDeduplicate(toAsync(inputWords), []);
-    const merged = _mergeSortalikes(sorted, []);
-    const compiled = _compile(merged);
+    const compiled = _compile(sorted);
     await _populateMacrosAndWords(compiled, lexicon);
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);

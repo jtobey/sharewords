@@ -27,10 +27,19 @@ limitations under the License.
 
 syntax = "proto3";
 
+message InlineMetadata {
+  oneof value {
+    // A string of bytes, all but the last of which have bit 7 set.
+    // This is the default when `metadata.macros` lacks a value at a given
+    // index.
+    bytes bigint = 1;
+  };
+};
+
 message Macro {
   message Clear {};
   message Subroutine {
-    // Index into `metadata.macros`.
+    // Varint-encoded indices into `metadata.macros`, like `data` in `Lexicon`.
     bytes data = 1;
   }
   oneof macro {
@@ -44,8 +53,8 @@ message Macro {
     // A list of macros with which to replace this macro.
     // Recursion is not allowed.
     Subroutine subroutine = 4;
-    // A decimal bigint value whose meaning depends on the context.
-    string inline_metadata = 5;
+    // Metadata attached to a word or subword.
+    InlineMetadata inline_metadata = 5;
   };
 };
 
@@ -67,7 +76,7 @@ message Metadata {
 // A word list, compressed and optimized for zero-copy searching.
 message Lexicon {
   Metadata metadata = 1;
-  // A sequence of indices into `metadata.macros` for generating a word list.
+  // Varint-encoded indices into `metadata.macros` for generating a word list.
   // A "word buffer" is initialized as an empty string. Each instruction is
   // applied. Some instructions emit words to the list. After the last
   // instruction, if the word buffer is not empty, it is added to the list.

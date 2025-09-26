@@ -9,6 +9,15 @@ import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "";
 
+export interface InlineMetadata {
+  /**
+   * A string of bytes, all but the last of which have bit 7 set.
+   * This is the default when `metadata.macros` lacks a value at a given
+   * index.
+   */
+  bigint?: Uint8Array | undefined;
+}
+
 export interface Macro {
   /**
    * Clears the word buffer. Placing this every so often in sorted
@@ -32,15 +41,15 @@ export interface Macro {
   subroutine?:
     | Macro_Subroutine
     | undefined;
-  /** A decimal bigint value whose meaning depends on the context. */
-  inlineMetadata?: string | undefined;
+  /** Metadata attached to a word or subword. */
+  inlineMetadata?: InlineMetadata | undefined;
 }
 
 export interface Macro_Clear {
 }
 
 export interface Macro_Subroutine {
-  /** Index into `metadata.macros`. */
+  /** Varint-encoded indices into `metadata.macros`, like `data` in `Lexicon`. */
   data: Uint8Array;
 }
 
@@ -70,13 +79,71 @@ export interface Lexicon {
     | Metadata
     | undefined;
   /**
-   * A sequence of indices into `metadata.macros` for generating a word list.
+   * Varint-encoded indices into `metadata.macros` for generating a word list.
    * A "word buffer" is initialized as an empty string. Each instruction is
    * applied. Some instructions emit words to the list. After the last
    * instruction, if the word buffer is not empty, it is added to the list.
    */
   data: Uint8Array;
 }
+
+function createBaseInlineMetadata(): InlineMetadata {
+  return { bigint: undefined };
+}
+
+export const InlineMetadata: MessageFns<InlineMetadata> = {
+  encode(message: InlineMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bigint !== undefined) {
+      writer.uint32(10).bytes(message.bigint);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): InlineMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInlineMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bigint = reader.bytes();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InlineMetadata {
+    return { bigint: isSet(object.bigint) ? bytesFromBase64(object.bigint) : undefined };
+  },
+
+  toJSON(message: InlineMetadata): unknown {
+    const obj: any = {};
+    if (message.bigint !== undefined) {
+      obj.bigint = base64FromBytes(message.bigint);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InlineMetadata>, I>>(base?: I): InlineMetadata {
+    return InlineMetadata.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InlineMetadata>, I>>(object: I): InlineMetadata {
+    const message = createBaseInlineMetadata();
+    message.bigint = object.bigint ?? undefined;
+    return message;
+  },
+};
 
 function createBaseMacro(): Macro {
   return { clear: undefined, subword: undefined, backup: undefined, subroutine: undefined, inlineMetadata: undefined };
@@ -97,7 +164,7 @@ export const Macro: MessageFns<Macro> = {
       Macro_Subroutine.encode(message.subroutine, writer.uint32(34).fork()).join();
     }
     if (message.inlineMetadata !== undefined) {
-      writer.uint32(42).string(message.inlineMetadata);
+      InlineMetadata.encode(message.inlineMetadata, writer.uint32(42).fork()).join();
     }
     return writer;
   },
@@ -146,7 +213,7 @@ export const Macro: MessageFns<Macro> = {
             break;
           }
 
-          message.inlineMetadata = reader.string();
+          message.inlineMetadata = InlineMetadata.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -164,7 +231,7 @@ export const Macro: MessageFns<Macro> = {
       subword: isSet(object.subword) ? globalThis.String(object.subword) : undefined,
       backup: isSet(object.backup) ? globalThis.Number(object.backup) : undefined,
       subroutine: isSet(object.subroutine) ? Macro_Subroutine.fromJSON(object.subroutine) : undefined,
-      inlineMetadata: isSet(object.inlineMetadata) ? globalThis.String(object.inlineMetadata) : undefined,
+      inlineMetadata: isSet(object.inlineMetadata) ? InlineMetadata.fromJSON(object.inlineMetadata) : undefined,
     };
   },
 
@@ -183,7 +250,7 @@ export const Macro: MessageFns<Macro> = {
       obj.subroutine = Macro_Subroutine.toJSON(message.subroutine);
     }
     if (message.inlineMetadata !== undefined) {
-      obj.inlineMetadata = message.inlineMetadata;
+      obj.inlineMetadata = InlineMetadata.toJSON(message.inlineMetadata);
     }
     return obj;
   },
@@ -201,7 +268,9 @@ export const Macro: MessageFns<Macro> = {
     message.subroutine = (object.subroutine !== undefined && object.subroutine !== null)
       ? Macro_Subroutine.fromPartial(object.subroutine)
       : undefined;
-    message.inlineMetadata = object.inlineMetadata ?? undefined;
+    message.inlineMetadata = (object.inlineMetadata !== undefined && object.inlineMetadata !== null)
+      ? InlineMetadata.fromPartial(object.inlineMetadata)
+      : undefined;
     return message;
   },
 };

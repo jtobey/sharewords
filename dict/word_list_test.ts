@@ -15,8 +15,9 @@ limitations under the License.
 */
 import { expect, describe, it } from "bun:test";
 import { compile } from "./compiler.js";
-import { Lexicon } from "./swdict.js";
+import { Lexicon, InlineMetadata } from "./swdict.js";
 import { WordList } from "./word_list.js";
+import { toVarint } from "./varint.js";
 
 function writeVarints(ns: Array<number | bigint>): Uint8Array {
   const data: number[] = [];
@@ -144,7 +145,7 @@ describe("word list", () => {
       word: "A",
       subwords: [{
         subword: "A",
-        metadata: [2n, 99111999111999111998n, 4n],
+        metadata: [3n, 99111999111999111999n, 5n].map(n => InlineMetadata.create({ bigint: toVarint(n) })),
       }],
     }];
     const binary = Lexicon.encode(lexicon).finish();
@@ -167,7 +168,7 @@ describe("word list", () => {
       metadata: {name, description, macros: [{ subword: "A" }]},
       data: writeVarints([0, 78, 56]),
     });
-    const expected = [{word: "A", metadata: [77n, 55n]}];
+    const expected = [{word: "A", metadata: [78n, 56n].map(n => InlineMetadata.create({ bigint: toVarint(n) }))}];
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);
     expect(
@@ -184,11 +185,14 @@ describe("word list", () => {
     const lexicon = Lexicon.create({
       metadata: {name, description, macros: [
         { subword: "A" },
-        { inlineMetadata: "55" },
+        { inlineMetadata: { bigint: toVarint(55) } },
       ]},
       data: writeVarints([0, 79, 1]),
     });
-    const expected = {word: "A", metadata: [77n, 55n]};
+    const expected = {word: "A", metadata: [
+      InlineMetadata.create({ bigint: toVarint(79n) }),
+      InlineMetadata.create({ bigint: toVarint(55n) }),
+    ]};
     const binary = Lexicon.encode(lexicon).finish();
     const wordList = new WordList(binary);
     const actual = wordList.get("A");

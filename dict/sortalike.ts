@@ -17,37 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-import { WordImpl, SubwordImpl, type Word, type Subword } from "./word.js";
-
 export type SortingInfo = {
   baseSubword: string;
   indexInGroup: bigint;
   groupSize: bigint;
   group: ReadonlyArray<string>;
 };
-
-/**
- * Returns {word} without accent marks that do not affect sorting, but with a
- * metadata element that encodes the removed information.
- */
-export function extractBaseWord(
-  word: Word,
-  sortingInfo: ReadonlyMap<string, SortingInfo>,
-): WordImpl {
-  const baseSubwords: Subword[] = [];
-  let wordMetadata = 0n;
-  for (const subword of word.subwords) {
-    const info = sortingInfo.get(subword.toString());
-    if (info) {
-      wordMetadata *= info.groupSize;
-      wordMetadata += info.indexInGroup;
-      baseSubwords.push(new SubwordImpl(info.baseSubword));
-    } else {
-      baseSubwords.push(subword);
-    }
-  }
-  return new WordImpl(baseSubwords, [wordMetadata]);
-}
 
 export function buildSortingInfoMap(
   groups: ReadonlyArray<ReadonlyArray<string>>,
@@ -64,26 +39,4 @@ export function buildSortingInfoMap(
     }
   });
   return map;
-}
-
-export function makeSortalike(
-  baseWord: Word,
-  wordMetadata: bigint,
-  sortingInfo: ReadonlyMap<string, SortingInfo>,
-): WordImpl {
-  const subwords = [...baseWord.subwords];
-  let n = wordMetadata;
-  for (let index = subwords.length; index--;) {
-    const subword = subwords[index]!.toString();
-    const info = sortingInfo.get(subword);
-    if (info) {
-      const newSubword = info.group[Number(n % info.groupSize)]!;
-      subwords[index] = new SubwordImpl(newSubword);
-      n /= info.groupSize;
-    }
-  }
-  if (n !== 0n) {
-    throw new RangeError(`Metadata ${wordMetadata} out of range for base word "${baseWord}".`);
-  }
-  return new WordImpl(subwords);
 }

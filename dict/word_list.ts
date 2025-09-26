@@ -18,9 +18,10 @@ limitations under the License.
 */
 
 import { codePointCompare } from "./code_point_compare.js";
-import { Macro, Metadata } from "./swdict.js";
+import { Macro, Metadata, InlineMetadata } from "./swdict.js";
 import { Pointer } from "./pointer.js";
 import type { Word, Subword } from "./word.js";
+import { toVarint } from "./varint.js";
 
 const METADATA_FIELD_NUMBER = 1n;
 const DATA_FIELD_NUMBER = 2n;
@@ -40,9 +41,8 @@ class WordListSubword implements Subword {
   ) {}
 
   get metadata() {
-    const metadataZero = BigInt(this.macros.length);
     return this.elements.slice(0, -1).map(
-      n => BigInt(this.macros[Number(n)]?.inlineMetadata ?? n - metadataZero)
+      n => this.macros[Number(n)]?.inlineMetadata ?? InlineMetadata.create({ bigint: toVarint(n) })
     );
   }
 
@@ -67,9 +67,8 @@ class WordListEntry extends String implements Word {
   }
 
   get metadata() {
-    const metadataZero = BigInt(this.macros.length);
     return this.elements[this.elements.length - 1]!.map(
-      n => BigInt(this.macros[Number(n)]?.inlineMetadata ?? n - metadataZero)
+      n => this.macros[Number(n)]?.inlineMetadata ?? InlineMetadata.create({ bigint: toVarint(n) })
     );
   }
 
@@ -214,6 +213,8 @@ export class WordList {
     }
   }
 
+  // TODO - Consider making this generate `Macro`s. Perhaps return very large
+  // bigints as subarrays.
   private *readInstructions(ip: Pointer): Generator<bigint> {
     while (!ip.atEnd) {
       yield ip.varintBigInt();

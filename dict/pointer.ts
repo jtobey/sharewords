@@ -1,5 +1,5 @@
 /**
- * @file Reading protobuf varints as Numbers.
+ * @file Reading protobuf varints as BigInts.
  */
 /*
 Copyright 2025 Google LLC
