@@ -54,6 +54,7 @@ import {
   toTurnNumber,
   nextTurnNumber,
   getPlayerForTurnNumber,
+  updateTurnHistory,
 } from "./turn.js";
 import type { TurnNumber, TurnData } from "./turn.js";
 import { HonorSystemTilesState } from "./honor_system_tiles_state.js";
@@ -70,6 +71,7 @@ export class SharedState {
     readonly board = new Board(...settings.boardLayout),
     readonly tilesState = makeTilesState(settings),
     public nextTurnNumber = toTurnNumber(1),
+    readonly history = [] as Array<TurnData>,
     public dictionary = makeDictionary(settings),
     readonly gameParams = gameParamsFromSettings(settings),
   ) {
@@ -88,6 +90,7 @@ export class SharedState {
     this.board.copyFrom(other.board);
     this.tilesState.copyFrom(other.tilesState);
     this.nextTurnNumber = other.nextTurnNumber;
+    this.history.splice(0, this.history.length, ...other.history);
     this.players.forEach((player, index) => {
       player.name = other.players[index]!.name;
     });
@@ -104,8 +107,19 @@ export class SharedState {
     return getPlayerForTurnNumber(this.players, turnNumber);
   }
 
-  getTurnUrlParams(turnHistory: ReadonlyArray<TurnData>) {
-    const entries = [["gid", fromGameId(this.gameId)]];
+  get turnUrlParams() {
+    return this.getTurnUrlParams(this.history.slice(1 - this.players.length));
+  }
+
+  getHistoryUrlParamsForPlayer(playerId: string) {
+    return this.getTurnUrlParams(this.history, ["pid", playerId]);
+  }
+
+  getTurnUrlParams(
+    turnHistory: ReadonlyArray<TurnData>,
+    ...extraParams: Array<[string, string]>
+  ) {
+    const entries = [["gid", fromGameId(this.gameId)], ...extraParams];
     const firstHistoryTurnNumber = turnHistory[0]?.turnNumber;
     // Include game settings in the URL at the start of the game.
     if (
@@ -421,6 +435,7 @@ export class SharedState {
       nextTurnNumber: this.nextTurnNumber,
       settings: this.settings.toJSON(),
       board: this.board.toJSON(),
+      history: this.history.map(td => td.paramsStr).join("&"),
       tilesState: this.tilesState.toJSON(),
     };
   }
@@ -435,21 +450,37 @@ export class SharedState {
     if (
       !arraysEqual(
         [...Object.keys(json)],
-        ["gameId", "nextTurnNumber", "settings", "board", "tilesState"],
+        ["gameId", "nextTurnNumber", "settings", "board", "history", "tilesState"],
       )
     )
       fail("Wrong keys or key order");
     if (typeof json.gameId !== "string") fail("Game ID is not a string");
     if (typeof json.nextTurnNumber !== "number")
       fail("Next turn number is not a number");
+    if (typeof json.history !== "string") fail("History is not a string");
     const settings = Settings.fromJSON(json.settings);
-    return new SharedState(
+    const sharedState = new SharedState(
       settings,
       json.gameId as GameId,
       Board.fromJSON(json.board),
       rehydrateTilesState(settings.tileSystemType, json.tilesState),
       toTurnNumber(json.nextTurnNumber),
     );
+    const params = new URLSearchParams(json.history);
+    const paramsIterator = params[Symbol.iterator]();
+    const turns = [...sharedState.turnsFromParams(paramsIterator, toTurnNumber(1))];
+    for (const turn of turns) {
+      if ("playTiles" in turn.move) {
+        sharedState.board.placeTiles(...turn.move.playTiles);
+      }
+    }
+    updateTurnHistory({
+      history: sharedState.history,
+      nextTurnNumber: sharedState.nextTurnNumber,
+      finalTurnNumber: null,
+      turns,
+    });
+    return sharedState;
   }
 }
 

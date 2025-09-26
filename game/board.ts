@@ -434,26 +434,15 @@ export class Board extends EventTarget {
       );
     }
     if (!(typeof json === "object")) fail("Not an object");
-    if (!arraysEqual([...Object.keys(json)], ["rows", "tiles", "scores"]))
+    delete json.tiles;
+    if (!arraysEqual([...Object.keys(json)], ["rows", "scores"]))
       fail("Wrong keys or key order");
     if (!Array.isArray(json.rows)) fail("Rows are not an array");
     if (!json.rows.every((row: any) => typeof row === "string"))
       fail("Row element is not a string");
-    if (!Array.isArray(json.tiles)) fail("Tiles are not an array");
     if (!Array.isArray(json.scores)) fail("Scores are not an array");
     try {
       const board = new Board(...json.rows);
-      for (const tile of json.tiles) {
-        if (!Array.isArray(tile)) fail("Tile is not an array");
-        if (tile.length > 4) fail("Wrong size array for tile");
-        const [row, col, tileJson, assignedLetter] = tile;
-        if (!(typeof row === "number")) fail("Tile row is not a number");
-        if (!(typeof col === "number")) fail("Tile col is not a number");
-        const square = board.squares[row]?.[col];
-        if (!square) fail("Tile coordinates are off the board");
-        square.tile = Tile.fromJSON(tileJson);
-        if (assignedLetter) square.assignedLetter = assignedLetter;
-      }
       for (const element of json.scores) {
         if (!Array.isArray(element)) fail("Score is not an array");
         if (element.length !== 2) fail("Wrong size array for score");

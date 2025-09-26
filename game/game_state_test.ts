@@ -345,7 +345,7 @@ describe("game state", () => {
 
     // Capture initial state (before the transaction starts)
     const initialTilesHeld = JSON.stringify(gameState.tilesHeld);
-    const initialHistoryLength = gameState.history.length;
+    const initialHistoryLength = gameState.shared.history.length;
     const initialNextTurnNumber = gameState.nextTurnNumber;
 
     // playWord will call playTurns, which will call save, which will throw
@@ -359,7 +359,7 @@ describe("game state", () => {
 
     // Verify that the state has been rolled back
     expect(JSON.stringify(gameState.tilesHeld)).toEqual(initialTilesHeld);
-    expect(gameState.history.length).toEqual(initialHistoryLength);
+    expect(gameState.shared.history.length).toEqual(initialHistoryLength);
     expect(gameState.nextTurnNumber).toEqual(initialNextTurnNumber);
 
     // Also check that the board is empty as it was initially

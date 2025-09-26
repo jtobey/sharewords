@@ -216,6 +216,7 @@ describe("shared state", () => {
         nextTurnNumber: 1,
         settings: Settings.forLanguage("en").toJSON(),
         board: board.toJSON(),
+        history: "wl=0.0&wh=A",
         tilesState: new HonorSystemTilesState(
           Settings.forLanguage("en").players,
           { seed: "1" },
@@ -233,6 +234,11 @@ describe("shared state", () => {
         SharedState.fromJSON({ ...template, nextTurnNumber: "1" }),
       ).toThrow(
         'Next turn number is not a number in SharedState serialization: {"gameId":"1","nextTurnNumber":"1",',
+      );
+      expect(() =>
+        SharedState.fromJSON({ ...template, history: "wl=0.1&wh=A" })
+      ).toThrow(
+        "Attempted to play a word out of bounds: 0,1."
       );
     });
 

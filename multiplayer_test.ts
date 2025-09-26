@@ -135,8 +135,8 @@ describe("multi-player", () => {
 
     const gameUrl2 = app1.gameState.getHistoryUrlParamsForPlayer("2");
     expect([...gameUrl2.entries()]).toEqual([
-      ["pid", "2"],
       ["gid", "test"],
+      ["pid", "2"],
       ["v", "1"],
       ["p1n", "P1"],
       ["p2n", "P2"],

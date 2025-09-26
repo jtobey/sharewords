@@ -31,7 +31,7 @@ import { parseGameParams, UrlError } from "./game_params.js";
 import { isBoardPlacement, isBoardPlacementRow, Tile } from "./tile.js";
 import type { TilePlacement, TilePlacementRow } from "./tile.js";
 import { Turn, toTurnNumber, updateTurnHistory } from "./turn.js";
-import type { TurnNumber, TurnData } from "./turn.js";
+import type { TurnNumber } from "./turn.js";
 import { indicesOk } from "./validation.js";
 import { TileEvent, GameEvent, BoardEvent } from "./events.js";
 import { Board } from "./board.js";
@@ -69,12 +69,6 @@ export class GameState extends EventTarget {
     settings?: Settings,
     shared?: SharedState,
     readonly tilesHeld: Array<TilePlacement> = [],
-    /**
-     * The last N turns played, where N is at least
-     * the number of players minus one. Turn URLs should describe the last move
-     * made by each player except the player whose turn it is.
-     */
-    readonly history = [] as Array<TurnData>,
     private pendingExtraParams = new URLSearchParams(),
   ) {
     super();
@@ -111,7 +105,6 @@ export class GameState extends EventTarget {
     // Assume that constant fields are equal.
     this.shared.copyFrom(other.shared);
     this.tilesHeld.splice(0, this.tilesHeld.length, ...other.tilesHeld);
-    this.history.splice(0, this.history.length, ...other.history);
     this.pendingExtraParams = other.pendingExtraParams;
   }
 
@@ -184,16 +177,11 @@ export class GameState extends EventTarget {
   }
 
   get turnUrlParams() {
-    return this.shared.getTurnUrlParams(
-      this.history.slice(1 - this.players.length),
-    );
+    return this.shared.turnUrlParams;
   }
 
   getHistoryUrlParamsForPlayer(playerId: string) {
-    return new URLSearchParams([
-      ["pid", playerId],
-      ...this.shared.getTurnUrlParams(this.history),
-    ]);
+    return this.shared.getHistoryUrlParamsForPlayer(playerId);
   }
 
   get playerWhoseTurnItIs() {
@@ -545,7 +533,7 @@ export class GameState extends EventTarget {
     }
 
     updateTurnHistory({
-      history: this.history,
+      history: this.shared.history,
       nextTurnNumber: this.nextTurnNumber,
       finalTurnNumber,
       turns: newTurns,
@@ -657,9 +645,6 @@ export class GameState extends EventTarget {
           json.assignedLetter = placement.assignedLetter;
         return json;
       }),
-      history: this.history.map((turnData) => {
-        return { turnNumber: turnData.turnNumber, params: turnData.paramsStr };
-      }),
       pendingExtraParams: this.pendingExtraParams.toString(),
     };
   }
@@ -671,7 +656,17 @@ export class GameState extends EventTarget {
       );
     }
     if (typeof json !== "object") fail("Not an object");
-    delete json.keepAllHistory;
+
+    function upgradeOldFormat() {
+      delete json.keepAllHistory;
+      if (json.history && json.shared) {
+        const history = json.history.map((td: any) => td.paramsStr).join("&");
+        json.shared.history = history;
+        delete json.history;
+      }
+    }
+    upgradeOldFormat();
+
     if (
       !arraysEqual(
         [...Object.keys(json)],
@@ -679,7 +674,6 @@ export class GameState extends EventTarget {
           "shared",
           "playerId",
           "tilesHeld",
-          "history",
           "pendingExtraParams",
         ],
       )
@@ -688,7 +682,6 @@ export class GameState extends EventTarget {
     }
     if (typeof json.playerId !== "string") fail("Player ID is not a string");
     if (!Array.isArray(json.tilesHeld)) fail("tilesHeld is not an array");
-    if (!Array.isArray(json.history)) fail("History is not an array");
     if (typeof json.pendingExtraParams !== "string")
       fail("pendingExtraParams is not a string");
 
@@ -729,28 +722,12 @@ export class GameState extends EventTarget {
         result.assignedLetter = tileJson.assignedLetter;
       return result;
     });
-    const history = json.history.map((turnDataJson: any) => {
-      if (
-        !arraysEqual([...Object.keys(turnDataJson)], ["turnNumber", "params"])
-      ) {
-        fail("Wrong history element keys or key order");
-      }
-      if (typeof turnDataJson.turnNumber !== "number")
-        fail("turnNumber is not a number");
-      if (typeof turnDataJson.params !== "string")
-        fail("params is not a string");
-      return {
-        turnNumber: toTurnNumber(turnDataJson.turnNumber),
-        paramsStr: turnDataJson.params,
-      };
-    });
 
     const gameState = new GameState(
       json.playerId,
       undefined, // settings
       SharedState.fromJSON(json.shared),
       tilesHeld,
-      history,
       new URLSearchParams(json.pendingExtraParams),
     );
     return gameState;
