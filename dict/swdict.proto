@@ -48,8 +48,8 @@ message Macro {
     Clear clear = 1;
     // Appends `subword` (typically a single UTF-8 letter) to the word buffer.
     string subword = 2;
-    // Emits a copy of the word buffer, then deletes its last `backup` chars.
-    uint64 backup = 3;
+    // Emits a copy of the word buffer, then deletes its last `pop` chars.
+    uint64 pop = 3;
     // A list of macros with which to replace this macro.
     // Recursion is not allowed.
     Subroutine subroutine = 4;

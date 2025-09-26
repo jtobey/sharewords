@@ -66,7 +66,7 @@ describe("compiler", () => {
         Macro.create({ subword: "a" }),
         Macro.create({ subword: "f" }),
         Macro.create({ subword: "é" }),
-        Macro.create({ backup: 1 }),
+        Macro.create({ pop: 1 }),
         Macro.create({ subword: "e" }),
         Macro.create({ subword: "t" }),
         Macro.create({ subword: "e" }),
@@ -87,7 +87,7 @@ describe("compiler", () => {
         Macro.create({ subword: "g" }),
         Macro.create({ subword: "e" }),
         Macro.create({ subword: "r" }),
-        Macro.create({ backup: 5 }),
+        Macro.create({ pop: 5 }),
         Macro.create({ subword: "g" }),
         Macro.create({ subword: "r" }),
         Macro.create({ subword: "e" }),
@@ -101,7 +101,7 @@ describe("compiler", () => {
         Macro.create({ subword: "n" }),
         Macro.create({ subword: "e" }),
         Macro.create({ subword: "r" }),
-        Macro.create({ backup: 1 }),
+        Macro.create({ pop: 1 }),
         Macro.create({ subword: "s" }),
         Macro.create({ subword: "t" }),
         Macro.create({ clear: {} }),
@@ -110,7 +110,7 @@ describe("compiler", () => {
         Macro.create({ subword: "o" }),
         Macro.create({ subword: "a" }),
         Macro.create({ subword: "n" }),
-        Macro.create({ backup: 0 }),
+        Macro.create({ pop: 0 }),
         Macro.create({ subword: "e" }),
         Macro.create({ subword: "r" }),
       ];
@@ -125,7 +125,7 @@ describe("compiler", () => {
       const macros = [
         Macro.create({ subword: "a" }),
         Macro.create({ subword: "a" }),
-        Macro.create({ backup: 1 }),
+        Macro.create({ pop: 1 }),
         Macro.create({ subword: "b" }),
         Macro.create({ clear: {} }),
         Macro.create({ subword: "b" }),
@@ -134,7 +134,7 @@ describe("compiler", () => {
       ];
       const expectedMacros: Macro[] = [];
       expectedMacros[0] = Macro.create({ subword: "a" });
-      expectedMacros[1] = Macro.create({ backup: 1 });
+      expectedMacros[1] = Macro.create({ pop: 1 });
       expectedMacros[2] = Macro.create({ subword: "b" });
       expectedMacros[3] = Macro.create({ clear: {} });
       expectedMacros[4] = Macro.create({ inlineMetadata: { bigint: toVarint(1) } });

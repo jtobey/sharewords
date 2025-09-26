@@ -121,7 +121,7 @@ export async function* _compile(
         ) {
           ++commonPrefixLength;
         }
-        yield emit(Macro.create({ backup: wordBuffer.length - commonPrefixLength }));
+        yield emit(Macro.create({ pop: wordBuffer.length - commonPrefixLength }));
         wordBuffer.length = commonPrefixLength;
       }
     }
@@ -169,15 +169,15 @@ export async function _populateMacrosAndWords(
     ++value.count;
     writeVarint(data, value.index);
   }
-  const countByKind = { subword: 0, backup: 0, clear: 0 };
+  const countByKind = { subword: 0, pop: 0, clear: 0 };
   lexicon.metadata ||= Metadata.create();
   for (const { index, macro, count } of counts.values()) {
     lexicon.metadata.macros[index] = macro;
     if (macro.subword !== undefined) countByKind.subword += count;
-    if (macro.backup !== undefined) countByKind.backup += count;
+    if (macro.pop !== undefined) countByKind.pop += count;
     if (macro.clear !== undefined) countByKind.clear += count;
   }
-  lexicon.metadata.wordCount = countByKind.backup + countByKind.clear;
+  lexicon.metadata.wordCount = countByKind.pop + countByKind.clear;
   if (countByKind.subword) ++lexicon.metadata.wordCount;
   lexicon.data = new Uint8Array(data);
 }

@@ -30,8 +30,8 @@ export interface Macro {
   subword?:
     | string
     | undefined;
-  /** Emits a copy of the word buffer, then deletes its last `backup` chars. */
-  backup?:
+  /** Emits a copy of the word buffer, then deletes its last `pop` chars. */
+  pop?:
     | number
     | undefined;
   /**
@@ -146,7 +146,7 @@ export const InlineMetadata: MessageFns<InlineMetadata> = {
 };
 
 function createBaseMacro(): Macro {
-  return { clear: undefined, subword: undefined, backup: undefined, subroutine: undefined, inlineMetadata: undefined };
+  return { clear: undefined, subword: undefined, pop: undefined, subroutine: undefined, inlineMetadata: undefined };
 }
 
 export const Macro: MessageFns<Macro> = {
@@ -157,8 +157,8 @@ export const Macro: MessageFns<Macro> = {
     if (message.subword !== undefined) {
       writer.uint32(18).string(message.subword);
     }
-    if (message.backup !== undefined) {
-      writer.uint32(24).uint64(message.backup);
+    if (message.pop !== undefined) {
+      writer.uint32(24).uint64(message.pop);
     }
     if (message.subroutine !== undefined) {
       Macro_Subroutine.encode(message.subroutine, writer.uint32(34).fork()).join();
@@ -197,7 +197,7 @@ export const Macro: MessageFns<Macro> = {
             break;
           }
 
-          message.backup = longToNumber(reader.uint64());
+          message.pop = longToNumber(reader.uint64());
           continue;
         }
         case 4: {
@@ -229,7 +229,7 @@ export const Macro: MessageFns<Macro> = {
     return {
       clear: isSet(object.clear) ? Macro_Clear.fromJSON(object.clear) : undefined,
       subword: isSet(object.subword) ? globalThis.String(object.subword) : undefined,
-      backup: isSet(object.backup) ? globalThis.Number(object.backup) : undefined,
+      pop: isSet(object.pop) ? globalThis.Number(object.pop) : undefined,
       subroutine: isSet(object.subroutine) ? Macro_Subroutine.fromJSON(object.subroutine) : undefined,
       inlineMetadata: isSet(object.inlineMetadata) ? InlineMetadata.fromJSON(object.inlineMetadata) : undefined,
     };
@@ -243,8 +243,8 @@ export const Macro: MessageFns<Macro> = {
     if (message.subword !== undefined) {
       obj.subword = message.subword;
     }
-    if (message.backup !== undefined) {
-      obj.backup = Math.round(message.backup);
+    if (message.pop !== undefined) {
+      obj.pop = Math.round(message.pop);
     }
     if (message.subroutine !== undefined) {
       obj.subroutine = Macro_Subroutine.toJSON(message.subroutine);
@@ -264,7 +264,7 @@ export const Macro: MessageFns<Macro> = {
       ? Macro_Clear.fromPartial(object.clear)
       : undefined;
     message.subword = object.subword ?? undefined;
-    message.backup = object.backup ?? undefined;
+    message.pop = object.pop ?? undefined;
     message.subroutine = (object.subroutine !== undefined && object.subroutine !== null)
       ? Macro_Subroutine.fromPartial(object.subroutine)
       : undefined;

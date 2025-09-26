@@ -194,12 +194,12 @@ export class WordList {
           );
           continue;
         }
-        if (macro.clear || macro.backup !== undefined) {
+        if (macro.clear || macro.pop !== undefined) {
           yield new WordListEntry(this.macros, wordBuffer);
           if (macro.clear) {
             wordBuffer.length = 0;
           } else {
-            wordBuffer.length -= macro.backup! + 1;
+            wordBuffer.length -= macro.pop! + 1;
           }
         } else if (macro.subword === undefined) {
           continue;
