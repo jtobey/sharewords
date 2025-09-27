@@ -153,6 +153,9 @@ export class GameState extends EventTarget {
   get nextTurnNumber() {
     return this.shared.nextTurnNumber;
   }
+  get lastTurnNumber() {
+    return this.shared.lastTurnNumber;
+  }
   get players() {
     return this.shared.players;
   }

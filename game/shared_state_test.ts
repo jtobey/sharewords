@@ -216,7 +216,6 @@ describe("shared state", () => {
         nextTurnNumber: 1,
         settings: Settings.forLanguage("en").toJSON(),
         board: board.toJSON(),
-        history: "wl=0.0&wh=A",
         tilesState: new HonorSystemTilesState(
           Settings.forLanguage("en").players,
           { seed: "1" },
@@ -226,6 +225,7 @@ describe("shared state", () => {
           }),
           7,
         ).toJSON(),
+        history: "wl=0.0&wh=A",
       };
       expect(() => SharedState.fromJSON({ ...template, gameId: 1 })).toThrow(
         'Game ID is not a string in SharedState serialization: {"gameId":1,"nextTurnNumber":1,',

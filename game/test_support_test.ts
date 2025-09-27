@@ -26,7 +26,7 @@ describe("test support", () => {
     3 . A0.
     . 2 . ³`;
     const expected = new TestBoard(".d..", "T...", ".D.t");
-    expected.placeTiles(
+    expected.placeTiles([
       { row: 0, col: 2, tile: new Tile({ letter: "Z", value: 9 }) },
       {
         row: 1,
@@ -34,7 +34,7 @@ describe("test support", () => {
         tile: new Tile({ letter: "", value: 0 }),
         assignedLetter: "A",
       },
-    );
+    ]);
     const parsed = parseBoards(boardsStr);
     expect(parsed).toHaveLength(1);
     expect(parsed[0]).toHaveLength(1);
@@ -159,7 +159,7 @@ describe("test support", () => {
     ];
     const diff = diffBoards(oldBoard, newBoard);
     expect(diff).toEqual(expected);
-    oldBoard.placeTiles(...diff);
+    oldBoard.placeTiles(diff);
     expect(oldBoard).toEqual(newBoard);
   });
 });

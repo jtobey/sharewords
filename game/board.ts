@@ -18,6 +18,7 @@ import { Tile } from "./tile.js";
 import type { BoardPlacement } from "./tile.js";
 import { BoardEvent } from "./events.js";
 import { t } from "../i18n.js";
+import type { TurnNumber } from "./turn.js";
 
 export class Square {
   readonly row: number;
@@ -26,6 +27,7 @@ export class Square {
   readonly wordBonus: number;
   tile?: Tile;
   assignedLetter?: string;
+  turnNumber?: TurnNumber;
   constructor({
     row,
     col,
@@ -383,7 +385,10 @@ export class Board extends EventTarget {
     return words;
   }
 
-  placeTiles(...placements: Array<BoardPlacement>): void {
+  placeTiles(
+    placements: ReadonlyArray<BoardPlacement>,
+    turnNumber?: TurnNumber,
+  ): void {
     for (const placement of placements) {
       const square = this.squares[placement.row]?.[placement.col];
       if (!square)
@@ -400,6 +405,7 @@ export class Board extends EventTarget {
       if (square) {
         square.tile = placement.tile;
         square.assignedLetter = placement.assignedLetter;
+        square.turnNumber = turnNumber;
         this.dispatchEvent(
           new BoardEvent("tileplaced", { detail: { placement } }),
         );

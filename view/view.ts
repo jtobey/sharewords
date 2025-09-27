@@ -112,6 +112,9 @@ export class View {
     const square = this.gameState.board.squares[row]![col]!;
     if (square.tile) {
       this.addTileToElement(squareDiv, square.tile, square.assignedLetter);
+      if (square.turnNumber === this.gameState.lastTurnNumber) {
+        squareDiv.classList.add("latest");
+      }
     } else {
       const placedTile = this.gameState.tilesHeld.find(
         (p) => p.row === row && p.col === col,

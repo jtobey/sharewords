@@ -52,6 +52,7 @@ import { type TilesState, checkIndicesForExchange } from "./tiles_state.js";
 import {
   Turn,
   toTurnNumber,
+  fromTurnNumber,
   nextTurnNumber,
   getPlayerForTurnNumber,
   updateTurnHistory,
@@ -107,6 +108,10 @@ export class SharedState {
     return getPlayerForTurnNumber(this.players, turnNumber);
   }
 
+  get lastTurnNumber() {
+    return toTurnNumber(fromTurnNumber(this.nextTurnNumber) - 1);
+  }
+
   get turnUrlParams() {
     return this.getTurnUrlParams(this.history.slice(1 - this.players.length));
   }
@@ -157,6 +162,7 @@ export class SharedState {
       playerId: string;
       score: number;
       placements: ReadonlyArray<BoardPlacement>;
+      turnNumber: TurnNumber;
     }> = [];
     const wordsToCheck = new Set<string>();
     let turnNumber = this.nextTurnNumber;
@@ -193,6 +199,7 @@ export class SharedState {
           playerId,
           score: score + bingoBonus,
           placements: turn.move.playTiles,
+          turnNumber,
         });
         turn.mainWord = mainWordForUrl;
         turn.row = row;
@@ -228,8 +235,8 @@ export class SharedState {
     if (wordsToCheck.size) await this.dictionary.checkWords(...wordsToCheck);
     if (turnsToPlayNow.length === 0) return turnsToPlayNow;
     console.debug(`Turn validation success.`);
-    for (const { playerId, score, placements } of boardChanges) {
-      this.board.placeTiles(...placements);
+    for (const { playerId, score, placements, turnNumber } of boardChanges) {
+      this.board.placeTiles(placements, turnNumber);
       this.board.scores.set(
         playerId,
         (this.board.scores.get(playerId) ?? 0) + score,
@@ -435,8 +442,8 @@ export class SharedState {
       nextTurnNumber: this.nextTurnNumber,
       settings: this.settings.toJSON(),
       board: this.board.toJSON(),
-      history: this.history.map(td => td.paramsStr).join("&"),
       tilesState: this.tilesState.toJSON(),
+      history: this.history.map(td => td.paramsStr).join("&"),
     };
   }
 
@@ -450,7 +457,7 @@ export class SharedState {
     if (
       !arraysEqual(
         [...Object.keys(json)],
-        ["gameId", "nextTurnNumber", "settings", "board", "history", "tilesState"],
+        ["gameId", "nextTurnNumber", "settings", "board", "tilesState", "history"],
       )
     )
       fail("Wrong keys or key order");
@@ -468,11 +475,21 @@ export class SharedState {
     );
     const params = new URLSearchParams(json.history);
     const paramsIterator = params[Symbol.iterator]();
-    const turns = [...sharedState.turnsFromParams(paramsIterator, toTurnNumber(1))];
-    for (const turn of turns) {
+    const turns: Turn[] = [];
+    for (const turn of sharedState.turnsFromParams(paramsIterator, toTurnNumber(1))) {
       if ("playTiles" in turn.move) {
-        sharedState.board.placeTiles(...turn.move.playTiles);
+        (
+          {
+            mainWordForUrl: turn.mainWord,
+            row: turn.row,
+            col: turn.col,
+            vertical: turn.vertical,
+            blanks: turn.blanks,
+          } = sharedState.board.checkWordPlacement(...turn.move.playTiles)
+        );
+        sharedState.board.placeTiles(turn.move.playTiles, turn.turnNumber);
       }
+      turns.push(turn);
     }
     updateTurnHistory({
       history: sharedState.history,

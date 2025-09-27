@@ -290,7 +290,7 @@ describe("game state", () => {
       row: 7,
       col: 7,
     };
-    gameState.board.placeTiles(otherPlayerTile);
+    gameState.board.placeTiles([otherPlayerTile]);
 
     // The tile should be moved back to the rack
     expect(

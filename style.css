@@ -125,6 +125,8 @@ limitations under the License.
   touch-action: none;
 }
 
+.square.latest { background-color: #f99 !important; }
+
 .square.dl { background-color: #c99; }
 .square.tl { background-color: #bbb; }
 .square.dw { background-color: #ff3; }
@@ -377,6 +379,8 @@ dialog button {
   .placed {
     background-color: rgba(34, 136, 34, 0.7) !important;
   }
+
+  .square.latest { background-color: #c33 !important; }
 
   .square.dl { background-color: #533; }
   .square.tl { background-color: #555; }

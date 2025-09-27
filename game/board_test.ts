@@ -74,7 +74,7 @@ describe("board", () => {
 
   it("should score cross words", () => {
     const board = new Board("..T", "d..", "...");
-    board.placeTiles(_t(1, 0, "C", 3), _t(1, 1, "A", 1), _t(1, 2, "T", 1));
+    board.placeTiles([_t(1, 0, "C", 3), _t(1, 1, "A", 1), _t(1, 2, "T", 1)]);
     expect(
       board.checkWordPlacement(_t(0, 2, "U", 2), _t(0, 1, "M", 3)),
     ).toEqual({
@@ -171,7 +171,7 @@ describe("board", () => {
 
     it("should throw if a tile is placed on an occupied square", () => {
       const board = new Board(".");
-      board.placeTiles(_t(0, 0, "A", 1));
+      board.placeTiles([_t(0, 0, "A", 1)]);
       expect(() => board.checkWordPlacement(_t(0, 0, "B", 1))).toThrow(
         "Square 0,0 is occupied.",
       );
@@ -256,7 +256,7 @@ describe("board", () => {
 
     it.skip("should roundtrip a board with tiles", () => {
       const board = new Board(".d", "T.");
-      board.placeTiles(_t(0, 0, "A", 1), _t(0, 1, "", 0, "C"));
+      board.placeTiles([_t(0, 0, "A", 1), _t(0, 1, "", 0, "C")]);
       const boardAsJson = JSON.parse(JSON.stringify(board));
       const boardFromJson = Board.fromJSON(boardAsJson);
       expect(boardFromJson).toEqual(board);
