@@ -17,11 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { codePointCompare } from "./code_point_compare.js";
 import { Macro, Metadata, InlineMetadata } from "./swdict.js";
 import { Pointer } from "./pointer.js";
 import type { Word, Subword } from "./word.js";
+import { WordImpl, SubwordImpl, wordCompare } from "./word.js";
 import { toVarint } from "./varint.js";
+import { buildSortingInfoMap } from "./sortalike.js";
 
 const METADATA_FIELD_NUMBER = 1n;
 const DATA_FIELD_NUMBER = 2n;
@@ -87,6 +88,7 @@ class WordListEntry extends String implements Word {
 export class WordList {
   private _metadata: Readonly<Metadata>;
   private data: Uint8Array;
+  private sortingInfoMap;
 
   constructor(lexiconMessage: ArrayBuffer | Uint8Array) {
     const lexiconMessageArray = new Uint8Array(lexiconMessage);
@@ -129,6 +131,7 @@ export class WordList {
     this._metadata = metadata;
     this.data = data;
     this._checkForRecursion();
+    this.sortingInfoMap = buildSortingInfoMap(metadata.sortalikes.map(s => s.subwords));
   }
 
   get metadata() {
@@ -170,7 +173,7 @@ export class WordList {
     visited.add(macroIndex);
   }
 
-  private *scanFrom(ip: Pointer) {
+  private *scanFrom(ip: Pointer): Generator<WordListEntry> {
     const wordBuffer: bigint[][] = [[]];
     const stack: Iterator<bigint>[] = [this.readInstructions(ip)];
 
@@ -221,6 +224,10 @@ export class WordList {
     }
   }
 
+  private wordCompare(left: Word, right: Word) {
+    return wordCompare(left, right, this.sortingInfoMap);
+  }
+
   [Symbol.iterator]() {
     return this.scanFrom(new Pointer(this.data));
   }
@@ -228,11 +235,20 @@ export class WordList {
   /**
    * Returns true if `possibleWord` is in the list.
    */
-  has(possibleWord: string): boolean {
-    return Boolean(this.get(possibleWord));
+  has(possibleWordStr: string): boolean {
+    return Boolean(this.get(possibleWordStr));
   }
 
-  get(possibleWord: string): Word | undefined {
+  get(possibleWordStr: string): Word | undefined {
+    const possibleWord = new WordImpl([...possibleWordStr].map(c => new SubwordImpl(c)));
+    for (const word of this.iterateFrom(possibleWord)) {
+      if (this.wordCompare(word, possibleWord) === 0) return word;
+      break;
+    }
+    return undefined;
+  }
+
+  *iterateFrom(possibleWord: Word): Generator<Word> {
     // This performs a binary search through blocks delimited by "clear" instructions,
     // followed by a scan within a block.
     let iterator = this[Symbol.iterator]();
@@ -248,34 +264,24 @@ export class WordList {
         while (!probe.atEnd) {
           if (this.macros[Number(probe.varintBigInt())]?.clear) break;
         }
-        if (probe.atEnd || probe.offset >= hiBlock * blockSize) break;
-        const midIterator = this.scanFrom(probe);
-        const midWord = midIterator.next().value!;
-        switch (codePointCompare(possibleWord, midWord)) {
-          case 0:
-            return midWord;
-          case -1:
-            hiBlock = midBlock;
-            continue;
-          case 1:
+        if (!probe.atEnd && probe.offset < hiBlock * blockSize) {
+          const midIterator = this.scanFrom(probe);
+          const midWord = midIterator.next().value!;
+          if (this.wordCompare(possibleWord, midWord) > 0) {
             loBlock = midBlock;
             iterator = midIterator;
             continue;
+          }
         }
+        hiBlock = midBlock;
       }
     }
     for (const word of iterator) {
-      switch (codePointCompare(possibleWord, word)) {
-        case 0:
-          return word;
-        case 1:
-          // `possibleWord` sorts after `word`. Keep scanning.
-          continue;
-        case -1:
-          // `possibleWord` sorts before `word`. Not found.
-          return undefined;
+      if (this.wordCompare(possibleWord, word) < 1) {
+        yield word;
+        yield* iterator;
+        break;
       }
     }
-    return undefined;
   }
 }

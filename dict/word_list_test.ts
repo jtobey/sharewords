@@ -18,6 +18,7 @@ import { compile } from "./compiler.js";
 import { Lexicon, InlineMetadata } from "./swdict.js";
 import { WordList } from "./word_list.js";
 import { toVarint } from "./varint.js";
+import { WordImpl, SubwordImpl } from "./word.js";
 
 function writeVarints(ns: Array<number | bigint>): Uint8Array {
   const data: number[] = [];
@@ -30,6 +31,10 @@ function writeVarints(ns: Array<number | bigint>): Uint8Array {
     data.push(Number(n));
   }
   return new Uint8Array(data);
+}
+
+function toWord(wordStr: string): WordImpl {
+  return new WordImpl([...wordStr].map(c => new SubwordImpl(c)));
 }
 
 describe("word list", () => {
@@ -198,5 +203,34 @@ describe("word list", () => {
     const actual = wordList.get("A");
     expect(String(actual)).toEqual(expected.word);
     expect(actual?.metadata).toEqual(expected.metadata);
+  });
+
+  it("should iterate from a word", async () => {
+    const words = [
+      "blue",
+      "bluer",
+      "bluest",
+      "green",
+      "greener",
+      "greenery",
+      "greenest",
+    ];
+    const name = "Test Lexicon";
+    const description = "Lexicon for testing.";
+    const clearInterval = 16;
+    const lexicon = await compile({
+      words,
+      name,
+      description,
+      clearInterval,
+    });
+    const binary = Lexicon.encode(lexicon).finish();
+    const wordList = new WordList(binary);
+    expect([...wordList.iterateFrom(toWord("greener")).map(String)]).toEqual([
+      "greener", "greenery", "greenest"
+    ]);
+    expect([...wordList.iterateFrom(toWord("brown")).map(String)]).toEqual([
+      "green", "greener", "greenery", "greenest"
+    ]);
   });
 });
